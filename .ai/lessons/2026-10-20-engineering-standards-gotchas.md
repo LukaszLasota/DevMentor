@@ -10,3 +10,4 @@ Found while implementing `specs/2026-09-01-engineering-standards.md`.
 - **Next injects an empty `role="alert"` (route announcer)** — scope browser assertions to `main`.
 - **`braces` (GHSA-vfj7-8cjw-p6xm) has no patched release**; `npm audit fix --force` would downgrade awilix/eslint-config-next/shadcn by majors. Accepted via `audit-allowlist.json` with a review date.
 - **Playwright browsers are cached in `~/.cache/ms-playwright`, but a newer `playwright` wants a newer build** — pass `executablePath` to the cached `chromium_headless_shell-*` instead of downloading.
+- **`@next/env` `loadEnvConfig` caches its first result.** Next loads the app dir before `next.config.ts` runs, so a plain `loadEnvConfig(repoRoot)` there is a no-op. Use `forceReload: true` and `updateInitialEnv(parsedEnv)`. Test env loading with a real `.env` file, not `DATABASE_URL=... npm run dev` — the inline variable hides the bug.

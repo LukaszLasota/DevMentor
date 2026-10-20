@@ -69,7 +69,7 @@ New reusable components have one home each:
 ## Database (MikroORM)
 
 - Entities with `defineEntity` + `setClass` (MikroORM 7, no decorators), UUID primary keys, snake_case plural tables.
-- Schema changes only via committed migrations (`npm run db -- migration:create`, `migration:up`). Never edit an applied migration; never use `schema:update` outside local experiments.
+- Local database: `docker compose up -d postgres` (credentials match `.env.example`). Schema changes only via committed migrations (`npm run db -- migration:create`, apply with `npm run db:migrate`). Never edit an applied migration; never use `schema:update` outside local experiments.
 - Env: root `.env` (template `.env.example`), loaded by `next.config.ts` and the CLI config, validated by `core/src/config/env.ts` (zod) — add new variables there. `db` receives options explicitly (`getOrm(options)`); only its CLI config (`packages/db/src/mikro-orm.config.ts`) reads `process.env` itself.
 - One `MikroORM` instance per process (cached on `globalThis`); never use the global `EntityManager`.
 - No `export const dynamic` (removed with `cacheComponents`) and no `use cache` around DB reads: uncached DB access runs at request time. The app must build and boot with no database reachable — check `npm run build` without a DB.

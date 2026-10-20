@@ -49,13 +49,15 @@ Route groups in `packages/app/src/app`:
 
 ## Getting started
 
-Requirements: Node.js 22+, PostgreSQL 15+.
+Requirements: Node.js 22+, Docker (or a native PostgreSQL 15+).
 
 ```bash
+git clone git@github.com:LukaszLasota/DevMentor.git && cd DevMentor
 npm install
-cp .env.example .env        # set DATABASE_URL to your PostgreSQL database
-npm run db -- migration:up  # apply migrations
-npm run dev
+docker compose up -d postgres   # or a native PostgreSQL — then adjust DATABASE_URL
+cp .env.example .env            # defaults match docker-compose.yml
+npm run db:migrate              # applies the migrations committed in packages/db/src/migrations
+npm run dev                     # http://localhost:3000
 ```
 
 - Public site: [http://localhost:3000](http://localhost:3000)
@@ -72,6 +74,7 @@ npm run dev
 | `npm test` | Vitest (core: node, ui: jsdom) |
 | `npm run audit` | `npm audit` gate (high/critical, minus `audit-allowlist.json`) |
 | `npm run validate` | All of the above + build |
+| `npm run db:migrate` | Apply all pending migrations |
 | `npm run db -- migration:create` | Generate a migration from entity changes |
 | `npm run db -- migration:up` / `migration:down` | Apply / roll back migrations |
 | `npm run db -- <command>` | Any other MikroORM CLI command |
