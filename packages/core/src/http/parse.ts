@@ -5,13 +5,8 @@ const FORM_ERRORS_KEY = '_root';
 
 export function toFieldErrors(error: z.ZodError): FieldErrors {
   const { formErrors, fieldErrors } = z.flattenError(error);
-  const result: FieldErrors = {};
-
-  for (const [field, messages] of Object.entries(fieldErrors)) {
-    if (Array.isArray(messages) && messages.length > 0) {
-      result[field] = messages;
-    }
-  }
+  // flattenError only lists fields that have at least one message.
+  const result: FieldErrors = { ...(fieldErrors as FieldErrors) };
 
   if (formErrors.length > 0) {
     result[FORM_ERRORS_KEY] = formErrors;

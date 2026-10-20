@@ -43,3 +43,6 @@ next-env.d.ts
 
 # MikroORM compiled migrations
 packages/db/dist/
+
+# test coverage
+coverage/

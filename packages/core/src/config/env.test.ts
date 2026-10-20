@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { parseEnv } from './env';
 
 describe('parseEnv', () => {
@@ -22,5 +22,20 @@ describe('parseEnv', () => {
     expect(() => parseEnv({ DATABASE_URL: 'mysql://user:topsecret@localhost/db' })).toThrow(
       expect.objectContaining({ message: expect.not.stringContaining('topsecret') }),
     );
+  });
+});
+
+describe('getEnv', () => {
+  it('parses process.env once and caches the result', async () => {
+    vi.resetModules();
+    vi.stubEnv('DATABASE_URL', 'postgres://u:p@localhost:5432/db');
+    const { getEnv } = await import('./env');
+
+    const first = getEnv();
+    vi.stubEnv('DATABASE_URL', 'postgres://changed@localhost/other');
+
+    expect(first.DATABASE_URL).toBe('postgres://u:p@localhost:5432/db');
+    expect(getEnv()).toBe(first);
+    vi.unstubAllEnvs();
   });
 });

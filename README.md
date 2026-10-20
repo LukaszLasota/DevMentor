@@ -13,7 +13,8 @@ Web application built with Next.js, TypeScript and React, backed by PostgreSQL.
 | Validation / config | Zod 4 (shared schemas, env validation) |
 | Logging | pino (secrets redacted) |
 | Styling | Tailwind CSS 4 (public pages), shadcn/ui (admin pages) |
-| Tests | Vitest, jsdom, Testing Library |
+| Tests | Vitest + v8 coverage (100% required), Testing Library, testcontainers, agent-browser |
+| CI | GitHub Actions on every pull request |
 | Repo layout | Monorepo, npm workspaces |
 
 ## Architecture
@@ -71,9 +72,11 @@ npm run dev                     # http://localhost:3000
 | `npm run dev` / `build` / `start` | Next.js app (`@devmentor/app`) |
 | `npm run lint` | ESLint, incl. package boundary rules |
 | `npm run typecheck` | TypeScript check in every package |
-| `npm test` | Vitest (core: node, ui: jsdom) |
+| `npm test` | Unit tests (Vitest) |
+| `npm run test:coverage` | Unit tests with the 100% coverage gate |
+| `npm run test:integration` | Build + integration tests: PostgreSQL via testcontainers, pages via agent-browser (needs Docker) |
 | `npm run audit` | `npm audit` gate (high/critical, minus `audit-allowlist.json`) |
-| `npm run validate` | All of the above + build |
+| `npm run validate` | Lint, typecheck, coverage, build, audit |
 | `npm run db:migrate` | Apply all pending migrations |
 | `npm run db -- migration:create` | Generate a migration from entity changes |
 | `npm run db -- migration:up` / `migration:down` | Apply / roll back migrations |

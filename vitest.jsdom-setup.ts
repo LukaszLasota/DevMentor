@@ -1,3 +1,4 @@
+// Shared setup for jsdom test projects (ui, app).
 import { cleanup } from "@testing-library/react";
 import { afterEach } from "vitest";
 

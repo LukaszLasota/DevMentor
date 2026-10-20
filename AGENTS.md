@@ -10,9 +10,9 @@ Next.js-specific agent rules live in `packages/app/AGENTS.md` — that file is m
 - PostgreSQL + MikroORM 7 (`@mikro-orm/postgresql`) — entities, migrations, connection pool.
 - Awilix — dependency injection container. Zod 4 — validation and env. pino — logging.
 - Tailwind CSS 4 — public pages; shadcn/ui — admin (backend) pages.
-- Vitest (+ jsdom, Testing Library for `ui`) — tests.
+- Vitest + `@vitest/coverage-v8` (jsdom + Testing Library for React) — unit tests; testcontainers (PostgreSQL) + `agent-browser` — integration tests; GitHub Actions — CI.
 - Monorepo on npm workspaces; packages live in `packages/`, named `@devmentor/<name>`, consumed as TypeScript source (no build step; Turbopack transpiles them).
-- Root scripts: `npm run dev | build | lint | typecheck | test | audit`, `npm run validate` (all gates), `npm run db -- <mikro-orm command>`. Install deps into a package with `npm install <dep> -w @devmentor/<name>`.
+- Root scripts: `npm run dev | build | lint | typecheck | test | test:coverage | test:integration | audit`, `npm run validate` (all gates except integration), `npm run db:migrate`, `npm run db -- <mikro-orm command>`. Install deps into a package with `npm install <dep> -w @devmentor/<name>`.
 
 ## Packages and dependency direction
 
@@ -82,9 +82,12 @@ New reusable components have one home each:
 
 ## Quality gates
 
-- `npm run validate` (lint, typecheck, test, build, audit) passes before review. `npm run audit` fails on high/critical advisories not listed in `audit-allowlist.json` (each entry: reason + `reviewBy` date).
-- Tests live next to the code (`*.test.ts(x)`). A behaviour change ships with a test that fails without it; a bug fix with a regression test.
-- Security minimums and the review checklist (auth server-side, ownership checks, fail closed, no secrets in logs/responses, rate limiting on auth endpoints): spec §1.
+- **100% unit test coverage is mandatory.** Every new feature and every change ships with unit tests that keep coverage at 100% for statements, branches, functions and lines. `npm run test:coverage` enforces it (thresholds in `vitest.config.mts`) and CI fails below 100%. Do not lower the thresholds, and do not add coverage exclusions (`coverage.exclude`, `/* v8 ignore */`, `/* istanbul ignore */`) without the user's explicit approval — make code testable instead (inject dependencies, split side effects into a thin entry).
+- Unit tests live next to the code (`*.test.ts(x)`, `scripts/**/*.test.mjs`). A behaviour change ships with a test that fails without it; a bug fix with a regression test.
+- Integration tests (`packages/app/integration/`, `npm run test:integration`, needs Docker) run the production build against a throwaway PostgreSQL from testcontainers and drive pages with `agent-browser` (wrapper: `integration/agent-browser.ts`). Add one for every flow that crosses HTTP + DB + UI.
+- CI (`.github/workflows/ci.yml`) runs on every pull request and push to `main`: lint + typecheck, unit tests with coverage, build without a DB, audit, integration tests. All jobs must be green before merging.
+- Run `npm run validate` locally before review (lint, typecheck, coverage, build, audit), plus `npm run test:integration` when HTTP/DB/UI behaviour changes. `npm run audit` fails on high/critical advisories not listed in `audit-allowlist.json` (each entry: reason + `reviewBy` date).
+- Security minimums and the review checklist (auth server-side, ownership checks, fail closed, no secrets in logs/responses, rate limiting on auth endpoints): engineering standards spec §1.
 
 # AI workspace (`.ai/`)
 

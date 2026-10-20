@@ -62,4 +62,27 @@ describe("DataTable", () => {
 
     expect(screen.queryByRole("navigation", { name: "Pagination" })).toBeNull();
   });
+
+  it("goes back with Previous and clamps the page when rows shrink", async () => {
+    const { rerender } = render(<DataTable columns={columns} rows={rows(5)} getRowId={(r) => r.id} pageSize={2} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Next" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByText("Page 3 of 3")).toBeTruthy();
+
+    await userEvent.click(screen.getByRole("button", { name: "Previous" }));
+    expect(screen.getByText("Page 2 of 3")).toBeTruthy();
+
+    await userEvent.click(screen.getByRole("button", { name: "Next" }));
+    rerender(<DataTable columns={columns} rows={rows(3)} getRowId={(r) => r.id} pageSize={2} />);
+    expect(screen.getByText("Page 2 of 2")).toBeTruthy();
+  });
+
+  it("uses the default empty title and page size", () => {
+    const { rerender } = render(<DataTable columns={columns} rows={undefined} getRowId={(r) => r.id} />);
+    expect(screen.getByText("Nothing here yet")).toBeTruthy();
+
+    rerender(<DataTable columns={columns} rows={rows(11)} getRowId={(r) => r.id} />);
+    expect(screen.getByText("Page 1 of 2")).toBeTruthy();
+  });
 });

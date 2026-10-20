@@ -90,4 +90,92 @@ describe("CrudForm", () => {
     resolve({ ok: true, data: null });
     expect(await screen.findByRole("button", { name: "Save" })).toBeTruthy();
   });
+
+  it("supports textarea, descriptions, default values and form-level schema errors", async () => {
+    const bioSchema = z
+      .object({ bio: z.string(), minutes: z.number().optional(), isPublic: z.boolean() })
+      .refine((value) => value.bio.length > 3 || value.isPublic, "Write a longer bio or make it public");
+    const onSubmit = vi.fn(async (): Promise<ApiResult<unknown>> => ({ ok: true, data: null }));
+    const user = userEvent.setup();
+
+    render(
+      <CrudForm
+        schema={bioSchema}
+        fields={[
+          { name: "bio", label: "Bio", type: "textarea", description: "Shown on your profile" },
+          { name: "minutes", label: "Minutes", type: "number" },
+          { name: "isPublic", label: "Public", type: "checkbox" },
+        ]}
+        defaultValues={{ bio: "Hi", minutes: 45, isPublic: false }}
+        onSubmit={onSubmit}
+        submitLabel="Create"
+      />,
+    );
+
+    expect(screen.getByText("Shown on your profile")).toBeTruthy();
+    expect((screen.getByLabelText("Minutes") as HTMLInputElement).value).toBe("45");
+    expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Create" }));
+    expect(screen.getByRole("alert").textContent).toBe("Write a longer bio or make it public");
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    await user.type(screen.getByLabelText("Bio"), " there");
+    await user.clear(screen.getByLabelText("Minutes"));
+    await user.click(screen.getByRole("button", { name: "Create" }));
+
+    expect(onSubmit).toHaveBeenCalledWith({ bio: "Hi there", minutes: undefined, isPublic: false });
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("starts checked when the default is true and ignores Escape without onCancel", async () => {
+    const user = userEvent.setup();
+    render(
+      <CrudForm
+        schema={z.object({ isPublic: z.boolean() })}
+        fields={[{ name: "isPublic", label: "Public", type: "checkbox" }]}
+        defaultValues={{ isPublic: true }}
+        onSubmit={async () => ({ ok: true, data: null })}
+      />,
+    );
+
+    expect(screen.getByLabelText("Public").getAttribute("aria-checked")).toBe("true");
+    await user.click(screen.getByLabelText("Public"));
+    await user.keyboard("{Escape}");
+    expect(screen.getByLabelText("Public").getAttribute("aria-checked")).toBe("false");
+  });
+
+  it("shows a server error without field errors and ignores a second submit while saving", async () => {
+    let resolve: (value: ApiResult<unknown>) => void = () => undefined;
+    const onSubmit = vi.fn(() => new Promise<ApiResult<unknown>>((r) => (resolve = r)));
+    const user = userEvent.setup();
+    render(
+      <CrudForm
+        schema={z.object({ title: z.string() })}
+        fields={[{ name: "title", label: "Title" }]}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    const form = screen.getByLabelText("Title").closest("form")!;
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    form.requestSubmit();
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+
+    resolve({ ok: false, error: { code: "INTERNAL_ERROR", message: "Internal server error." } });
+
+    expect((await screen.findByRole("alert")).textContent).toBe("Internal server error.");
+  });
+
+  it("works without onSuccess", async () => {
+    const onSubmit = vi.fn(async (): Promise<ApiResult<unknown>> => ({ ok: true, data: 1 }));
+    const user = userEvent.setup();
+    render(
+      <CrudForm schema={z.object({ title: z.string() })} fields={[{ name: "title", label: "Title" }]} onSubmit={onSubmit} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSubmit).toHaveBeenCalledWith({ title: "" });
+  });
 });
