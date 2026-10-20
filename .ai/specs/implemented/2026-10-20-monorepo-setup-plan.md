@@ -38,11 +38,11 @@ Done when: `/` renders the original page; `/admin` renders shadcn buttons with t
 
 Done when: docs describe the actual layout and commands; no "target layout" notes remain.
 
-## Phase 6 — Delivery ⏳
+## Phase 6 — Delivery ✅
 
 - Commit on `feature/monorepo-setup`, push, open PR to `main` (needs the user's approval).
 
-Done when: PR is open and CI (if configured) is green.
+Done when: PR is merged into `main` (no CI configured) and the final verification on `main` passes.
 
 ## Progress log
 
@@ -52,3 +52,9 @@ Done when: PR is open and CI (if configured) is green.
   - Temporary PostgreSQL 17: `db -- debug` connects; blank `migration:create` → `up` → `down` ✅ (test migration removed).
   - `npm run dev`: `/` 200 with the original page, `/admin` renders shadcn `Button` variants, `/api/health` → `{"status":"ok","database":"up"}` ✅.
 - 2026-10-20 — Phase 6: committed, pushed `feature/monorepo-setup`, PR opened against `main`. Remaining: review and merge by the user.
+- 2026-10-20 — PR #1 merged into `main` by the user; feature branch deleted. Final verification on `main` (`313d489`):
+  - `npm ci` ✅ (all four `@devmentor/*` workspaces linked), `npm run lint` ✅, `npm run typecheck` ✅ (0 errors), `npm run build` ✅.
+  - Tests: no test scripts/framework in the project yet (out of scope of the spec).
+  - `npm start` (production): `/` 200 with the original page, `/admin` 200 with shadcn `Button` styles; `/api/health` → 503 without a database, `{"status":"ok","database":"up"}` after PostgreSQL 17 starts (no restart needed).
+  - MikroORM CLI: blank `migration:create` → `up` → `down` ✅ (test migration removed).
+- **Migration complete.** Next (new specs): test framework + CI, local PostgreSQL setup (DDEV/Docker), first domain entities.
