@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DevMentor
 
-## Getting Started
+Web application built with Next.js, TypeScript and React, backed by PostgreSQL.
 
-First, run the development server:
+## Tech stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+| Area | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router), React 19, TypeScript |
+| Database | PostgreSQL |
+| ORM | MikroORM 7 — entities, migrations, connection pooling |
+| Dependency injection | Awilix |
+| Styling | Tailwind CSS 4 (public pages), shadcn/ui (admin pages) |
+| Repo layout | Monorepo, npm workspaces |
+
+## Architecture
+
+```
+packages/
+├── app/    # Next.js application — routes, pages, server actions, DI composition root
+├── core/   # Reusable, framework-agnostic code — domain types, services, interfaces
+├── db/     # MikroORM config, entities, repositories, migrations, seeders
+└── ui/     # Reusable React components, incl. shadcn/ui
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Dependency direction (no cycles):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+app ──► core
+app ──► db ──► core
+app ──► ui ──► core (types only)
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **core** has no dependency on React, Next.js or MikroORM, so business logic stays testable and portable.
+- **db** owns everything data-related. Schema changes go through committed MikroORM migrations. Connection and pool settings come from `DATABASE_URL` and the MikroORM config.
+- **ui** holds shared components. shadcn/ui components are generated here with the shadcn CLI.
+- **app** wires everything together: it builds the Awilix container (composition root), creates a scope per request with a forked MikroORM `EntityManager`, and resolves services from it in route handlers, server components and server actions.
 
-## Learn More
+Frontend vs. admin:
 
-To learn more about Next.js, take a look at the following resources:
+- `app/(site)` — public pages, styled with Tailwind.
+- `app/(admin)` — admin panel, built with shadcn/ui.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Getting started
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Requirements: Node.js 22+, PostgreSQL 15+.
 
-## Deploy on Vercel
+```bash
+npm install
+cp .env.example .env        # set DATABASE_URL to your PostgreSQL database
+npm run db -- migration:up  # apply migrations
+npm run dev
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Public site: [http://localhost:3000](http://localhost:3000)
+- Admin panel: [http://localhost:3000/admin](http://localhost:3000/admin)
+- Health check (DB connection via DI): [http://localhost:3000/api/health](http://localhost:3000/api/health)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Scripts
+
+| Command | Description |
+|---|---|
+| `npm run dev` / `build` / `start` | Next.js app (`@devmentor/app`) |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | TypeScript check in every package |
+| `npm run db -- migration:create` | Generate a migration from entity changes |
+| `npm run db -- migration:up` / `migration:down` | Apply / roll back migrations |
+| `npm run db -- <command>` | Any other MikroORM CLI command |
+
+## For AI agents
+
+Rules for coding agents are in [AGENTS.md](AGENTS.md) (loaded by Claude Code via [CLAUDE.md](CLAUDE.md)). Specs, run logs and lessons learned live in [.ai/](.ai/).
