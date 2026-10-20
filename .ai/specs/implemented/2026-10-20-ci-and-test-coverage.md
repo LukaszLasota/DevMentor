@@ -1,6 +1,6 @@
 # CI and test coverage
 
-Status: in-progress
+Status: implemented
 Branch: `feature/ci`
 
 ## Goal
@@ -39,3 +39,4 @@ Every pull request is checked automatically on GitHub: the app builds, lint and 
 - 2026-10-20 — Phase 2: unit tests for every file → 120 tests, 100% statements/branches/functions/lines (35 files; 6 type-only files have no runtime code). Lint + typecheck clean.
 - 2026-10-20 — Phase 3: `vitest.integration.config.mts` + `packages/app/integration/` (testcontainers PostgreSQL 17, `npm run db:migrate`, `next start` on a free port, agent-browser wrapper). 5 tests pass in ~19 s incl. build; containers and browser sessions cleaned up; a deliberately wrong assertion fails the suite.
 - 2026-10-20 — Phase 4: `.github/workflows/ci.yml` (lint+typecheck, unit coverage, build, audit, integration), 100% rule in `AGENTS.md`, README, lessons. `npm run validate` ✅ locally. Remaining: CI run on the PR.
+- 2026-10-20 — CI on PR #6: all five jobs green (lint & typecheck, unit 100% coverage, build, audit, integration with PostgreSQL + agent-browser on the runner).
