@@ -10,10 +10,23 @@ if (existsSync(rootEnv)) {
   process.loadEnvFile(rootEnv);
 }
 
-export default createConfig({
-  extensions: [Migrator],
-  migrations: {
-    path: './dist/migrations',
-    pathTs: './src/migrations',
+const clientUrl = process.env.DATABASE_URL;
+
+if (!clientUrl) {
+  throw new Error('DATABASE_URL is not set (see .env.example).');
+}
+
+export default createConfig(
+  {
+    clientUrl,
+    pool: { min: 0, max: 1 },
+    debug: false,
   },
-});
+  {
+    extensions: [Migrator],
+    migrations: {
+      path: './dist/migrations',
+      pathTs: './src/migrations',
+    },
+  },
+);

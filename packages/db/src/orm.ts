@@ -1,5 +1,5 @@
 import { MikroORM } from '@mikro-orm/postgresql';
-import { createConfig } from './config';
+import { createConfig, type DbOptions } from './config';
 
 const globalForOrm = globalThis as typeof globalThis & {
   devmentorOrm?: Promise<MikroORM>;
@@ -9,8 +9,8 @@ const globalForOrm = globalThis as typeof globalThis & {
  * Returns the single MikroORM instance for this process.
  * Cached on globalThis so dev hot reload does not open new pools.
  */
-export function getOrm(): Promise<MikroORM> {
-  globalForOrm.devmentorOrm ??= MikroORM.init(createConfig());
+export function getOrm(options: DbOptions): Promise<MikroORM> {
+  globalForOrm.devmentorOrm ??= MikroORM.init(createConfig(options));
 
   return globalForOrm.devmentorOrm;
 }

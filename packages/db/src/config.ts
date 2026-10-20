@@ -1,25 +1,23 @@
 import { defineConfig, type Options } from '@mikro-orm/postgresql';
 import { entities } from './entities';
 
+export interface DbOptions {
+  clientUrl: string;
+  pool: { min: number; max: number };
+  debug: boolean;
+}
+
 /**
  * Base MikroORM config shared by the app runtime and the CLI.
+ * Env parsing happens in the caller (core env schema or the CLI config).
  */
-export function createConfig(overrides: Partial<Options> = {}): Options {
-  const clientUrl = process.env.DATABASE_URL;
-
-  if (!clientUrl) {
-    throw new Error('DATABASE_URL is not set.');
-  }
-
+export function createConfig(options: DbOptions, overrides: Partial<Options> = {}): Options {
   return defineConfig({
-    clientUrl,
+    clientUrl: options.clientUrl,
     entities,
-    pool: {
-      min: Number(process.env.DATABASE_POOL_MIN ?? 0),
-      max: Number(process.env.DATABASE_POOL_MAX ?? 10),
-    },
+    pool: options.pool,
     discovery: { warnWhenNoEntities: false },
-    debug: process.env.NODE_ENV === 'development',
+    debug: options.debug,
     ...overrides,
   });
 }

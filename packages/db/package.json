@@ -11,10 +11,8 @@
     "mikro-orm": "mikro-orm"
   },
   "dependencies": {
-    "@devmentor/core": "*",
     "@mikro-orm/core": "^7.2.5",
     "@mikro-orm/postgresql": "^7.2.5",
-    "awilix": "^13.0.5",
     "server-only": "^0.0.1"
   },
   "devDependencies": {
