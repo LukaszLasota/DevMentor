@@ -63,4 +63,4 @@ Done when: `npm run validate` passes from a clean install.
 - 2026-10-20 — Phase 4: `AGENTS.md`, `README.md`, spec "Adaptation notes", `.env.example`, lessons; `npm run audit` gate (`scripts/audit.mjs` + `audit-allowlist.json`, verified to fail without the allowlist entry).
 - 2026-10-20 — Final verification from `npm ci` with no `.env`/DB: `npm run validate` ✅ (lint, typecheck, 47 tests, build — `/api/health` dynamic, audit). `npm start`: `/` original page; `/api/health` 503 → 200 once PostgreSQL 17 is up; `/admin` panel shows "Database up"; MikroORM CLI `migration:create`/`up`/`down` ✅.
 - 2026-10-20 — Phase 5: committed, PR opened against `main`; merge by the user.
-- Next: spec §5 steps 4–6 apply per feature — spec §5 steps 4–6 apply per feature (events, validators, concepts) — start with a spec for the first concept (likely auth, which also brings `core/http/auth.ts`).
+- Next: spec §5 steps 4–6 apply per feature (events, validators, concepts) — start with a spec for the first concept (likely auth, which also brings `core/http/auth.ts`).
