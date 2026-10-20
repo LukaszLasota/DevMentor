@@ -4,12 +4,21 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./http": "./src/http/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/node": "^22.20.5",
     "typescript": "^5"
+  },
+  "dependencies": {
+    "@devmentor/db": "*",
+    "awilix": "^13.0.5",
+    "pino": "^10.4.0",
+    "server-only": "^0.0.1",
+    "zod": "^4.6.7"
   }
 }

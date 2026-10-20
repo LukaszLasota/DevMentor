@@ -9,8 +9,18 @@
     "dev": "npm run dev -w @devmentor/app",
     "build": "npm run build -w @devmentor/app",
     "start": "npm run start -w @devmentor/app",
-    "lint": "npm run lint --workspaces --if-present",
+    "lint": "eslint .",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "db": "npm run mikro-orm -w @devmentor/db --"
+    "db": "npm run mikro-orm -w @devmentor/db --",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "audit": "node scripts/audit.mjs",
+    "validate": "npm run lint && npm run typecheck && npm run test && npm run build && npm run audit"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
+    "jsdom": "^30.1.3",
+    "vitest": "^5.0.5"
   }
 }

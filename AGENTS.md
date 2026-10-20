@@ -1,53 +1,90 @@
 # DevMentor — architecture rules
 
-These decisions are fixed. Do not introduce alternatives (other ORMs, DI libraries, CSS or component frameworks) without the user's approval. Architecture overview for humans: `README.md`.
+These decisions are fixed. Do not introduce alternatives (other ORMs, DI libraries, CSS or component frameworks) without the user's approval. Architecture overview for humans: `README.md`. Full engineering standards (naming table, principles, security minimums, review checklist): `.ai/specs/2026-09-01-engineering-standards.md` — follow it; this file is the short version.
 
 Next.js-specific agent rules live in `packages/app/AGENTS.md` — that file is managed by `next dev` (it writes into the app directory); do not edit its marked blocks.
 
 ## Stack
 
-- Next.js 16 (App Router), React 19, TypeScript (`strict`).
+- Next.js 16 (App Router, `cacheComponents`), React 19, TypeScript (`strict`, no `any`).
 - PostgreSQL + MikroORM 7 (`@mikro-orm/postgresql`) — entities, migrations, connection pool.
-- Awilix — dependency injection container.
-- Tailwind CSS 4 — public (frontend) pages; shadcn/ui — admin (backend) pages.
+- Awilix — dependency injection container. Zod 4 — validation and env. pino — logging.
+- Tailwind CSS 4 — public pages; shadcn/ui — admin (backend) pages.
+- Vitest (+ jsdom, Testing Library for `ui`) — tests.
 - Monorepo on npm workspaces; packages live in `packages/`, named `@devmentor/<name>`, consumed as TypeScript source (no build step; Turbopack transpiles them).
-- Root scripts: `npm run dev | build | lint | typecheck`, `npm run db -- <mikro-orm command>`. Install deps into a package with `npm install <dep> -w @devmentor/<name>`.
+- Root scripts: `npm run dev | build | lint | typecheck | test | audit`, `npm run validate` (all gates), `npm run db -- <mikro-orm command>`. Install deps into a package with `npm install <dep> -w @devmentor/<name>`.
 
 ## Packages and dependency direction
 
-| Package | Contents | May depend on |
-|---|---|---|
-| `packages/app` | Next.js app: routes, pages, server actions, DI composition root | `core`, `db`, `ui` |
-| `packages/core` | Reusable, framework-agnostic code: domain types, services, interfaces, utils | nothing internal |
-| `packages/db` | MikroORM config, entities, repositories, migrations, seeders | `core` |
-| `packages/ui` | Reusable React components, incl. shadcn/ui components | `core` (types only) |
+`app → core → db`; `ui` is standalone and imported by `app` only. Enforced by `no-restricted-imports` in the root `eslint.config.mjs` — never loosen it for convenience.
 
-- Dependencies only flow in the direction above; no cycles, no `app` imports from other packages.
-- `core` must not import React, Next.js or MikroORM. `ui` must not import `db`.
-- Import packages through their public entry (`@devmentor/db`), never via relative paths into another package's `src/`.
-- Code reused by more than one place goes to `core`/`ui`/`db`, not copied inside `app`.
+| Package | Contents | May import |
+|---|---|---|
+| `packages/app` | Next.js app (`src/app`): pages, route handlers — HTTP/rendering only | `core`, `ui` |
+| `packages/core` | Services (business rules), DI container, `http/` API layer, env, logger, events, validators | `db` |
+| `packages/db` | MikroORM config, entities, migrations, seeders | nothing internal |
+| `packages/ui` | React components: shadcn primitives, panel layer `backend/`, concept components | nothing internal |
+
+- Only `db` imports `@mikro-orm/*`; others use the types `@devmentor/db` re-exports (`EntityManager`, `MikroORM`).
+- `core` and `db` never import `next`/`react`. `ui` never imports `core` — shared shapes (API envelope, CSRF header) are mirrored in `ui/src/backend/api/types.ts`; keep both in sync. A shared package for them is an Ask First change.
+- Import packages through their public entries (`@devmentor/core`, `@devmentor/core/http`, `@devmentor/ui`), never relative paths into another package. The `@devmentor/core` entries are server-only; client-safe code (shared Zod schemas) will get its own entry `@devmentor/core/validators` with the first schema.
+
+## Domain concept convention
+
+Domain code is not organized into `modules/`. Each concept (`auth`, `mentors`, `availability`, `bookings`, `payments`, `messages`, `favorites`, `reviews`, ...) is a same-named sub-folder repeated across the layers that need it:
+
+- `packages/db/src/entities/<concept>/<name>.entity.ts` (registered in `entities/index.ts`)
+- `packages/core/src/services/<concept>/<name>.service.ts` (registered in `container.ts` + `cradle.ts`)
+- `packages/core/src/validators/<concept>/<name>-<action>.schema.ts` (shared Zod schemas)
+- `packages/app/src/app/api/<concept>/route.ts` and pages under the persona route group
+- `packages/ui/src/components/<concept>/` for concept-specific shared components
+
+Create a concept folder only when its first file is added — never scaffold empty ones. This is a directory convention, not a module runtime: no per-concept setup/ACL/auto-discovery. Event IDs follow `concept.entity.action` (e.g. `bookings.booking.created`), emitted through the typed in-process emitter in `packages/core/src/events` (added with the first feature that needs it; no queue/worker in this project). Step-by-step recipe: spec §2.
+
+## Reusable API & UI layer
+
+Every route and page reuses these instead of re-implementing fetch/validation/auth/error handling:
+
+- `packages/core/src/http/` (`@devmentor/core/http`):
+  - `errors.ts` — `AppError` + `ValidationError`, `UnauthorizedError`, `ForbiddenError`, `NotFoundError`, `ConflictError`, `ServiceUnavailableError`. Services throw these; they never build responses.
+  - `apiHandler.ts` — wraps every route handler: CSRF header check on POST/PUT/PATCH/DELETE (`csrf: false` only for third-party webhooks), request scope (`cradle`), JSON envelope `{ ok: true, data }` / `{ ok: false, error: { code, message, fieldErrors? } }`, maps `AppError`/`ZodError`, logs unexpected errors without leaking them. No route writes its own `try/catch` or `NextResponse.json`.
+  - `makeCrudRoute.ts` — plain CRUD resource: `export const { GET, POST, PUT, DELETE } = makeCrudRoute({ service, createSchema, updateSchema })`; record id as `?id=<uuid>`. Workflow endpoints (booking, payment, reschedule) use `apiHandler` directly.
+  - `parse.ts` — `parseJsonBody`, `parseSearchParams`, `parseWith`: always pass the schema's parsed output to services, never the raw body (no mass assignment).
+  - `auth.ts` (`requireSession`, `requireRole`, ownership assertions) arrives with the auth concept; until then `makeCrudRoute` is for public resources only.
+- `packages/ui/src/backend/` (`@devmentor/ui`): `api/apiCall.ts` (`apiCall`/`apiCallOrThrow` — the only sanctioned `fetch()` to `/api/*`), `forms/CrudForm.tsx` (schema-driven form, every create/edit form), `tables/DataTable.tsx` (every list), `feedback/{LoadingMessage,ErrorMessage,EmptyState}.tsx` (the only loading/error/empty renderers). Reference usage: `packages/app/src/app/(admin)/admin/HealthPanel.tsx`.
+
+New reusable components have one home each:
+
+1. shadcn primitive → `ui/src/components/ui/` via `npx shadcn@latest add <name>` (run in `packages/ui`), never hand-written.
+2. Generic, concept-agnostic panel pattern → `ui/src/backend/<category>/`.
+3. Component tied to one concept's domain shape → `ui/src/components/<concept>/`.
+4. Used by exactly one page → colocate next to that `page.tsx` until a second consumer appears.
 
 ## Dependency injection (Awilix)
 
-- The container is built in one place — the composition root `packages/app/server/container.ts` (server-only); request scope via `createRequestScope()`. Each package exports a registration function (e.g. `registerDb(container)`) instead of registering its internals from `app`.
-- Constructor injection only; services receive dependencies as constructor arguments and never import singletons or call `container.resolve` themselves.
-- Lifetimes: `MikroORM` instance and config are `singleton`; the request `EntityManager` (`orm.em.fork()`), repositories and services using it are `scoped`. Create a scope per request / server action and resolve from it.
-- Route handlers, server components and server actions resolve services from the scope — no `new Service()` there.
+- One container per process: `packages/core/src/container/container.ts`; its shape: `cradle.ts`. Every dependency is registered by hand (no `loadModules`) — a new service is one line in each file.
+- Services get dependencies through the constructor (PROXY mode: one destructured object) and never import singletons or call `container.resolve`.
+- Lifetimes: `env`, `logger`, `orm` singletons; `em` (`orm.em.fork()`) and services using it `scoped`. Routes get `cradle` from `apiHandler`; pages/server actions use `withScope((cradle) => ...)`.
 
 ## Database (MikroORM)
 
-- All entities, repositories, migrations and seeders live in `packages/db`. Define entities with `defineEntity` + `setClass` (MikroORM 7 recommended API, no decorators) and add them to `packages/db/src/entities/index.ts`.
-- Schema changes only via migrations generated by the MikroORM CLI (`npm run db -- migration:create`, apply with `npm run db -- migration:up`) and committed with the change. Never edit a migration that has been applied outside your machine; never use `schema:update` outside local experiments.
-- Connection settings come from the root `.env` (`DATABASE_URL`, `DATABASE_POOL_MIN/MAX`; template: `.env.example`), loaded by both `next.config.ts` and the CLI config. Runtime config: `packages/db/src/config.ts`; CLI-only config (migrator): `packages/db/src/mikro-orm.config.ts` — never import the `server-only` entry from it. One `MikroORM` instance per process (cache it on `globalThis` in dev to survive hot reload).
-- Never use the global `EntityManager`; always a forked one from the request scope.
-- DB code is server-only (`import 'server-only'` in the package entry); MikroORM packages are listed in `serverExternalPackages` in `next.config.ts`.
+- Entities with `defineEntity` + `setClass` (MikroORM 7, no decorators), UUID primary keys, snake_case plural tables.
+- Schema changes only via committed migrations (`npm run db -- migration:create`, `migration:up`). Never edit an applied migration; never use `schema:update` outside local experiments.
+- Env: root `.env` (template `.env.example`), loaded by `next.config.ts` and the CLI config, validated by `core/src/config/env.ts` (zod) — add new variables there. `db` receives options explicitly (`getOrm(options)`); only its CLI config (`packages/db/src/mikro-orm.config.ts`) reads `process.env` itself.
+- One `MikroORM` instance per process (cached on `globalThis`); never use the global `EntityManager`.
+- No `export const dynamic` (removed with `cacheComponents`) and no `use cache` around DB reads: uncached DB access runs at request time. The app must build and boot with no database reachable — check `npm run build` without a DB.
+- Check-then-write on shared state (slots, booking status) runs in one transaction in the service, backed by a unique constraint. No raw SQL with interpolated input.
 
 ## UI
 
-- Public pages (`app/(site)`): Tailwind utilities only, no shadcn/ui.
-- Admin pages (`app/(admin)`): shadcn/ui components (they use Tailwind too); no other component libraries.
-- shadcn/ui components are added with the CLI from `packages/ui` (`npx shadcn@latest add <name>`), exported from `packages/ui/src/index.ts` and imported from `@devmentor/ui`. The admin theme is `packages/ui/src/styles.css`, imported by the admin root layout. Reusable components of any kind belong in `packages/ui`.
-- Public and admin pages have separate root layouts (`app/(site)/layout.tsx`, `app/(admin)/layout.tsx`); there is no `app/layout.tsx`.
+- `packages/app/src/app/(marketing)` — public pages, Tailwind only (no shadcn). `(admin)` — admin panel, shadcn/ui via `@devmentor/ui`. Persona groups `(auth)`, `(student)`, `(mentor)` are created with their first page. Each group that needs its own `<html>` has its own root layout; there is no `src/app/layout.tsx`.
+- Admin theme: `packages/ui/src/styles.css`, imported by the admin root layout.
+
+## Quality gates
+
+- `npm run validate` (lint, typecheck, test, build, audit) passes before review. `npm run audit` fails on high/critical advisories not listed in `audit-allowlist.json` (each entry: reason + `reviewBy` date).
+- Tests live next to the code (`*.test.ts(x)`). A behaviour change ships with a test that fails without it; a bug fix with a regression test.
+- Security minimums and the review checklist (auth server-side, ownership checks, fail closed, no secrets in logs/responses, rate limiting on auth endpoints): spec §1.
 
 # AI workspace (`.ai/`)
 
@@ -84,7 +121,7 @@ Every file in `specs/`, `runs/` and `lessons/` is named `YYYY-MM-DD-slug.md`:
 ## Working principles
 
 - **Plan complex work first** — for multi-step or multi-file tasks, plan before writing code (plan mode in Claude Code); the approved plan becomes or updates the spec. If implementation goes sideways, stop and re-plan instead of pushing through.
-- **Verify every change** — run `npm run lint` and `npm run build` (plus tests, once they exist) and check UI changes in the running app (`npm run dev`). Never report done without evidence; if a check fails, say so.
+- **Verify every change** — run `npm run validate` and check UI changes in the running app (`npm run dev`). Never report done without evidence; if a check fails, say so.
 - **Review before PR** — critically review your own diff before committing; if a solution is hacky, rewrite it cleanly now rather than leaving it.
 - **Fix bugs from evidence** — start from the error message, failing check or logs, reproduce, find the root cause, then fix and verify; afterwards record the lesson (workflow step 5).
 - **Turn corrections into rules** — when the user corrects you, record it as a lesson; if it is a general rule for this repo, update this file instead.
