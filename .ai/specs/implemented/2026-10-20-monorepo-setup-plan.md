@@ -51,4 +51,4 @@ Done when: PR is open and CI (if configured) is green.
   - `npm ci` (clean) links all `@devmentor/*` workspaces; `npm run lint` ✅, `npm run typecheck` ✅ (0 errors), `npm run build` ✅ (`/`, `/admin` static, `/api/health` dynamic).
   - Temporary PostgreSQL 17: `db -- debug` connects; blank `migration:create` → `up` → `down` ✅ (test migration removed).
   - `npm run dev`: `/` 200 with the original page, `/admin` renders shadcn `Button` variants, `/api/health` → `{"status":"ok","database":"up"}` ✅.
-- Next: Phase 6 (commit + PR) after the user's approval.
+- 2026-10-20 — Phase 6: committed, pushed `feature/monorepo-setup`, PR opened against `main`. Remaining: review and merge by the user.
