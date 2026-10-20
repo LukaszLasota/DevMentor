@@ -1,5 +1,5 @@
 import { Writable } from 'node:stream';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createLogger } from './logger';
 
 function capture() {
@@ -26,5 +26,22 @@ describe('logger', () => {
     expect(entry.user.token).toBe('[REDACTED]');
     expect(entry.headers).toEqual({ authorization: '[REDACTED]', cookie: '[REDACTED]' });
     expect(lines[0]).not.toMatch(/p1|t1|Bearer/);
+  });
+});
+
+describe('logger level', () => {
+  it('uses LOG_LEVEL when set and info otherwise', async () => {
+    vi.stubEnv('LOG_LEVEL', 'warn');
+    expect(createLogger().level).toBe('warn');
+
+    vi.stubEnv('LOG_LEVEL', undefined);
+    expect(createLogger().level).toBe('info');
+    vi.unstubAllEnvs();
+  });
+
+  it('exports a ready-to-use logger instance', async () => {
+    const { logger } = await import('./logger');
+
+    expect(typeof logger.info).toBe('function');
   });
 });

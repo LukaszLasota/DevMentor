@@ -68,6 +68,49 @@ describe("apiCall", () => {
   });
 });
 
+describe("apiCall edge cases", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("keeps caller headers, omits content-type without a body and handles an empty body", async () => {
+    const fetchMock = mockFetch(() => Promise.resolve(new Response(null, { status: 204 })));
+
+    const result = await apiCall("/api/notes", { headers: { "x-trace": "abc" } });
+
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    const headers = new Headers(init.headers);
+    expect(headers.get("x-trace")).toBe("abc");
+    expect(headers.has("content-type")).toBe(false);
+    expect(init.body).toBeUndefined();
+    expect(result.ok).toBe(false);
+  });
+
+  it.each([
+    ["null", null],
+    ["missing ok flag", { data: 1 }],
+    ["ok without data", { ok: true }],
+    ["failure without error object", { ok: false, error: "nope" }],
+    ["failure with malformed error", { ok: false, error: { code: 1, message: "x" } }],
+  ])("treats %s as an invalid response", async (_label, body) => {
+    mockFetch(() => json(body));
+
+    const result = await apiCall("/api/notes");
+
+    expect(!result.ok && result.error.code).toBe("INVALID_RESPONSE");
+  });
+});
+
+describe("readJsonSafe", () => {
+  it("returns undefined for empty or non-JSON text and the value otherwise", async () => {
+    const { readJsonSafe } = await import("./apiCall");
+
+    expect(readJsonSafe("")).toBeUndefined();
+    expect(readJsonSafe("<html>")).toBeUndefined();
+    expect(readJsonSafe('{"a":1}')).toEqual({ a: 1 });
+  });
+});
+
 describe("apiCallOrThrow", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
