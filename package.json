@@ -15,7 +15,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "audit": "node scripts/audit.mjs",
-    "validate": "npm run lint && npm run typecheck && npm run test && npm run build && npm run audit"
+    "validate": "npm run lint && npm run typecheck && npm run test && npm run build && npm run audit",
+    "db:migrate": "npm run db -- migration:up"
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.3",
