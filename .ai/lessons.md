@@ -10,6 +10,7 @@ Rules:
 ## Index
 
 <!-- Newest first. -->
+- 2026-10-21 — `npm run dev -- -p <port>` does not reach `next dev` through the nested workspace script (it becomes a project dir); use `PORT=<port> npm run dev`. The om spec/implementation split means a spec reaches `main` via its own PR — move it to `implemented/` only after that PR merges
 - 2026-10-21 — om-* skills call bare `gh`, but this repo is on a personal account while the active `gh` account may be work; `.ai/trackers/github.md` scopes `GH_TOKEN` to the `origin` owner — keep that override when refreshing the descriptor. They also need `gh` >= 2.82.1
 - 2026-10-21 — `npx skills add ... -a claude-code` alone copies skills into `.claude/skills/`; add a universal agent (`-a claude-code -a codex`) so the canonical copy lives in `.agents/skills/` and `.claude/skills/` holds only symlinks. Remove an existing copied `.claude/skills/` first — the CLI does not replace it
 - 2026-10-20 — 100% coverage: remove unreachable branches instead of excluding them; keep script entries one-line and logic in `scripts/lib/`; integration tests need a build and an explicit `DATABASE_URL` ([details](lessons/2026-10-20-ci-and-coverage-gotchas.md))

@@ -52,3 +52,10 @@ PR: #14
 - Real `docker compose ps --format json postgres` output of the running container parses as healthy.
 - After setup, `npm run dev` (port 3100): `/api/health` → `{"ok":true,"data":{"database":"up"}}`.
 - Not exercised: the `docker compose up -d --wait` start path on this machine (port 5432 was taken by the developer's running container; stopping it was out of bounds) — covered by unit tests only. Windows not tested.
+
+## Review (`om-auto-review-pr 14 --autofix`)
+
+- Pass 1 (fresh-context reviewer): request changes — native PostgreSQL without Docker rejected (Compose checked before the TCP probe); spec not yet recorded as implemented. Minors: probe hits a starting container's docker-proxy, lockfile hashed before install, inline `.env` comments. Fixed in 4e0b56d; spec aligned and verification recorded on the spec branch (#13, 92db98a).
+- Pass 2 (re-review): approve. Minors fixed in af9040b (quoted value + inline comment; daemon-down probe test). Kept the probe when `compose ps` fails: a stopped Docker daemon next to a native server is the common case.
+- Gate after fixes: lint, typecheck, coverage 100% (158 tests), build, audit, integration — all pass.
+- Open: the spec moves to `.ai/specs/implemented/` with `Status: implemented` once #13 merges (it is not on `main` yet).
