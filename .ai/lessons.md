@@ -10,6 +10,7 @@ Rules:
 ## Index
 
 <!-- Newest first. -->
+- 2026-10-21 — om-* skills call bare `gh`, but this repo is on a personal account while the active `gh` account may be work; `.ai/trackers/github.md` scopes `GH_TOKEN` to the `origin` owner — keep that override when refreshing the descriptor. They also need `gh` >= 2.82.1
 - 2026-10-21 — `npx skills add ... -a claude-code` alone copies skills into `.claude/skills/`; add a universal agent (`-a claude-code -a codex`) so the canonical copy lives in `.agents/skills/` and `.claude/skills/` holds only symlinks. Remove an existing copied `.claude/skills/` first — the CLI does not replace it
 - 2026-10-20 — 100% coverage: remove unreachable branches instead of excluding them; keep script entries one-line and logic in `scripts/lib/`; integration tests need a build and an explicit `DATABASE_URL` ([details](lessons/2026-10-20-ci-and-coverage-gotchas.md))
 - 2026-10-20 — Verify setup docs by running them verbatim on a fresh clone with a real `.env`; passing env vars inline hid a broken root-`.env` loader in `next.config.ts` ([details](lessons/2026-10-20-engineering-standards-gotchas.md))
