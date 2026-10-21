@@ -54,6 +54,17 @@ Requirements: Node.js 22+, Docker (or a native PostgreSQL 15+).
 
 ```bash
 git clone git@github.com:LukaszLasota/DevMentor.git && cd DevMentor
+npm run setup                   # installs deps, creates .env, starts PostgreSQL, applies migrations
+npm run dev                     # http://localhost:3000
+```
+
+`npm run setup` is safe to re-run (e.g. after a pull): steps already done are skipped, and an existing `.env` is never overwritten. With a native PostgreSQL, set `DATABASE_URL` in `.env` first — setup then skips Docker; it also skips Docker when something already listens on the default `localhost:5432`.
+
+### Manual setup
+
+The same steps by hand:
+
+```bash
 npm install
 docker compose up -d postgres   # or a native PostgreSQL — then adjust DATABASE_URL
 cp .env.example .env            # defaults match docker-compose.yml
@@ -69,6 +80,7 @@ npm run dev                     # http://localhost:3000
 
 | Command | Description |
 |---|---|
+| `npm run setup` | Idempotent local setup: dependencies, `.env`, PostgreSQL (Docker), migrations |
 | `npm run dev` / `build` / `start` | Next.js app (`@devmentor/app`) |
 | `npm run lint` | ESLint, incl. package boundary rules |
 | `npm run typecheck` | TypeScript check in every package |
