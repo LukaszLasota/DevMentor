@@ -1,6 +1,6 @@
 # One-command local setup (`npm run setup`)
 
-Status: draft
+Status: in-progress
 Issue: #12
 
 ## 📝 TLDR
@@ -24,14 +24,14 @@ No assumption needs human confirmation.
 
 ## 📝 Proposed Solution
 
-A dependency-free Node script (`node:` built-ins only, so it runs before `npm install`) wired as root script `"setup": "node scripts/setup.mjs"`. It runs an ordered list of steps; each step has a **check** ("already done?") and an **action**. Output is one line per step: `✓ <step> — done`, `↷ <step> — skipped (<reason>)`, or `✗ <step> — <error>` followed by the manual command to run instead; the first failure stops the run with exit code 1.
+A dependency-free Node script (`node:` built-ins only, so it runs before `npm install`) wired as root script `"setup": "node scripts/setup.mjs"`. It runs an ordered list of steps; each step has a **check** ("already done?") and an **action**. Output is one line per step: `✓ <step> — <what was done>`, `↷ <step> — <why it was skipped>`, or `✗ <step> — <error>` followed by a hint with the manual way forward; the first failure stops the run with exit code 1.
 
 | # | Step | Already done when | Action |
 |---|---|---|---|
 | 1 | Node version | `process.versions.node` major ≥ 22 | fail with the README requirement |
 | 2 | Dependencies | `node_modules/.devmentor-setup` holds the SHA-256 of the current `package-lock.json` | `npm install`, then write that stamp |
 | 3 | `.env` | `.env` exists (then warn about keys missing vs `.env.example`) | copy `.env.example` → `.env` |
-| 4 | PostgreSQL | effective `DATABASE_URL` is not the default (native DB, Q1) → skip; `docker compose ps --format json postgres` shows `Health: healthy` → skip; default host/port already accepts TCP connections (another PostgreSQL) → skip with a note | check `docker compose version` (Compose v2), then `docker compose up -d --wait postgres` (waits for the `pg_isready` healthcheck in `docker-compose.yml`) |
+| 4 | PostgreSQL | effective `DATABASE_URL` is not the default (native DB, Q1) → skip; `docker compose ps --format json postgres` shows `Health: healthy` → skip; no postgres container exists and the default host/port already accepts TCP connections (another PostgreSQL, with or without Docker installed) → skip with a note | require `docker compose version` (Compose v2), then `docker compose up -d --wait postgres` (waits for the `pg_isready` healthcheck in `docker-compose.yml`) |
 | 5 | Migrations | — (MikroORM `migration:up` is itself a no-op when nothing is pending) | `npm run db:migrate` |
 | 6 | Next steps | — | print `npm run dev` and the three URLs from the README |
 
@@ -53,10 +53,12 @@ A dependency-free Node script (`node:` built-ins only, so it runs before `npm in
 
 | Scenario | What the user sees |
 |---|---|
-| Docker not installed / daemon not running | `✗ PostgreSQL — Docker is not available`, plus: start Docker, or use a native PostgreSQL and set `DATABASE_URL` in `.env`; exit 1 |
+| Docker not installed (nothing on the default port) | `✗ PostgreSQL — Docker Compose v2 is not available`, plus: start Docker, or use a native PostgreSQL and set `DATABASE_URL` in `.env`; exit 1 |
+| Docker daemon not running | `✗ PostgreSQL — docker compose could not start postgres` with the same hint; exit 1 |
+| postgres container left `starting`/`unhealthy` by an interrupted run | no TCP probe (docker-proxy already accepts connections); `up -d --wait` waits for the healthcheck |
 | Port 5432 taken by another PostgreSQL | `docker compose up` error is shown as-is, with the same native-PostgreSQL hint |
 | `.env` has no `DATABASE_URL` | treated as the default (Docker path), never as "native" |
-| Native PostgreSQL on 5432 with the default credentials | TCP probe finds it, Docker is skipped with a note, migrations run against it |
+| Native PostgreSQL on 5432 with the default credentials | TCP probe finds it (even without Docker installed), Docker is skipped with a note, migrations run against it |
 | Only legacy `docker-compose` v1 installed | treated as Docker unavailable, with the native-PostgreSQL hint (Compose v2 is what the README uses) |
 | `.env` exists but lacks keys from `.env.example` | warning listing the missing keys; setup continues (env validation in `core` will name invalid values at runtime) |
 | Native DB unreachable | step 5 fails with MikroORM's error and the hint to check `DATABASE_URL` |
@@ -95,3 +97,13 @@ One phase — the feature is small and ships as a single PR.
 ## Out of scope
 
 Containerizing the app, production or CI setup, seed data, installing Node or Docker, starting `npm run dev`, resetting the database.
+
+## Verification (2026-10-21, implementation PR #14)
+
+- Gate: `lint`, `typecheck`, `test:coverage` (100%), `build`, `audit`, `test:integration` — all pass.
+- Fresh worktree, first run: Node ✓, dependencies installed ✓, `.env` created ✓, PostgreSQL ↷ (server already on `localhost:5432`), migrations ✓, exit 0.
+- Re-run: every step skipped or a no-op, nothing changed, exit 0.
+- Docker absent from `PATH`, PostgreSQL listening: Docker skipped, migrations ✓, exit 0. Docker absent and nothing listening: unit-tested (`Docker Compose v2 is not available`, exit 1).
+- Real `docker compose ps --format json postgres` output of a running container parses as healthy.
+- After setup, `npm run dev`: `/api/health` → `{"ok":true,"data":{"database":"up"}}`.
+- Not exercised for real: the `docker compose up -d --wait` start path (port 5432 held by the developer's running container) — unit-tested only. Windows not tested.
