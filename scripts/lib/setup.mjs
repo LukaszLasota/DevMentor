@@ -59,30 +59,31 @@ export function probePort(host, port, { open = connect, timeout = 1000 } = {}) {
   });
 }
 
-/** `KEY=value` pairs of a dotenv file; comments and blank lines are ignored. */
+/** `KEY=value` pairs of a dotenv file; comments, inline ` # comments` and blank lines are ignored. */
 export function parseEnv(text) {
   const entries = new Map();
 
   for (const line of text.split(/\r?\n/)) {
     const match = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/.exec(line);
     if (match) {
-      entries.set(match[1], match[2].replace(/^(['"])(.*)\1$/, '$2'));
+      const quoted = /^(['"])(.*)\1$/.exec(match[2]);
+      entries.set(match[1], quoted ? quoted[2] : match[2].replace(/\s+#.*$/, ''));
     }
   }
 
   return entries;
 }
 
-/** True when `docker compose ps --format json` lists a healthy postgres service (array or NDJSON output). */
-export function isPostgresHealthy(output) {
+/** The postgres service containers in `docker compose ps --format json` output (array or NDJSON). */
+export function postgresContainers(output) {
   try {
     return output
       .split('\n')
       .filter((line) => line.trim())
       .flatMap((line) => [JSON.parse(line)].flat())
-      .some((container) => container.Service === 'postgres' && container.Health === 'healthy');
+      .filter((container) => container.Service === 'postgres');
   } catch {
-    return false;
+    return [];
   }
 }
 
@@ -99,11 +100,13 @@ export function checkNode({ nodeVersion }) {
   return done(`v${nodeVersion}`);
 }
 
+const lockfileHash = (root) =>
+  createHash('sha256').update(readFileSync(join(root, 'package-lock.json'))).digest('hex');
+
 export function installDependencies({ root, run }) {
-  const lockHash = createHash('sha256').update(readFileSync(join(root, 'package-lock.json'))).digest('hex');
   const stampPath = join(root, STAMP);
 
-  if (existsSync(stampPath) && readFileSync(stampPath, 'utf8') === lockHash) {
+  if (existsSync(stampPath) && readFileSync(stampPath, 'utf8') === lockfileHash(root)) {
     return skipped('package-lock.json unchanged since the last install');
   }
 
@@ -111,8 +114,9 @@ export function installDependencies({ root, run }) {
     throw new StepError('npm install failed', 'Fix the error above, then run `npm install` or re-run `npm run setup`.');
   }
 
+  // Hash after the install: npm may rewrite an out-of-sync lockfile.
   mkdirSync(join(root, 'node_modules'), { recursive: true });
-  writeFileSync(stampPath, lockHash);
+  writeFileSync(stampPath, lockfileHash(root));
 
   return done('installed');
 }
@@ -140,17 +144,23 @@ export async function startDatabase({ root, run, env, probePort: probe }) {
     return skipped('DATABASE_URL points to your own PostgreSQL');
   }
 
-  if (run('docker', ['compose', 'version'], { capture: true }).status !== 0) {
-    throw new StepError('Docker Compose v2 is not available', NATIVE_DB_HINT);
-  }
+  const compose = run('docker', ['compose', 'version'], { capture: true }).status === 0;
+  const containers = compose
+    ? postgresContainers(run('docker', ['compose', 'ps', '--format', 'json', 'postgres'], { capture: true }).stdout)
+    : [];
 
-  if (isPostgresHealthy(run('docker', ['compose', 'ps', '--format', 'json', 'postgres'], { capture: true }).stdout)) {
+  if (containers.some((container) => container.Health === 'healthy')) {
     return skipped('postgres container is running and healthy');
   }
 
+  // Probe only without our container: a starting one already accepts TCP through docker-proxy.
   const { hostname, port } = new URL(defaultUrl);
-  if (await probe(hostname, Number(port || 5432))) {
+  if (containers.length === 0 && (await probe(hostname, Number(port || 5432)))) {
     return skipped(`a PostgreSQL server already listens on ${hostname}:${port || 5432}`);
+  }
+
+  if (!compose) {
+    throw new StepError('Docker Compose v2 is not available', NATIVE_DB_HINT);
   }
 
   if (run('docker', ['compose', 'up', '-d', '--wait', 'postgres']).status !== 0) {

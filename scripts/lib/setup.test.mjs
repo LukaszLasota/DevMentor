@@ -14,7 +14,7 @@ const {
   checkNode,
   createEnv,
   installDependencies,
-  isPostgresHealthy,
+  postgresContainers,
   main,
   parseEnv,
   probePort,
@@ -110,27 +110,28 @@ describe('probePort', () => {
 
 describe('parseEnv', () => {
   it('reads KEY=value pairs, strips quotes and ignores comments and blank lines', () => {
-    const env = parseEnv('# c\n\nA=1\r\nB = "two words"\nC=\'x\'\nnot a pair\n');
+    const env = parseEnv('# c\n\nA=1\r\nB = "two words"\nC=\'x # kept\'\nD=url # local db\nnot a pair\n');
 
     expect([...env]).toEqual([
       ['A', '1'],
       ['B', 'two words'],
-      ['C', 'x'],
+      ['C', 'x # kept'],
+      ['D', 'url'],
     ]);
   });
 });
 
-describe('isPostgresHealthy', () => {
-  it('accepts NDJSON and array output', () => {
-    expect(isPostgresHealthy(`${healthy}\n`)).toBe(true);
-    expect(isPostgresHealthy(`[${healthy}]`)).toBe(true);
+describe('postgresContainers', () => {
+  it('reads NDJSON and array output, keeping only the postgres service', () => {
+    const redis = JSON.stringify({ Service: 'redis', Health: 'healthy' });
+
+    expect(postgresContainers(`${healthy}\n${redis}\n`)).toEqual([{ Service: 'postgres', Health: 'healthy' }]);
+    expect(postgresContainers(`[${healthy}]`)).toHaveLength(1);
   });
 
-  it('is false for a starting container, another service, empty or invalid output', () => {
-    expect(isPostgresHealthy(JSON.stringify({ Service: 'postgres', Health: 'starting' }))).toBe(false);
-    expect(isPostgresHealthy(JSON.stringify({ Service: 'redis', Health: 'healthy' }))).toBe(false);
-    expect(isPostgresHealthy('')).toBe(false);
-    expect(isPostgresHealthy('no json')).toBe(false);
+  it('is empty for empty or invalid output', () => {
+    expect(postgresContainers('')).toEqual([]);
+    expect(postgresContainers('no json')).toEqual([]);
   });
 });
 
@@ -151,6 +152,17 @@ describe('installDependencies', () => {
     expect(installDependencies({ root, run }).status).toBe('done');
     expect(run).toHaveBeenCalledWith('npm', ['install']);
     expect(existsSync(join(root, 'node_modules', '.devmentor-setup'))).toBe(true);
+
+    expect(installDependencies({ root, run }).status).toBe('skipped');
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it('stamps the lockfile as npm install left it', () => {
+    const run = vi.fn(() => {
+      writeFileSync(join(root, 'package-lock.json'), '{"lockfileVersion":3,"synced":true}');
+      return { status: 0, stdout: '' };
+    });
+    installDependencies({ root, run });
 
     expect(installDependencies({ root, run }).status).toBe('skipped');
     expect(run).toHaveBeenCalledTimes(1);
@@ -230,10 +242,29 @@ describe('startDatabase', () => {
     await expect(start(run)).resolves.toMatchObject({ status: 'done' });
   });
 
-  it('fails with the native-PostgreSQL hint when Docker Compose is missing', async () => {
+  it('fails with the native-PostgreSQL hint when Docker Compose is missing and nothing listens', async () => {
     const run = fakeRun({ 'docker compose version': { status: 1, stdout: '' } });
 
     await expect(start(run)).rejects.toMatchObject({ message: 'Docker Compose v2 is not available' });
+    expect(run).not.toHaveBeenCalledWith('docker', ['compose', 'ps', '--format', 'json', 'postgres'], {
+      capture: true,
+    });
+  });
+
+  it('skips without Docker when a native PostgreSQL listens on the default port', async () => {
+    probe.mockResolvedValueOnce(true);
+    const run = fakeRun({ 'docker compose version': { status: 1, stdout: '' } });
+
+    await expect(start(run)).resolves.toMatchObject({ status: 'skipped' });
+  });
+
+  it('waits for a starting container instead of probing its proxied port', async () => {
+    const starting = JSON.stringify({ Service: 'postgres', Health: 'starting' });
+    const run = fakeRun({ 'docker compose ps --format json postgres': { status: 0, stdout: starting } });
+
+    await expect(start(run)).resolves.toMatchObject({ status: 'done' });
+    expect(probe).not.toHaveBeenCalled();
+    expect(run).toHaveBeenCalledWith('docker', ['compose', 'up', '-d', '--wait', 'postgres']);
   });
 
   it('skips when the postgres container is already healthy', async () => {
