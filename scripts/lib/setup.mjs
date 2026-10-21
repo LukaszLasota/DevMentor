@@ -153,9 +153,9 @@ export async function startDatabase({ root, run, env, probePort: probe }) {
     return skipped('postgres container is running and healthy');
   }
 
-  // Probe only without our container: a starting one already accepts TCP through docker-proxy.
   const { hostname, port } = new URL(defaultUrl);
-  // A failed `compose ps` (daemon down) lists nothing: probing is right, since a native server is the common case.
+  // Probe only without our container: a starting one already accepts TCP through docker-proxy.
+  // A failed `compose ps` (daemon down) lists none, so a native server on the port still counts.
   if (containers.length === 0 && (await probe(hostname, Number(port || 5432)))) {
     return skipped(`a PostgreSQL server already listens on ${hostname}:${port || 5432}`);
   }
