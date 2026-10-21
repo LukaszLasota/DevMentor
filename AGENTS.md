@@ -129,4 +129,4 @@ Every file in `specs/`, `runs/` and `lessons/` is named `YYYY-MM-DD-slug.md`:
 - **Fix bugs from evidence** — start from the error message, failing check or logs, reproduce, find the root cause, then fix and verify; afterwards record the lesson (workflow step 5).
 - **Turn corrections into rules** — when the user corrects you, record it as a lesson; if it is a general rule for this repo, update this file instead.
 - **Use subagents** for broad searches and independent subtasks to keep the main context focused.
-- **Automate repeats** — a task done repeatedly becomes a skill or slash command committed in `.claude/`.
+- **Automate repeats** — a task done repeatedly becomes a skill, shared by every agent: write it in `.agents/skills/<name>/SKILL.md` and symlink it for Claude Code (`ln -s ../../.agents/skills/<name> .claude/skills/<name>`). Installed collections (`om-*`, tracked in `skills-lock.json`) are installed with `npx skills add <source> -a claude-code -a codex` and never edited in place — customize an `om-*` skill with a repo-local `.ai/skills/<name>/SKILL.md` extension.
