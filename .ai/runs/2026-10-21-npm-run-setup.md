@@ -15,10 +15,13 @@
 
 - No UI mockups: the feature is a CLI script, no user-facing screens.
 
+5. Implementation via `om-auto-implement-spec` → `om-auto-create-pr`: PR #14, plan `.ai/runs/2026-10-21-npm-run-setup-impl.md` (steps, verification, review passes).
+6. Review: fresh-context `om-auto-review-pr` (request changes → fixed → approve), then a full `om-code-review` (approve, two minors fixed in 53caa84).
+
 ## Open issues
 
-- (none yet)
+- Not exercised for real: the `docker compose up -d --wait` start path and Windows.
 
 ## Outcome
 
-- In progress.
+- Done: #13 (spec) and #14 (implementation) merged 2026-10-21, issue #12 closed; spec moved to `.ai/specs/implemented/`.

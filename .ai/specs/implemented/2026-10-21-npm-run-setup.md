@@ -1,6 +1,6 @@
 # One-command local setup (`npm run setup`)
 
-Status: in-progress
+Status: implemented
 Issue: #12
 
 ## 📝 TLDR
