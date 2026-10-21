@@ -66,7 +66,7 @@ export function parseEnv(text) {
   for (const line of text.split(/\r?\n/)) {
     const match = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/.exec(line);
     if (match) {
-      const quoted = /^(['"])(.*)\1$/.exec(match[2]);
+      const quoted = /^(['"])(.*?)\1(\s+#.*)?$/.exec(match[2]);
       entries.set(match[1], quoted ? quoted[2] : match[2].replace(/\s+#.*$/, ''));
     }
   }
@@ -155,6 +155,7 @@ export async function startDatabase({ root, run, env, probePort: probe }) {
 
   // Probe only without our container: a starting one already accepts TCP through docker-proxy.
   const { hostname, port } = new URL(defaultUrl);
+  // A failed `compose ps` (daemon down) lists nothing: probing is right, since a native server is the common case.
   if (containers.length === 0 && (await probe(hostname, Number(port || 5432)))) {
     return skipped(`a PostgreSQL server already listens on ${hostname}:${port || 5432}`);
   }

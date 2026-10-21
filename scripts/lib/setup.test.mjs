@@ -110,13 +110,14 @@ describe('probePort', () => {
 
 describe('parseEnv', () => {
   it('reads KEY=value pairs, strips quotes and ignores comments and blank lines', () => {
-    const env = parseEnv('# c\n\nA=1\r\nB = "two words"\nC=\'x # kept\'\nD=url # local db\nnot a pair\n');
+    const env = parseEnv('# c\n\nA=1\r\nB = "two words"\nC=\'x # kept\'\nD=url # local db\nE="y" # quoted\nnot a pair\n');
 
     expect([...env]).toEqual([
       ['A', '1'],
       ['B', 'two words'],
       ['C', 'x # kept'],
       ['D', 'url'],
+      ['E', 'y'],
     ]);
   });
 });
@@ -246,9 +247,18 @@ describe('startDatabase', () => {
     const run = fakeRun({ 'docker compose version': { status: 1, stdout: '' } });
 
     await expect(start(run)).rejects.toMatchObject({ message: 'Docker Compose v2 is not available' });
+    expect(probe).toHaveBeenCalled();
     expect(run).not.toHaveBeenCalledWith('docker', ['compose', 'ps', '--format', 'json', 'postgres'], {
       capture: true,
     });
+  });
+
+  it('probes when the Docker daemon is down, so a native server still counts', async () => {
+    probe.mockResolvedValueOnce(true);
+    const run = fakeRun({ 'docker compose ps --format json postgres': { status: 1, stdout: '' } });
+
+    await expect(start(run)).resolves.toMatchObject({ status: 'skipped' });
+    expect(probe).toHaveBeenCalledWith('localhost', 5432);
   });
 
   it('skips without Docker when a native PostgreSQL listens on the default port', async () => {
