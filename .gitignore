@@ -47,7 +47,8 @@ packages/db/dist/
 # test coverage
 coverage/
 
-# agent pipeline QA state (generated per run)
+# agent pipeline scratch space (worktrees, local reports) and per-run QA state
+.ai/tmp/
 .ai/qa/artifacts_*/
 .ai/qa/test-env.json
 .ai/qa/test-env.env
