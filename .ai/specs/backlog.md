@@ -7,6 +7,8 @@ Last filed: 2026-10-21
 Scope: the brief's Now (1.0) in E01–E04; Later parked in E05 (not filed as stories). Not doing: N01, N02.
 Open before specific stories: Q01 blocks E04-S01; Q04 applies to E01-S06 only if Connect is cut from the first iteration; Q10 (recording mentor-page visits) is not filed as a story.
 
+Specs (2026-10-21): E01-S01 → `2026-10-21-sign-in-github-and-email.md` + `2026-10-21-platform-primitives.md`; E01-S02 → `2026-10-21-mentor-invitations.md` (criterion 4 met by `npm run invite -- list`); E01-S03 → `2026-10-21-mentor-page.md`; E01-S04 → `2026-10-21-mentor-prices.md` (implementation blocked on currency and bounds, founder A); E01-S05 → `2026-10-21-availability-slots.md`; E01-S06 → `2026-10-21-stripe-connect-payouts.md`, **moved to 1.1** (onboarding only; the 20% fee and payouts move to a settlement story to be filed); E02-S01 → `2026-10-21-mentor-list.md`; E02-S02 → `2026-10-21-mentor-share-link-page.md`.
+
 | Id | Issue | Title | Epic | Depends on | Adopted |
 |---|---|---|---|---|---|
 | E01 | [#16](https://github.com/LukaszLasota/DevMentor/issues/16) | Mentor onboarding | — | — | no |
