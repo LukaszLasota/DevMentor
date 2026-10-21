@@ -12,7 +12,7 @@ Next.js-specific agent rules live in `packages/app/AGENTS.md` — that file is m
 - Tailwind CSS 4 — public pages; shadcn/ui — admin (backend) pages.
 - Vitest + `@vitest/coverage-v8` (jsdom + Testing Library for React) — unit tests; testcontainers (PostgreSQL) + `agent-browser` — integration tests; GitHub Actions — CI.
 - Monorepo on npm workspaces; packages live in `packages/`, named `@devmentor/<name>`, consumed as TypeScript source (no build step; Turbopack transpiles them).
-- Root scripts: `npm run dev | build | lint | typecheck | test | test:coverage | test:integration | audit`, `npm run validate` (all gates except integration), `npm run db:migrate`, `npm run db -- <mikro-orm command>`. Install deps into a package with `npm install <dep> -w @devmentor/<name>`.
+- Root scripts: `npm run setup` (idempotent local setup), `npm run dev | build | lint | typecheck | test | test:coverage | test:integration | audit`, `npm run validate` (all gates except integration), `npm run db:migrate`, `npm run db -- <mikro-orm command>`. Install deps into a package with `npm install <dep> -w @devmentor/<name>`.
 
 ## Packages and dependency direction
 
