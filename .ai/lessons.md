@@ -10,6 +10,7 @@ Rules:
 ## Index
 
 <!-- Newest first. -->
+- 2026-10-21 — `om-backlog` filing: a story can depend on one filed later (E01-S06 → E03-S01), so write `Depends on:` lines after every issue exists, not while creating them
 - 2026-10-21 — `npm run dev -- -p <port>` does not reach `next dev` through the nested workspace script (it becomes a project dir); use `PORT=<port> npm run dev`
 - 2026-10-21 — With the om spec/implementation split a spec reaches `main` via its own spec PR; move it to `implemented/` only after that PR merges
 - 2026-10-21 — om-* skills call bare `gh`, but this repo is on a personal account while the active `gh` account may be work; `.ai/trackers/github.md` scopes `GH_TOKEN` to the `origin` owner — keep that override when refreshing the descriptor. They also need `gh` >= 2.82.1
