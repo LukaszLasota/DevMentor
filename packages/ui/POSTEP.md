@@ -9,11 +9,11 @@ Prompt: `lekcja-06/prompt-storybook.md` (copy of `lekcja-06/storybook-devmentor.
 | 0. Inventory and plan | done 2026-10-22, approved |
 | 1. Foundations | done 2026-10-22, approved, committed e7c56a8 |
 | 2. Base components | done 2026-10-22 in 3 batches (851ef85, 3694817, c9f3aea) |
-| 3. Product components, patterns, screens | part 1 of 4 (E02 public components) done 2026-10-22 |
+| 3. Product components, patterns, screens | done 2026-10-22 in 4 parts (f6708e0, 4baecae + 4ee7f02, parts 3–4 committed with this update) |
 | 4. Teaching pages | not started |
 | 5. Checks and report | not started |
 
-**Next step:** stage 3 part 2 — E01 components (ReadinessChecklist, CopyShareLink, ProfileActions, StackTagPicker, PriceFields, SlotsPanel, invitation and sign-in panels, payout status 1.1); then part 3 patterns, part 4 screens.
+**Next step:** stage 4 — teaching pages (Start here, Components, How to choose, Usage and accessibility, Content, What to avoid, What is missing, Contributing, E01/E02 pages) and `docs/design-system.md` linked from AGENTS.md. User asked to do everything without stopping (2026-10-22: "rób wszystko").
 
 ## Stage 1 — what was built (2026-10-22)
 
@@ -80,6 +80,14 @@ Prompt: `lekcja-06/prompt-storybook.md` (copy of `lekcja-06/storybook-devmentor.
 - `msw` 3 + `msw-storybook-addon` 3 installed (approved plan), `mockServiceWorker.js` in `.storybook/public`, CSF3 loader; handlers per story via `beforeEach({ msw })`.
 - Prices in stories use the spec's own examples ("$40.00", "$75.00"); currency is still open (#24).
 - Checks: 75 stories pass a11y in light and dark; unit tests 215, coverage 100 %; typecheck, lint, Storybook build clean. Public pages will only look right once `(marketing)/globals.css` imports the tokens (homework step 5).
+
+## Stage 3 — parts 2–4 (2026-10-22)
+
+- **Part 2, E01 + form:** `CrudForm` now renders through `Field`, validates on blur and submit, focuses the first error after render, keeps data, blocks double submit with the button loading state, shows form errors in a danger Alert, Cancel before primary (R03.4); new field options `inputMode`, `suffix`, `multiselect` (specs #23, #24). New: `ReadinessChecklist`, `ProfileActions`, `CopyShareLink`, `SlotsPanel`, `SignInPanel`, `InvitationPanel` (public, Tailwind only), `PayoutStatusPanel` (1.1). Button classes moved to `button-variants.ts` (no Radix) so public pages can reuse them. Proposals (no copy in specs): sign-in error messages, invalid-invitation sentence, copy-blocked message, unpublish confirmation, payout states except "Payouts enabled" / failed.
+- **Part 3, patterns:** Form (msw: success, pending, client validation, server field error, server error, offline), List with filters (results, filtered, loading, nothing yet, nothing for filter, unknown tag, load error, many, narrow), Detail view (ready, not bookable, not found, load error), Delete confirmation (remove, keep), Backlog patterns overview. The lesson's list counter is not shown: spec #27 forbids numbers in the list (spec wins).
+- **Part 4, screens:** 30 full-screen stories for E01 (`/sign-in`, `/register`, `/verify-email`, `/invitation`, `/mentor`, `/mentor/profile`, `/mentor/prices`, `/mentor/slots`, `/mentor/payouts`, `/admin/payouts`) and E02 (`/mentors`, `/m/[slug]`) with a state map page. Page frames (logo in mono, minimal header) are a proposal: no spec defines the app shell.
+- Checks: 154 stories pass a11y in light and dark; unit tests 229, coverage 100 %; typecheck, lint, Storybook build clean; no token findings in `packages/ui`.
+- Lesson: run `build-storybook` and lint before committing (an MDX `<zone>` and unescaped quotes slipped into 4baecae, fixed in 4ee7f02).
 
 ## Open questions (stage 1)
 
