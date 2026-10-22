@@ -1,0 +1,155 @@
+/* DevMentor theme: fonts, tokens and their Tailwind mapping. Shared by the admin/panel stylesheet
+   (styles.css, with shadcn) and the public pages (packages/app (marketing)/globals.css, Tailwind only).
+   Consumers import "tailwindcss" first. */
+@import "@fontsource-variable/inter";
+@import "@fontsource/dm-mono/400.css";
+@import "@fontsource/dm-mono/500.css";
+@import "./tokens.css";
+
+/* Workspace packages sit behind node_modules symlinks, so scan them explicitly. */
+@source "./";
+
+/* The theme class sits on <html> so dialogs, menus and popovers rendered outside a story get it too. */
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-link: var(--link);
+  --color-primary-hover: var(--dm-action-primary-hover);
+  --color-primary-pressed: var(--dm-action-primary-pressed);
+  --color-destructive-hover: var(--dm-destructive-hover);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-scrim: var(--dm-scrim);
+  --color-disabled: var(--dm-disabled-fill);
+  --color-disabled-foreground: var(--dm-disabled-foreground);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --font-sans: var(--dm-font-sans);
+  --font-mono: var(--dm-font-code);
+
+  /* Text styles: text-display, text-heading-1 … text-caption */
+  --text-display: var(--dm-text-display);
+  --text-display--line-height: var(--dm-text-display-leading);
+  --text-heading-1: var(--dm-text-heading-1);
+  --text-heading-1--line-height: var(--dm-text-heading-1-leading);
+  --text-heading-2: var(--dm-text-heading-2);
+  --text-heading-2--line-height: var(--dm-text-heading-2-leading);
+  --text-heading-3: var(--dm-text-heading-3);
+  --text-heading-3--line-height: var(--dm-text-heading-3-leading);
+  --text-heading-4: var(--dm-text-heading-4);
+  --text-heading-4--line-height: var(--dm-text-heading-4-leading);
+  --text-body-large: var(--dm-text-body-large);
+  --text-body-large--line-height: var(--dm-text-body-large-leading);
+  --text-body: var(--dm-text-body);
+  --text-body--line-height: var(--dm-text-body-leading);
+  --text-body-small: var(--dm-text-body-small);
+  --text-body-small--line-height: var(--dm-text-body-small-leading);
+  --text-label: var(--dm-text-label);
+  --text-label--line-height: var(--dm-text-label-leading);
+  --text-caption: var(--dm-text-caption);
+  --text-caption--line-height: var(--dm-text-caption-leading);
+
+  /* Spacing by relation: p-panel, gap-related, mt-section … */
+  --spacing-related: var(--dm-space-related);
+  --spacing-paragraph: var(--dm-space-paragraph);
+  --spacing-panel: var(--dm-space-panel);
+  --spacing-component: var(--dm-space-component);
+  --spacing-section: var(--dm-space-section);
+
+  /* Component sizes: h-button-md, px-button-pad-sm, size-button-icon, h-field, px-field-pad, size-checkbox */
+  --spacing-button-lg: var(--dm-button-height-lg);
+  --spacing-button-md: var(--dm-button-height-md);
+  --spacing-button-sm: var(--dm-button-height-sm);
+  --spacing-button-xs: var(--dm-button-height-xs);
+  --spacing-button-pad-lg: var(--dm-button-padding-lg);
+  --spacing-button-pad-md: var(--dm-button-padding-md);
+  --spacing-button-pad-sm: var(--dm-button-padding-sm);
+  --spacing-button-pad-xs: var(--dm-button-padding-xs);
+  --spacing-button-icon: var(--dm-button-icon);
+  --spacing-field: var(--dm-field-height);
+  --spacing-field-pad: var(--dm-field-padding-x);
+  --spacing-checkbox: var(--dm-checkbox-size);
+  --spacing-badge-y: var(--dm-badge-padding-y);
+  --spacing-avatar-sm: var(--dm-avatar-sm);
+  --spacing-avatar-md: var(--dm-avatar-md);
+  --spacing-avatar-lg: var(--dm-avatar-lg);
+
+  /* Radii by purpose; shadcn's sm…4xl names map onto them until stage 2 restyles the primitives */
+  --radius-control: var(--dm-radius-control);
+  --radius-button: var(--dm-radius-button);
+  --radius-card: var(--dm-radius-card);
+  --radius-panel: var(--dm-radius-panel);
+  --radius-checkbox: var(--dm-radius-checkbox);
+  --radius-sm: var(--dm-radius-control);
+  --radius-md: var(--dm-radius-button);
+  --radius-lg: var(--dm-radius-card);
+  --radius-xl: var(--dm-radius-panel);
+  --radius-2xl: var(--dm-radius-panel);
+  --radius-3xl: var(--dm-radius-panel);
+  --radius-4xl: var(--dm-radius-panel);
+
+  --shadow-overlay: var(--dm-shadow-overlay);
+
+  --container-measure: var(--dm-measure);
+  --container-dialog: var(--dm-dialog-width);
+  --container-dialog-confirm: var(--dm-dialog-width-confirm);
+  --container-menu: var(--dm-menu-min-width);
+}
+
+/* Clear focus outline (focus-visible:focus-ring). */
+@utility focus-ring {
+  outline: var(--dm-focus-width) solid var(--ring);
+  outline-offset: var(--dm-focus-offset);
+}
+
+/* Motion durations by purpose: duration-control, duration-menu, duration-dialog. */
+@utility duration-control {
+  transition-duration: var(--dm-duration-control);
+}
+@utility duration-menu {
+  transition-duration: var(--dm-duration-menu);
+}
+@utility duration-dialog {
+  transition-duration: var(--dm-duration-dialog);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}

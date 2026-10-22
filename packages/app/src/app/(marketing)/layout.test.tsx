@@ -1,13 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
-
-vi.mock("next/font/google", () => ({
-  Geist: () => ({ variable: "font-geist-sans" }),
-  Geist_Mono: () => ({ variable: "font-geist-mono" }),
-}));
+import { describe, expect, it } from "vitest";
 
 describe("marketing root layout", () => {
-  it("renders the html shell with the font variables", async () => {
+  it("renders the html shell", async () => {
     const { default: SiteRootLayout, metadata } = await import("./layout");
 
     const html = renderToStaticMarkup(
@@ -16,7 +11,7 @@ describe("marketing root layout", () => {
       </SiteRootLayout>,
     );
 
-    expect(html).toContain("font-geist-sans font-geist-mono");
+    expect(html).toContain('<html lang="en" class="h-full antialiased">');
     expect(html).toContain("<p>child</p>");
     expect(metadata).toEqual({ title: "DevMentor", description: "DevMentor" });
   });

@@ -1,8 +1,9 @@
 import { cva, type VariantProps } from "class-variance-authority"
+import { cn } from "cn"
 
 // shadcn base, restyled for DevMentor (stage 2). Two independent props, as in the trainer's system:
 // `intent` says what the action does, `appearance` how loud it is. Four sizes, 40 → 28 px.
-const buttonVariants = cva(
+const buttonCva = cva(
   [
     "relative inline-flex shrink-0 items-center justify-center gap-related whitespace-nowrap rounded-button border border-transparent",
     "text-label font-medium transition-colors duration-control outline-none",
@@ -68,6 +69,14 @@ const buttonVariants = cva(
   }
 )
 
-export type ButtonVariantProps = VariantProps<typeof buttonVariants>
+export type ButtonVariantProps = VariantProps<typeof buttonCva>
+
+/**
+ * Button classes with conflicts resolved (e.g. border-transparent vs border-input), so a plain <a> or
+ * <button> on a public page looks exactly like <Button>. Always use this, never the raw cva output.
+ */
+function buttonVariants(props?: Parameters<typeof buttonCva>[0]): string {
+  return cn(buttonCva(props))
+}
 
 export { buttonVariants }
