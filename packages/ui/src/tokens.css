@@ -33,6 +33,11 @@
   --dm-primary-pressed-dark: #b4c3ff;
 
   --dm-red-600: #be2323;
+  /* Status colours (approved 2026-10-22, stage 2 batch 2): always with text and an icon */
+  --dm-green-700: #1f7a45;
+  --dm-green-dark: #5cc98a;
+  --dm-amber-700: #8a5300;
+  --dm-amber-dark: #e3a64a;
   --dm-red-dark: #f66d67;
   --dm-white: #ffffff;
 
@@ -155,6 +160,12 @@
   /* Component token: checkbox (4px, approved stage 2 Q3; 8px makes a 16px box almost round) */
   --dm-radius-checkbox: var(--dm-radius-4);
   --dm-checkbox-size: 1rem;
+
+  /* Component tokens: status badge and avatar (proposal, stage 2 batch 2) */
+  --dm-badge-padding-y: 0.25rem;
+  --dm-avatar-sm: var(--dm-button-height-xs);
+  --dm-avatar-md: var(--dm-button-height-md);
+  --dm-avatar-lg: var(--dm-space-48);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -182,6 +193,8 @@
   --accent: var(--dm-warm-50);
   --destructive: var(--dm-red-600); /* trainer: red delete variant */
   --destructive-foreground: var(--dm-white); /* 6.1:1 */
+  --success: var(--dm-green-700); /* 5.2:1 on background, 4.8:1 on muted */
+  --warning: var(--dm-amber-700); /* 6.1:1 on background, 5.7:1 on muted */
   --border: var(--dm-warm-200); /* R01.1, R03.2 decorative row and section lines only */
   --input: var(--dm-warm-500); /* R03.2 + WCAG 1.4.11 field outline, 3.5:1 */
   --ring: var(--dm-primary-base); /* trainer, WCAG 2.4.7 focus, 4.9:1 */
@@ -214,6 +227,8 @@
   --primary-foreground: var(--dm-warm-dark-0); /* 7.0:1 */
   --destructive: var(--dm-red-dark);
   --destructive-foreground: var(--dm-warm-dark-0); /* 6.6:1 */
+  --success: var(--dm-green-dark); /* 9.3:1 */
+  --warning: var(--dm-amber-dark); /* 8.9:1 */
   --border: var(--dm-warm-dark-200);
   --input: var(--dm-warm-dark-500); /* 3.9:1 */
   --ring: var(--dm-primary-base-dark);

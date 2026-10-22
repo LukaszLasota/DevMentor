@@ -8,12 +8,12 @@ Prompt: `lekcja-06/prompt-storybook.md` (copy of `lekcja-06/storybook-devmentor.
 |---|---|
 | 0. Inventory and plan | done 2026-10-22, approved |
 | 1. Foundations | done 2026-10-22, approved, committed e7c56a8 |
-| 2. Base components | batch 1 of 4 done 2026-10-22, waiting for review ("dalej") |
+| 2. Base components | batches 1–2 of 4 done 2026-10-22 (batch 1 committed 851ef85), waiting for review ("dalej") |
 | 3. Product components, patterns, screens | not started |
 | 4. Teaching pages | not started |
 | 5. Checks and report | not started |
 
-**Next step:** review batch 1 in Storybook (Primitives/*), then batch 2: Select, Card/Panel, Status badge, Avatar, Alert, Skeleton.
+**Next step:** review batch 2 in Storybook, then batch 3: Dialog, Confirm dialog, Menu, Table (restyle, `-[2px]`), Empty state, Error state (panel layer).
 
 ## Stage 1 — what was built (2026-10-22)
 
@@ -57,6 +57,13 @@ Prompt: `lekcja-06/prompt-storybook.md` (copy of `lekcja-06/storybook-devmentor.
 - Checks: 29 stories pass the a11y test in light and dark. The state-matrix test caught low contrast of blue/red text on `--border` in outline/soft hover/pressed states; fixed (fill `--muted` or outline instead). Unit tests 193 pass, coverage 100 %, typecheck and lint clean, Storybook builds. `check:tokens`: 21 findings left (marketing page, `table.tsx` `-[2px]`).
 - Example data follows the specs: password 12–128 (#21), display name 1–80, bio up to 2,000, stack tags TypeScript/React/Python/AI agents (#23). No currency in price examples (#24 blocked).
 - `vitest.storybook.config.mts` pre-bundles story dependencies (otherwise the first run after a new import fails to load the story files).
+
+## Stage 2 — batch 2 (2026-10-22)
+
+- Added via `npx shadcn add select card badge avatar alert skeleton` (no new dependencies; `package.json` unchanged) and restyled: Select (trigger like Input, list with overlay shadow and card radius, menu duration, motion-safe), Card (thin border, no shadow, `p-panel`, footer line), Status badge (`tone` neutral/success/warning/danger, icon + word, control radius, no pills), Avatar (circle, neutral initial; removed unplanned `AvatarBadge`, `AvatarGroup`, `AvatarGroupCount` — presence signals rejected), Alert (`tone`, `role` alert for danger else status), Skeleton (`motion-safe`, `aria-hidden`).
+- Decisions approved 2026-10-22: status colours success `#1f7a45` / dark `#5cc98a`, warning `#8a5300` / dark `#e3a64a` (always with text and icon); badge = rectangle with 8 px radius; avatar = circle. Proposals: badge vertical padding 4 px, avatar sizes 28/36/48.
+- Docs (13 sections) + stories for all six. Checks: 46 stories pass a11y in light and dark; unit tests 200 pass, coverage 100 %; typecheck, lint, Storybook build clean; `check:tokens` in `packages/ui`: only `table.tsx` (batch 3).
+- Example data from specs only; removed an invented password-link lifetime (not in spec #21).
 
 ## Open questions (stage 1)
 

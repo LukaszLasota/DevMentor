@@ -39,6 +39,8 @@
   --color-primary-hover: var(--dm-action-primary-hover);
   --color-primary-pressed: var(--dm-action-primary-pressed);
   --color-destructive-hover: var(--dm-destructive-hover);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-disabled: var(--dm-disabled-fill);
   --color-disabled-foreground: var(--dm-disabled-foreground);
   --color-chart-1: var(--chart-1);
@@ -100,6 +102,10 @@
   --spacing-field: var(--dm-field-height);
   --spacing-field-pad: var(--dm-field-padding-x);
   --spacing-checkbox: var(--dm-checkbox-size);
+  --spacing-badge-y: var(--dm-badge-padding-y);
+  --spacing-avatar-sm: var(--dm-avatar-sm);
+  --spacing-avatar-md: var(--dm-avatar-md);
+  --spacing-avatar-lg: var(--dm-avatar-lg);
 
   /* Radii by purpose; shadcn's sm…4xl names map onto them until stage 2 restyles the primitives */
   --radius-control: var(--dm-radius-control);

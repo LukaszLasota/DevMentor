@@ -1,0 +1,58 @@
+import { ArgTypes, Canvas, Meta, Source } from "@storybook/addon-docs/blocks";
+import * as Stories from "./Select.stories";
+
+<Meta of={Stories} />
+
+# Select
+
+## 1. Purpose
+Picks one value from a list too long to show as options side by side.
+
+## 2. When to use
+Admin filters and settings with five or more fixed values. On public pages the stack-tag filter is a row of links, not a select (spec #27).
+
+## 3. When not to use
+- Four or fewer options always visible: links (filters) or checkboxes (several values).
+- Free text: **Input**.
+
+## 4. Anatomy
+Trigger (same size and outline as Input) · value or placeholder · chevron · list in an overlay (`--dm-shadow-overlay`, card radius) · options with a check mark on the selected one.
+
+## 5. Variants
+`size="default"` (36 px) or `size="sm"` (32 px, inside tables).
+
+## 6. States
+<Canvas of={Stories.StateMatrix} />
+
+## 7. Behaviour and accessibility
+Radix Select: `combobox` + `listbox` roles; Enter/Space/arrows open, arrows move, typing jumps, Escape closes and returns focus. Overlay opens in 180 ms (`--dm-duration-menu`), instantly with reduced motion. Option rows are at least 32 px high.
+
+## 8. Content
+Placeholder says what to do ("Choose a tag"); options use the vocabulary as written.
+
+## 9. Responsive
+<Canvas of={Stories.NarrowScreen} />
+
+## 10. API
+<ArgTypes of={Stories} />
+
+Parts: `Select`, `SelectTrigger` (`size`), `SelectValue`, `SelectContent`, `SelectGroup`, `SelectLabel`, `SelectItem`, `SelectSeparator`.
+
+## 11. Code
+<Source language="tsx" code={`<Field label="Stack tag">
+  {(control) => (
+    <Select value={tag} onValueChange={setTag}>
+      <SelectTrigger {...control}><SelectValue placeholder="Choose a tag" /></SelectTrigger>
+      <SelectContent>{tags.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
+    </Select>
+  )}
+</Field>`} />
+
+## 12. Do and don't
+| Do | Don't |
+|---|---|
+| Visible label through Field | A select whose placeholder is the only label |
+| Links for the public tag filter | A select for four public tags |
+
+## 13. Related
+Input, Checkbox, Field.

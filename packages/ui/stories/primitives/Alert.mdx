@@ -1,0 +1,52 @@
+import { ArgTypes, Canvas, Meta, Source } from "@storybook/addon-docs/blocks";
+import * as Stories from "./Alert.stories";
+
+<Meta of={Stories} />
+
+# Alert
+
+## 1. Purpose
+Tells the user something about the whole page or flow that they need before going on.
+
+## 2. When to use
+"Check your inbox" after register (spec #21), "Invitation expired" (spec #22), "Not bookable yet" on the mentor's own page (spec #25).
+
+## 3. When not to use
+- An error that belongs to one field: the Field error.
+- A short state: Status badge.
+- A message that disappears by itself: errors that need action are never toasts (lesson 06).
+
+## 4. Anatomy
+Outline in the tone colour · icon (20 px) · title · description with an optional action.
+
+## 5. Variants
+`neutral`, `success`, `warning`, `danger`. The tone colours the outline, icon and title; the description stays in `--foreground` for readability.
+
+<Canvas of={Stories.Tones} />
+
+## 6. States
+Static. Danger alerts use `role="alert"` (announced immediately); others use `role="status"`.
+
+## 7. Behaviour and accessibility
+Do not move focus to an alert unless it blocks the next step. Icons are `aria-hidden`; the title carries the meaning.
+
+## 8. Content
+Title: what happened, in a few words. Description: what to do next ("Ask the operator for a new invitation link.").
+
+## 9. Responsive
+<Canvas of={Stories.LongTextNarrowScreen} />
+
+## 10. API
+<ArgTypes of={Stories} />
+
+## 11. Code
+<Source language="tsx" code={`<Alert tone="danger"><CircleX aria-hidden="true" /><AlertTitle>Invitation expired</AlertTitle><AlertDescription>Ask the operator for a new invitation link.</AlertDescription></Alert>`} />
+
+## 12. Do and don't
+| Do | Don't |
+|---|---|
+| Say what to do next | "Something went wrong" (lesson 06) |
+| One alert per message | Stacked alerts for every field error |
+
+## 13. Related
+Status badge, Field, ErrorMessage (panel layer).

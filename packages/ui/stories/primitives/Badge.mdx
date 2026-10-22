@@ -1,0 +1,59 @@
+import { ArgTypes, Canvas, Meta, Source } from "@storybook/addon-docs/blocks";
+import * as Stories from "./Badge.stories";
+
+<Meta of={Stories} />
+
+# Status badge
+
+## 1. Purpose
+Shows the state of one object at a glance: a profile, an invitation, a Stripe connection.
+
+## 2. When to use
+"Draft" / "Published" (spec #23), "Not bookable yet" (spec #25), invitation state (spec #22), "Connected" (spec #26).
+
+## 3. When not to use
+- For facts such as session length or price: fact chips (product component, R03.3).
+- For ratings, "Top mentor", "Popular" or counts: forbidden (A02, N02).
+- As a button or filter.
+
+## 4. Anatomy
+Rectangle with the control radius on `--muted` · icon · one or two words.
+
+## 5. Variants
+| Tone | Icon | Use for | Source |
+|---|---|---|---|
+| `neutral` | dashed circle | Draft, pending | — |
+| `success` | check | Published, Connected | approved colours (stage 2 batch 2) |
+| `warning` | alert | Not bookable yet, held | approved colours |
+| `danger` | cross | Expired, revoked | `--destructive` |
+
+<Canvas of={Stories.Tones} />
+
+## 6. States
+Static.
+
+## 7. Behaviour and accessibility
+Every tone has an icon and a word, so colour is never the only signal (WCAG 1.4.1). Text contrast on `--muted`: success 4.8, warning 5.7, danger 5.5 (light); all above 7 in dark.
+
+## 8. Content
+State in one or two words, sentence case, no punctuation.
+
+## 9. Responsive
+Does not wrap; keep labels short.
+
+<Canvas of={Stories.LongLabelNarrowScreen} />
+
+## 10. API
+<ArgTypes of={Stories} />
+
+## 11. Code
+<Source language="tsx" code={`<Badge tone="success">Published</Badge>`} />
+
+## 12. Do and don't
+| Do | Don't |
+|---|---|
+| Rectangle with the control radius | Pills (A01) |
+| Icon + word | Coloured dot alone |
+
+## 13. Related
+Alert (longer messages), fact chips (stage 3).
