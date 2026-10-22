@@ -1,0 +1,36 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design system/What is missing" />
+
+# What is missing
+
+## Components not in the system
+| Missing | Why it is not built | Use for now |
+|---|---|---|
+| Radio group | No E01/E02 screen needs it | Links (filter) or Select |
+| Switch | Same | Checkbox ("Show past") |
+| Popover, Tooltip | Same; needed info is never hidden | Visible text |
+| Tabs | Same | Separate pages |
+| Toast | Errors that need action never use it; success is inline | Alert |
+| Side panel | Not needed | Dialog or page |
+| App shell (header, navigation, sign-out) | No spec defines it; screen stories use proposal frames | — |
+| `CrudForm` `datetime` field (zone note, resolved-time echo, DST gap error) | Built with spec #25 | — |
+| Session view (conversation, composer, author + time per message) | E04, not in E01/E02 | R02.1–R02.3 recorded |
+
+## Backlog coverage
+| Backlog item | Component / screen | State | Priority |
+|---|---|---|---|
+| E01-S01 #21 sign in | SignInPanel, `/sign-in`, `/register`, `/verify-email` | stories; copy for error codes and verify-email is a proposal | high |
+| E01-S02 #22 invitations | InvitationPanel, `/invitation/[token]` | all four states; invalid sentence is a proposal | high |
+| E01-S03 #23 mentor page | Form pattern, ReadinessChecklist, ProfileActions, CopyShareLink, MentorPageView | complete | high |
+| E01-S04 #24 prices | `/mentor/prices` (CrudForm `inputMode` + `suffix`) | blocked on currency and bounds in the spec | medium |
+| E01-S05 #25 slots | SlotsPanel, `/mentor/slots` | list done; `datetime` field missing | high |
+| E01-S06 #26 payouts (1.1) | PayoutStatusPanel, `/mentor/payouts`, `/admin/payouts` | stories; most copy is a proposal | low (1.1) |
+| E01-S07 #35 settlement (1.1) | — | not started | low |
+| E02-S01 #27 mentor list | MentorCard, MentorTagFilter, MentorListSkeleton, `/mentors` | complete | high |
+| E02-S02 #28 share page | MentorPageView, `/m/[slug]` | complete; 404 copy is a proposal | high |
+| E03, E04 | — | not designed (later lessons) | — |
+| `/admin` landing, `/admin/users` | — | no spec | — |
+
+## Open decisions
+Dark action colour `#7d97ff`, overlay shadow, scrim, line heights and weights, badge padding, avatar sizes, dialog/menu widths, chart colours, tone of voice, page frames.

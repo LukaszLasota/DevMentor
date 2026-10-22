@@ -1,0 +1,24 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design system/Contributing" />
+
+# Contributing
+
+| Question | Rule |
+|---|---|
+| When to add a component | The same need appears in at least two places and no existing component covers it. Otherwise compose. |
+| When to add a variant | A real screen needs a different purpose or emphasis, documented with the decision it comes from. Never "on the way" in a feature PR. |
+| When to add nothing | A one-off layout: compose existing components and tokens. |
+| Where it lives | shadcn primitive → `src/components/ui/` via `npx shadcn@latest add` (answer **no** to overwriting restyled files); generic panel pattern → `src/backend/<category>/`; concept component → `src/components/<concept>/`; public pages → export through `src/mentors.ts`, Tailwind only (AGENTS.md). |
+| What the docs must have | Primitives: the 13 sections (purpose … related). Product components: rules with sources, data states, props. Stories: playground, variants, state matrix (`data-preview-state`), long content and 320 px, a `play` test. |
+| Changing a token | Change `src/tokens.css` only; check Foundations/Color (contrast table) and run story tests in both themes. |
+| Who approves | Łukasz Lasota (product owner of DevMentor). Proposals stay marked until approved in `POSTEP.md`. |
+
+## Commands
+| Command | What it does |
+|---|---|
+| `npm run storybook -w @devmentor/ui` | Storybook on http://localhost:6006 |
+| `npm run build-storybook -w @devmentor/ui` | Static build (check MDX before committing) |
+| `npm run test:storybook -w @devmentor/ui` | Every story as a browser test, axe failing, light and dark |
+| `npm run check:tokens` | Fails on values outside `tokens.css` |
+| `npm run validate` | Lint, typecheck, unit tests with 100 % coverage, build, audit |

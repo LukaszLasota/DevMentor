@@ -1,0 +1,32 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design system/Content" />
+
+# Content
+
+**Tone: matter-of-fact.** Short sentences, plain words, the next step. *Proposal* — the references define no tone; it follows the character word and the interviews ("I don't want a course, I want an answer").
+
+| The product says | The product does not say |
+|---|---|
+| "Mentors who most recently published open times come first." | "Top-rated experts ready for you!" |
+| "Not bookable yet" | "Coming soon 🚀" |
+| "Enter a display name of 1 to 80 characters." | "Oops! Something went wrong." |
+
+## Buttons
+Verb + object, sentence case, up to three words: "Save prices", "Remove slot", "Accept invitation". Never "OK", "Submit", "Yes".
+
+## Errors
+What happened + what to do: "This mentor page cannot be shown right now. Try again in a minute." Field errors say the rule with an example: "Enter an amount like 40 or 40.50."
+
+## Empty states
+Why it is empty + the next step: "No upcoming slots. Publish one so mentees can book you."
+
+## Formats
+| Thing | Format | Source |
+|---|---|---|
+| Date and time | "Thu 5 Nov, 17:30" in the viewer's zone; "… UTC" before hydration | spec #22 |
+| Money | `Intl.NumberFormat("en-US")`, "$40.00"; currency printed, never chosen; currency still open | spec #24 |
+| Session facts | "25 min · $40.00" as chips | spec #27, R03.3 |
+| Numbers in columns | `font-mono tabular-nums` | R03.1 |
+| Links | host + path, cut at 60 with "…" | spec #28 |
+| Interface language | English | prompt |

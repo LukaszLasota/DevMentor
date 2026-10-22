@@ -1,0 +1,38 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design system/What to avoid" />
+
+# What to avoid
+
+## 1. Anti-patterns of this product
+| Avoid | How to recognise it (screen / code) | Why | Instead |
+|---|---|---|---|
+| Ratings, stars, "top", "popular", session counts | ★, "4.9", `rating`, `reviews` in props | N02; "everyone has five stars" (interviews) | Public work link and plain description (R04) |
+| Sales look | "Most popular", urgency counters, pricing tables in three columns | A03 | Plain prices as facts |
+| Feed, likes, followers | infinite feed, ♥ counters | A03 ("I don't want a relationship") | Mentor list ordered by open times |
+| Promising a booking | "available now", "guaranteed", "reserved" | spec #27 | "open times" |
+| Booking or video controls | "Book" before #29, camera buttons | specs #28, N01 | — |
+
+## 2. Generic AI look (A01)
+| Avoid | In code | Instead |
+|---|---|---|
+| Gradients in backgrounds, text, buttons | `bg-gradient-*`, `bg-clip-text` | Solid `bg-primary` once per screen |
+| Glass and blur, glow | `backdrop-blur`, `bg-white/50`, radial glows | Solid surfaces, one overlay shadow |
+| Emoji as icons, sparkles for AI | ✨ 🚀 in UI strings | Lucide icons with text |
+| Three identical cards with an icon | `grid-cols-3` of icon cards | A list or plain sections |
+| Pills everywhere | `rounded-full` on badges/buttons | `rounded-control` / `rounded-button` |
+| Card in a card, shadow as the only separator | nested `Card`, `shadow-*` on rows | Thin `--border` lines (R01.1) |
+| Everything centred | `text-center` on sections | Left-aligned content |
+| Invented numbers and logos | "3,500 companies trust us" | Only data the product has |
+
+## 3. Implementation mistakes
+| Avoid | In code | Instead |
+|---|---|---|
+| Values outside tokens | hex, `bg-zinc-900`, `text-white`, `p-[13px]` | Semantic tokens (`npm run check:tokens`) |
+| A variant added on the way | new `cva` keys in a feature PR | Contributing |
+| `div` as a button | `onClick` on `div`/`span` | Button |
+| Placeholder as label | `<Input placeholder="Email" />` alone | Field |
+| Status by colour only | red/green text without words | Status badge |
+| Disabled button without a reason | `disabled` with no text near it | Reason linked with `aria-describedby` |
+| Toast for an error that needs action | — | Alert or field error |
+| Needed info in a tooltip | — | Visible text |

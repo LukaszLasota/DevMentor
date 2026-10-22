@@ -1,0 +1,60 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design system/How to choose" />
+
+# How to choose
+
+## Actions and navigation
+| If… | Use | Example |
+|---|---|---|
+| it changes data or starts something here | Button | "Save prices" |
+| it goes to another page | Text link (or Button `asChild` for the one main call to action) | "Find a mentor" |
+| the action has only an icon | Button `iconOnly` + `aria-label` | Remove slot in a dense row |
+| a row has three or more actions | Menu | Resend / revoke invitation |
+
+## Choosing values
+| If… | Use | Example |
+|---|---|---|
+| one of up to four options, always visible | Links (filter) or radio (missing) | Stack-tag filter on `/mentors` |
+| one of five or more | Select | Admin filters |
+| a value from a long list with typing | Searchable field — **missing**, and search is out of scope (R08) | — |
+| several of a few | Checkbox group (`CrudForm` `multiselect`) | Stack tags |
+| an instant on/off setting | Switch — **missing**; use a checkbox in a form | "Show past" |
+
+## Layers
+| If… | Use | Example |
+|---|---|---|
+| a short focused input | Dialog | Edit prices from `/mentor` |
+| confirm a destructive action | Confirm dialog | Remove slot |
+| a long form or flow | Its own page | `/mentor/profile` |
+| extra info on hover | Tooltip — **missing**; never put needed information in a tooltip | — |
+| a side panel | **missing**; not needed in E01/E02 | — |
+
+## Messages
+| If… | Use | Example |
+|---|---|---|
+| one field is wrong | Field error | "Enter a display name of 1 to 80 characters." |
+| the page or flow needs attention | Alert | "Check your inbox to finish registration" |
+| a region failed to load | Error state with Try again | "Could not load mentors" |
+| a short confirmation | Alert (success) or inline status | "Profile saved." |
+| an error that needs action | **never a toast** (no toast in the system) | — |
+
+## Loading
+| If… | Use |
+|---|---|
+| a region loads longer than about 400 ms | Skeleton shaped like the content |
+| a button's action runs | Button `loading` |
+| a small region or table | Loading state (status line) |
+
+## Collections
+| If… | Use | Example |
+|---|---|---|
+| compare many records with the same fields (panel) | Table / DataTable | `/mentor/slots`, `/admin/payouts` |
+| browse people on a public page | List of mentor rows | `/mentors` |
+| one self-contained block | Card | Onboarding step |
+
+## Pages and sections
+| If… | Use |
+|---|---|
+| a few related sections on one topic | Headings on one page |
+| unrelated tasks | Separate pages (tabs are **missing**) |

@@ -78,6 +78,18 @@ const preview: Preview = {
       storySort: {
         order: [
           "Design system",
+          [
+            "Start here",
+            "Components",
+            "How to choose",
+            "Usage and accessibility",
+            "Content",
+            "What to avoid",
+            "What is missing",
+            "Contributing",
+            "E01 Mentor onboarding",
+            "E02 Finding a mentor",
+          ],
           "Foundations",
           ["Color", "Typography", "Spacing and layout", "Shape and depth", "Motion", "Icons", "Themes"],
           "Primitives",

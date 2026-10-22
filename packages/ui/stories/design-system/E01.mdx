@@ -1,0 +1,24 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design system/E01 Mentor onboarding" />
+
+# E01 Mentor onboarding
+
+An invited senior engineer becomes a bookable mentor: sign in, accept the invitation, fill the page, publish, set prices, publish open times (payouts in 1.1).
+
+## Flow
+1. `/invitation/[token]` — sign in with GitHub (or email), accept the invitation (spec #22).
+2. `/mentor` — checklist with the publish-by date: page, prices, slots, payouts link.
+3. `/mentor/profile` — form, readiness, Publish; then share link and Unpublish (spec #23).
+4. `/mentor/prices` — two prices within the operator bounds (spec #24, blocked on currency).
+5. `/mentor/slots` — publish start times; lead-time state; remove (spec #25).
+6. `/mentor/payouts` — Stripe Connect (spec #26, 1.1).
+
+## Screens and stories
+Screens/E01 Mentor onboarding; states in Screens/State maps. Components in Product/E01 (Overview).
+
+## Source files
+`src/components/{auth,invitations,mentors,payouts}/`, `src/backend/forms/CrudForm.tsx`, specs `2026-10-21-sign-in-github-and-email.md`, `…-mentor-invitations.md`, `…-mentor-page.md`, `…-mentor-prices.md`, `…-availability-slots.md`, `…-stripe-connect-payouts.md`.
+
+## Work left in the product
+`datetime` field and the slot form, app shell, verify-email form, real copy for proposals, wiring pages to these components (implementation of each story).

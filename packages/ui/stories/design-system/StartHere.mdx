@@ -1,0 +1,46 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design system/Start here" />
+
+# Start here
+
+**Character: matter-of-fact (rzeczowy). Anti-character: generic.**
+
+DevMentor connects a developer stuck on a real problem with a senior engineer for a 25- or 50-minute **text** session. The interface is dense where people scan (lists of mentors and times) and calm where people read (a session). It shows what a mentor has built, never a score, and it never pretends to have data it does not have.
+
+Sources: `lekcja-06/referencje.md` (R01 GitHub, R02 Slack, R03 trainer's decisions, A01–A03), `lekcja-06/tokeny.md`, `.ai/specs/product-brief.md`, specs #21–#28.
+
+## Build a screen in five steps
+
+1. **Find the pattern** — Patterns/Form, List with filters, Detail view, Delete confirmation, Backlog patterns, or a screen under Screens.
+2. **Pick components with "How to choose"** — never add a variant on the way (Contributing).
+3. **Use semantic tokens only** — `bg-primary`, `text-muted-foreground`, `p-panel`, `gap-related`, `rounded-control`, `text-heading-2`. No hex, no `bg-zinc-*`, no `p-[13px]` (`npm run check:tokens`).
+4. **Design every data state** — loading, empty, error, partial, many, long texts (Feedback states, Screens/State maps).
+5. **Check "What to avoid"** — generic AI look, ratings, invented numbers, colour-only states.
+
+## Components
+
+| Component | Import | Use when | Do not use when |
+|---|---|---|---|
+| Button | `@devmentor/ui` | An action on this screen | Navigating (Text link) |
+| Text link | `@devmentor/ui` | Navigating from text | Changing data (Button) |
+| Input | `@devmentor/ui` | One line of text | Several lines (Textarea) |
+| Textarea | `@devmentor/ui` | Several lines (bio) | Session messages (product composer, later) |
+| Checkbox | `@devmentor/ui` | On/off, several of a few | One of several (radio — missing) |
+| Field | `@devmentor/ui` | Around every control | A group as a whole (`fieldset`) |
+| Select | `@devmentor/ui` | One of five or more values (admin) | Public tag filter (links) |
+| Card | `@devmentor/ui` | One self-contained block (step, auth panel) | List rows (lines), inside a card |
+| Status badge | `@devmentor/ui` | State of one object | Facts, ratings, counts |
+| Avatar | `@devmentor/ui` | Next to a name in panels | Public pages (MentorAvatar) |
+| Alert | `@devmentor/ui` | Page-level message | Field errors (Field), transient info |
+| Skeleton | `@devmentor/ui` | Loading longer than 400 ms | Actions in progress (Button loading) |
+| Dialog | `@devmentor/ui` | Short focused input | Long flows (a page) |
+| Confirm dialog | `@devmentor/ui` | Destructive or irreversible action | Easy-to-undo actions |
+| Menu | `@devmentor/ui` | Three or more row actions | One or two actions (buttons) |
+| Table / DataTable | `@devmentor/ui` | Many records to compare (panel) | Public mentor list (cards) |
+| Empty / Error / Loading | `@devmentor/ui` | Every data region | Field errors |
+| CrudForm | `@devmentor/ui` | Every create/edit form | — |
+| ReadinessChecklist, ProfileActions, CopyShareLink, SlotsPanel, SignInPanel, PayoutStatusPanel | `@devmentor/ui` | E01 screens | Public pages |
+| MentorCard, MentorTagFilter, MentorListSkeleton, MentorPageView, MentorAvatar, SessionFacts, TagList, TextSessionNotice, LocalTime, InvitationPanel, buttonVariants | `@devmentor/ui/mentors` | Public pages (Tailwind only) | Panels that can use the full set |
+
+Agents: read `docs/design-system.md` first; it is the short version of this Storybook.

@@ -10,10 +10,10 @@ Prompt: `lekcja-06/prompt-storybook.md` (copy of `lekcja-06/storybook-devmentor.
 | 1. Foundations | done 2026-10-22, approved, committed e7c56a8 |
 | 2. Base components | done 2026-10-22 in 3 batches (851ef85, 3694817, c9f3aea) |
 | 3. Product components, patterns, screens | done 2026-10-22 in 4 parts (f6708e0, 4baecae + 4ee7f02, parts 3–4 committed with this update) |
-| 4. Teaching pages | not started |
+| 4. Teaching pages | done 2026-10-22 |
 | 5. Checks and report | not started |
 
-**Next step:** stage 4 — teaching pages (Start here, Components, How to choose, Usage and accessibility, Content, What to avoid, What is missing, Contributing, E01/E02 pages) and `docs/design-system.md` linked from AGENTS.md. User asked to do everything without stopping (2026-10-22: "rób wszystko").
+**Next step:** stage 5 — checks and report.
 
 ## Stage 1 — what was built (2026-10-22)
 
@@ -88,6 +88,11 @@ Prompt: `lekcja-06/prompt-storybook.md` (copy of `lekcja-06/storybook-devmentor.
 - **Part 4, screens:** 30 full-screen stories for E01 (`/sign-in`, `/register`, `/verify-email`, `/invitation`, `/mentor`, `/mentor/profile`, `/mentor/prices`, `/mentor/slots`, `/mentor/payouts`, `/admin/payouts`) and E02 (`/mentors`, `/m/[slug]`) with a state map page. Page frames (logo in mono, minimal header) are a proposal: no spec defines the app shell.
 - Checks: 154 stories pass a11y in light and dark; unit tests 229, coverage 100 %; typecheck, lint, Storybook build clean; no token findings in `packages/ui`.
 - Lesson: run `build-storybook` and lint before committing (an MDX `<zone>` and unescaped quotes slipped into 4baecae, fixed in 4ee7f02).
+
+## Stage 4 — teaching pages (2026-10-22)
+
+- Design system/: Start here (character, five steps, component table with import/when/when not), Components (live previews + links), How to choose ("if… use…" tables incl. missing components), Usage and accessibility (rules with sources), Content (tone — proposal, buttons, errors, empty states, formats), What to avoid (product anti-patterns, generic AI look, implementation mistakes, each with how to spot it in code), What is missing (missing components, backlog coverage table, open decisions), Contributing (when to add component/variant/nothing, homes, docs requirements, token changes, approver, commands), E01 and E02 epic pages.
+- `docs/design-system.md` (agent-first summary) and a pointer in `AGENTS.md` under UI.
 
 ## Open questions (stage 1)
 
