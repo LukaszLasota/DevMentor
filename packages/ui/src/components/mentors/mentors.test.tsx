@@ -24,6 +24,7 @@ describe("public mentor components", () => {
   it("entry exports only Tailwind components and helpers", () => {
     expect(Object.keys(entry).sort()).toEqual(
       [
+        "InvitationPanel",
         "LocalTime",
         "MentorAvatar",
         "MentorCard",
@@ -34,6 +35,7 @@ describe("public mentor components", () => {
         "SessionFacts",
         "TagList",
         "TextSessionNotice",
+        "buttonVariants",
         "formatInstant",
         "publicWorkLabel",
         "stackTagLabel",

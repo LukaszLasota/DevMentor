@@ -17,7 +17,8 @@ export {
 } from "./components/ui/alert-dialog";
 export { Avatar, AvatarFallback, AvatarImage } from "./components/ui/avatar";
 export { Badge, badgeVariants } from "./components/ui/badge";
-export { Button, buttonVariants, type ButtonProps } from "./components/ui/button";
+export { Button, type ButtonProps } from "./components/ui/button";
+export { buttonVariants, type ButtonVariantProps } from "./components/ui/button-variants";
 export { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./components/ui/card";
 export { Checkbox } from "./components/ui/checkbox";
 export {
@@ -70,3 +71,11 @@ export { DataTable, type DataTableColumn, type DataTableProps } from "./backend/
 export { EmptyState, type EmptyStateProps } from "./backend/feedback/EmptyState";
 export { ErrorMessage, type ErrorMessageProps } from "./backend/feedback/ErrorMessage";
 export { LoadingMessage, type LoadingMessageProps } from "./backend/feedback/LoadingMessage";
+
+// Product components (panel surfaces: /mentor, /sign-in, /mentor/payouts)
+export { SIGN_IN_ERRORS, SignInPanel, type SignInErrorCode, type SignInPanelProps } from "./components/auth/SignInPanel";
+export { CopyShareLink } from "./components/mentors/CopyShareLink";
+export { ProfileActions, type ProfileActionsProps } from "./components/mentors/ProfileActions";
+export { ReadinessChecklist, type ReadinessChecklistProps, type ReadinessItem } from "./components/mentors/ReadinessChecklist";
+export { SlotsPanel, type OwnerSlot, type SlotsPanelProps } from "./components/mentors/SlotsPanel";
+export { PayoutStatusPanel, type PayoutState, type PayoutStatusPanelProps } from "./components/payouts/PayoutStatusPanel";
