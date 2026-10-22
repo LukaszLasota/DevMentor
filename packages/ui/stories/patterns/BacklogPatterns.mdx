@@ -13,3 +13,6 @@ import { Meta } from "@storybook/addon-docs/blocks";
 | Publish and share | `/mentor/profile` (spec #23) | `ProfileActions`, `CopyShareLink` | Product/E01/Publish and share |
 | Own slots with lead-time state | `/mentor/slots` (spec #25) | `SlotsPanel`, Confirm dialog | Product/E01/Slots panel |
 | Public share page | `/m/[slug]` (spec #28) | `MentorPageView` | Patterns/Detail view |
+
+## Remove from your own list (*proposal*, from the agent test)
+For personal lists such as favorites: no confirm dialog. The row disappears; a status line above the list says what happened and offers Undo (`Button appearance="text" size="sm"`); focus moves to the next row's action, or to the list heading when the list is now empty. A failed removal shows its error under the row with Try again. Rows: name as the link to the profile, secondary line muted, one row action = `text` button, `sm`.

@@ -42,5 +42,5 @@ export const StateMatrix: Story = {
 
 export const NarrowScreen: Story = {
   args: { active: "python" },
-  decorators: [(Story) => <div className="w-72">{Story()}</div>],
+  decorators: [(Story) => <div className="w-phone">{Story()}</div>],
 };

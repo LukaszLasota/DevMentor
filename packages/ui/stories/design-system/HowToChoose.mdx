@@ -15,7 +15,7 @@ import { Meta } from "@storybook/addon-docs/blocks";
 ## Choosing values
 | If… | Use | Example |
 |---|---|---|
-| one of up to four options, always visible | Links (filter) or radio (missing) | Stack-tag filter on `/mentors` |
+| one of up to four options (not counting "All"), always visible | Links (filter) or radio (missing) | Stack-tag filter on `/mentors`, `/favorites` (`MentorTagFilter basePath`) |
 | one of five or more | Select | Admin filters |
 | a value from a long list with typing | Searchable field — **missing**, and search is out of scope (R08) | — |
 | several of a few | Checkbox group (`CrudForm` `multiselect`) | Stack tags |
@@ -25,7 +25,8 @@ import { Meta } from "@storybook/addon-docs/blocks";
 | If… | Use | Example |
 |---|---|---|
 | a short focused input | Dialog | Edit prices from `/mentor` |
-| confirm a destructive action | Confirm dialog | Remove slot |
+| confirm an action that cannot be undone in one click or affects others | Confirm dialog | Remove slot, revoke invitation, unpublish |
+| remove something from your own list | No dialog: remove, status line with Undo (proposal) | Remove from favorites |
 | a long form or flow | Its own page | `/mentor/profile` |
 | extra info on hover | Tooltip — **missing**; never put needed information in a tooltip | — |
 | a side panel | **missing**; not needed in E01/E02 | — |
@@ -50,7 +51,7 @@ import { Meta } from "@storybook/addon-docs/blocks";
 | If… | Use | Example |
 |---|---|---|
 | compare many records with the same fields (panel) | Table / DataTable | `/mentor/slots`, `/admin/payouts` |
-| browse people on a public page | List of mentor rows | `/mentors` |
+| browse or keep people (public or signed-in) | Rows with thin lines, name links to the profile | `/mentors`, favorites |
 | one self-contained block | Card | Onboarding step |
 
 ## Pages and sections

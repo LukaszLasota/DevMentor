@@ -80,11 +80,15 @@ describe("public mentor components", () => {
     expect(screen.getByRole("link", { name: "All" }).getAttribute("href")).toBe("/mentors");
     rerender(<MentorTagFilter active={null} />);
     expect(screen.getByRole("link", { name: "All" }).getAttribute("aria-current")).toBe("page");
+    rerender(<MentorTagFilter active={null} basePath="/favorites" />);
+    expect(screen.getByRole("link", { name: "Python" }).getAttribute("href")).toBe("/favorites?tag=python");
   });
 
   it("MentorListSkeleton is one busy status region", () => {
-    render(<MentorListSkeleton />);
+    const { rerender } = render(<MentorListSkeleton />);
     expect(screen.getByRole("status", { name: "Loading mentors" }).getAttribute("aria-busy")).toBe("true");
+    rerender(<MentorListSkeleton label="Loading favorites" />);
+    expect(screen.getByRole("status", { name: "Loading favorites" })).toBeTruthy();
   });
 
   it("MentorPageView lists open times and marks those past the lead time", () => {

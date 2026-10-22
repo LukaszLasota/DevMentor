@@ -55,7 +55,7 @@ export const StateMatrix: Story = {
 
 export const LongTextNarrowScreen: Story = {
   render: () => (
-    <p className="w-72 text-body">
+    <p className="w-phone text-body">
       Read <TextLink href="#note">how to prepare your question before a 25-minute text session with a mentor</TextLink>.
     </p>
   ),

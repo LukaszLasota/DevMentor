@@ -28,7 +28,7 @@ export const LongTexts: Story = { args: longTexts };
 
 export const NarrowScreen: Story = {
   args: longTexts,
-  decorators: [(Story) => <div className="w-72">{Story()}</div>],
+  decorators: [(Story) => <div className="w-phone">{Story()}</div>],
 };
 
 export const ManyInAList: Story = {

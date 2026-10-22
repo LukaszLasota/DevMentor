@@ -158,7 +158,7 @@ export const LongLabelNarrowScreen: Story = {
   args: { children: "Publish your first open time so mentees can book you" },
   parameters: { viewport: { value: "mobile1" } },
   render: (args) => (
-    <div className="w-72">
+    <div className="w-phone">
       <Button {...args} className="h-auto min-h-button-md w-full whitespace-normal py-related" />
     </div>
   ),

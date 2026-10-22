@@ -1,7 +1,7 @@
 /** Loading placeholder for /mentors (spec #27): filter and three rows, announced once. */
-export function MentorListSkeleton() {
+export function MentorListSkeleton({ label = "Loading mentors" }: { label?: string }) {
   return (
-    <div role="status" aria-busy="true" aria-label="Loading mentors" className="flex flex-col gap-paragraph">
+    <div role="status" aria-busy="true" aria-label={label} className="flex flex-col gap-paragraph">
       <div aria-hidden="true" className="flex gap-related">
         {[1, 2, 3, 4, 5].map((i) => (
           <span key={i} className="h-button-sm w-component rounded-control bg-muted motion-safe:animate-pulse" />

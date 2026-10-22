@@ -51,7 +51,7 @@ export const Tones: Story = {
 
 export const LongTextNarrowScreen: Story = {
   render: () => (
-    <Alert tone="warning" className="w-72">
+    <Alert tone="warning" className="w-phone">
       <CircleAlert aria-hidden="true" />
       <AlertTitle>Payouts are held until your Stripe account is enabled</AlertTitle>
       <AlertDescription>The operator can see held payouts. Finish the Stripe onboarding to receive them.</AlertDescription>

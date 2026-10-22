@@ -59,7 +59,7 @@ export const StateMatrix: Story = {
 
 export const LongValueNarrowScreen: Story = {
   render: () => (
-    <div className="w-72">
+    <div className="w-phone">
       <Field label="Public work link">
         {(control) => (
           <Input {...control} defaultValue="https://github.com/kubernetes/ingress-nginx/pull/12345#issuecomment-987654321" />

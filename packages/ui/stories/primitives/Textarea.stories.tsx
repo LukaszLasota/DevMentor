@@ -45,7 +45,7 @@ export const StateMatrix: Story = {
 
 export const LongTextNarrowScreen: Story = {
   render: () => (
-    <div className="w-72">
+    <div className="w-phone">
       <Field label="Bio">
         {(control) => (
           <Textarea

@@ -122,6 +122,7 @@
   --shadow-overlay: var(--dm-shadow-overlay);
 
   --container-measure: var(--dm-measure);
+  --container-phone: var(--dm-phone-width);
   --container-dialog: var(--dm-dialog-width);
   --container-dialog-confirm: var(--dm-dialog-width-confirm);
   --container-menu: var(--dm-menu-min-width);

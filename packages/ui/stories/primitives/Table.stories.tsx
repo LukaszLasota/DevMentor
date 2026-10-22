@@ -50,7 +50,7 @@ export const Playground: Story = {
 
 export const NarrowScreen: Story = {
   render: () => (
-    <div className="w-72">
+    <div className="w-phone">
       <SlotTable />
     </div>
   ),

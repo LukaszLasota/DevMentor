@@ -39,4 +39,4 @@ export const ManyResults: Story = {
     },
   },
 };
-export const NarrowScreen: Story = { decorators: [(Story) => <div className="w-72">{Story()}</div>] };
+export const NarrowScreen: Story = { decorators: [(Story) => <div className="w-phone">{Story()}</div>] };

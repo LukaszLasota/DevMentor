@@ -10,6 +10,7 @@ import { Meta } from "@storybook/addon-docs/blocks";
 | When to add a variant | A real screen needs a different purpose or emphasis, documented with the decision it comes from. Never "on the way" in a feature PR. |
 | When to add nothing | A one-off layout: compose existing components and tokens. |
 | Where it lives | shadcn primitive → `src/components/ui/` via `npx shadcn@latest add` (answer **no** to overwriting restyled files); generic panel pattern → `src/backend/<category>/`; concept component → `src/components/<concept>/`; public pages → export through `src/mentors.ts`, Tailwind only (AGENTS.md). |
+| Where stories live | Always in `packages/ui/stories/` (Storybook only reads that folder) — never next to the component in `src/`. Product screens: `stories/product/<epic>/` or `stories/screens/`. |
 | What the docs must have | Primitives: the 13 sections (purpose … related). Product components: rules with sources, data states, props. Stories: playground, variants, state matrix (`data-preview-state`), long content and 320 px, a `play` test. |
 | Changing a token | Change `src/tokens.css` only; check Foundations/Color (contrast table) and run story tests in both themes. |
 | Who approves | Łukasz Lasota (product owner of DevMentor). Proposals stay marked until approved in `POSTEP.md`. |

@@ -139,6 +139,8 @@
 
   /* Readable line length (lesson 06: about 65 characters) */
   --dm-measure: 65ch;
+  /* Narrowest supported screen (WCAG 1.4.10): used by narrow-screen stories */
+  --dm-phone-width: 20rem;
 
   /* Focus: a clear outline, not a faint halo (trainer "fokus z wyraźnym obrysem"; width/offset: proposal) */
   --dm-focus-width: 2px;

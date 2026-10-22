@@ -31,9 +31,9 @@ Two independent props (trainer):
 | | `destructive` | Removes or cancels something | trainer |
 | `appearance` | `filled` | The single main action | trainer |
 | | `outline` (default) | Secondary actions | trainer |
-| | `soft` | Quiet actions inside dense rows (R01.1) | trainer ("jaśniejszy") |
-| | `text` | Lowest emphasis, e.g. inline "Edit" | trainer |
-| `size` | `lg` 40 · `md` 36 (default) · `sm` 32 · `xs` 28 | `lg` for the main action on public pages, `md` everywhere else, `sm`/`xs` inside tables | trainer, stage 2 Q1 |
+| | `soft` | Quiet actions inside dense rows when a row has several (R01.1) | trainer ("jaśniejszy") |
+| | `text` | Lowest emphasis: the single action of a dense row ("Remove" in `SlotsPanel`), inline "Edit" | trainer |
+| `size` | `lg` 40 · `md` 36 (default) · `sm` 32 · `xs` 28 | `lg` for the main action on public pages, `md` everywhere else, `sm` in dense rows (tables and lists), `xs` only where space is tight | trainer, stage 2 Q1, agent test |
 
 <Canvas of={Stories.IntentsAndAppearances} />
 <Canvas of={Stories.Sizes} />

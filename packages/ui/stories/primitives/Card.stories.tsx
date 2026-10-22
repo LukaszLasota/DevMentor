@@ -45,7 +45,7 @@ export const ContentOnly: Story = {
 
 export const LongContentNarrowScreen: Story = {
   render: () => (
-    <Card className="w-72">
+    <Card className="w-phone">
       <CardHeader>
         <CardTitle>Connect Stripe to receive payouts for your sessions</CardTitle>
         <CardDescription>

@@ -16,6 +16,8 @@ import { Meta } from "@storybook/addon-docs/blocks";
 | App shell (header, navigation, sign-out) | No spec defines it; screen stories use proposal frames | — |
 | `CrudForm` `datetime` field (zone note, resolved-time echo, DST gap error) | Built with spec #25 | — |
 | Session view (conversation, composer, author + time per message) | E04, not in E01/E02 | R02.1–R02.3 recorded |
+| `MentorCard` slot for row actions and a professional headline | Found by the agent test (favorites); no `headline` field in the data model or specs | Compose a row from MentorCard's classes; add the slot with the first real screen |
+| Favorites (mentee) | Not in the E01/E02 backlog; designed only as the agent test | Rules in docs/design-system.md → Lists and row actions |
 
 ## Backlog coverage
 | Backlog item | Component / screen | State | Priority |
@@ -33,4 +35,4 @@ import { Meta } from "@storybook/addon-docs/blocks";
 | `/admin` landing, `/admin/users` | — | no spec | — |
 
 ## Open decisions
-Dark action colour (`--dm-primary-base-dark`), overlay shadow, scrim, line heights and weights, badge padding, avatar sizes, dialog/menu widths, chart colours, tone of voice, page frames.
+Remove-from-list pattern with Undo and row-action errors (agent test), DataTable vs. row lists (the engineering standards say DataTable for every list; the design system uses rows for people), dark action colour (`--dm-primary-base-dark`), overlay shadow, scrim, line heights and weights, badge padding, avatar sizes, dialog/menu widths, chart colours, tone of voice, page frames.

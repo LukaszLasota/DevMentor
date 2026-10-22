@@ -45,7 +45,7 @@ export const LongLabelNarrowScreen: Story = {
     hint: "A repository, article or talk. Mentees choose by public work, not by ratings.",
   },
   render: (args) => (
-    <div className="w-72">
+    <div className="w-phone">
       <Field {...args} />
     </div>
   ),

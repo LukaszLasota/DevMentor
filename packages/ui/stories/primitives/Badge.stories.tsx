@@ -33,7 +33,7 @@ export const Tones: Story = {
 
 export const LongLabelNarrowScreen: Story = {
   render: () => (
-    <div className="w-72">
+    <div className="w-phone">
       <Badge tone="warning">Payouts held until Stripe is enabled</Badge>
     </div>
   ),

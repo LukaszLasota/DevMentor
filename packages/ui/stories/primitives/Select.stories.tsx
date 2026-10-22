@@ -67,7 +67,7 @@ export const StateMatrix: Story = {
 
 export const NarrowScreen: Story = {
   render: () => (
-    <div className="w-72">
+    <div className="w-phone">
       <TagSelect defaultValue="ai-agents" />
     </div>
   ),

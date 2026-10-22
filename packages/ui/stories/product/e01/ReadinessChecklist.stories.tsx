@@ -57,5 +57,5 @@ export const AllDone: Story = {
 
 export const NarrowScreen: Story = {
   args: MentorHome.args,
-  decorators: [(Story) => <div className="w-72">{Story()}</div>],
+  decorators: [(Story) => <div className="w-phone">{Story()}</div>],
 };

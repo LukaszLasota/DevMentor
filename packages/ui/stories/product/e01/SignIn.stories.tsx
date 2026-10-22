@@ -38,5 +38,5 @@ export const GitHubUnavailable: Story = { args: { error: "github_unavailable" } 
 export const TooManyAttempts: Story = { args: { retryAfterSeconds: 300 } };
 export const NarrowScreen: Story = {
   args: { error: "github_account_conflict" },
-  decorators: [(Story) => <div className="w-72">{Story()}</div>],
+  decorators: [(Story) => <div className="w-phone">{Story()}</div>],
 };

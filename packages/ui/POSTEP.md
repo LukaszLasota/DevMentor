@@ -13,7 +13,7 @@ Prompt: `lekcja-06/prompt-storybook.md` (copy of `lekcja-06/storybook-devmentor.
 | 4. Teaching pages | done 2026-10-22 |
 | 5. Checks and report | done 2026-10-22 |
 
-**Next step:** homework step 5 (outside this prompt): "Wartości spoza tokenów w aplikacji" for `packages/app/src` (19 findings) incl. `(marketing)/globals.css` importing the tokens, CI jobs `tokens` and Storybook tests, then the agent test in a NEW session (see "Agent test" below).
+**Next step:** review and merge PR #37 (all CI jobs green); decide the open proposals. Homework done: app values on tokens (f1735e1), CI jobs (8e0dcf4), agent test + gaps filled (this commit).
 
 ## Stage 1 — what was built (2026-10-22)
 
@@ -113,7 +113,11 @@ Prompt: `lekcja-06/prompt-storybook.md` (copy of `lekcja-06/storybook-devmentor.
 
 **Gaps (What is missing):** radio, switch, popover/tooltip, tabs, toast, side panel; app shell; `CrudForm` `datetime` (spec #25); session view (E04); `/admin` landing and `/admin/users` (no spec).
 
-## Agent test (prepared, not run in this session)
+## Agent test (run 2026-10-22)
+
+Run by a fresh agent without this conversation's context, in a separate worktree. Result: REGUŁA 19 · PRZYKŁAD 13 · ZGADUJĘ 16 (48 decisions); `check:tokens` and `tsc` clean. Every guess was turned into a rule or a "What is missing" entry — table in `lekcja-06/test-agentem/wynik.md` (the agent's screen is kept there, not in the repo). Code changes from it: `MentorTagFilter basePath`, `MentorListSkeleton label`, list pattern on `EmptyState`, `--dm-phone-width` / `w-phone` for 320 px stories. Rules added: surfaces incl. mentee pages, lists and row actions, confirm criterion, remove-from-list with Undo (proposal), row-action errors (proposal), heading levels, stories location, interface language in AGENTS.md. Re-run the test in a new session to measure the drop in guesses.
+
+### Original preparation
 
 Run in a NEW conversation with `lekcja-06/test-agentem-devmentor.txt` (course prompt). Screen: **"Ulubieni mentorzy" / Favorite mentors** for a mentee: list of saved mentors with a stack-tag filter, "Remove from favorites" and a link to the profile; states: loading, empty (nobody saved yet), load error, no results for the chosen filter. Saved at `packages/ui/src/components/favorites/FavoriteMentors.tsx` with `FavoriteMentors.stories.tsx` next to it. It is not in Storybook and not in the E01/E02 backlog (favorites is a later concept), so the agent has to rely on the documentation. Every place it guesses goes into the docs or "What is missing".
 

@@ -36,5 +36,5 @@ export const LongTexts: Story = {
 
 export const NarrowScreen: Story = {
   args: { ...longTexts, offerReady: true, prices, slots },
-  decorators: [(Story) => <div className="w-72">{Story()}</div>],
+  decorators: [(Story) => <div className="w-phone">{Story()}</div>],
 };

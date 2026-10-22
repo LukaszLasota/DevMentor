@@ -37,7 +37,7 @@ export const Playground: Story = {
 
 export const NarrowScreen: Story = {
   render: () => (
-    <div role="status" aria-label="Loading mentors" className="w-72">
+    <div role="status" aria-label="Loading mentors" className="w-phone">
       <MentorRowSkeleton />
     </div>
   ),

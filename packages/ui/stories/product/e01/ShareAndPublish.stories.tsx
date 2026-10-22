@@ -40,7 +40,7 @@ export const ShareLink: Story = {
 
 export const ShareLinkNarrowScreen: Story = {
   render: () => (
-    <div className="w-72">
+    <div className="w-phone">
       <CopyShareLink url="https://devmentor.example/m/aleksandra-nowakowska-wisniewska" />
     </div>
   ),

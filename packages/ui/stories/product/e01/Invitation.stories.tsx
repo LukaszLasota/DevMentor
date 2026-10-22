@@ -35,4 +35,4 @@ export const OtherAccount: Story = {
 
 export const NotValid: Story = { args: { state: { kind: "invalid" } } };
 
-export const NarrowScreen: Story = { decorators: [(Story) => <div className="w-72">{Story()}</div>] };
+export const NarrowScreen: Story = { decorators: [(Story) => <div className="w-phone">{Story()}</div>] };

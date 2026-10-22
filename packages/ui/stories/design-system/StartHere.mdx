@@ -43,4 +43,7 @@ Sources: `lekcja-06/referencje.md` (R01 GitHub, R02 Slack, R03 trainer's decisio
 | ReadinessChecklist, ProfileActions, CopyShareLink, SlotsPanel, SignInPanel, PayoutStatusPanel | `@devmentor/ui` | E01 screens | Public pages |
 | MentorCard, MentorTagFilter, MentorListSkeleton, MentorPageView, MentorAvatar, SessionFacts, TagList, TextSessionNotice, LocalTime, InvitationPanel, buttonVariants | `@devmentor/ui/mentors` | Public pages (Tailwind only) | Panels that can use the full set |
 
+## Surfaces
+Public pages (`/`, `/mentors`, `/m/[slug]`, `/invitation/[token]`) import only `@devmentor/ui/mentors` (Tailwind only). Every signed-in page — auth, mentor, **mentee** (`(student)`, e.g. favorites) and admin — is a panel: `@devmentor/ui`, plus any Tailwind-only component from `@devmentor/ui/mentors`.
+
 Agents: read `docs/design-system.md` first; it is the short version of this Storybook.

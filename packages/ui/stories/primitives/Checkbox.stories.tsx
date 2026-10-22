@@ -63,7 +63,7 @@ export const StateMatrix: Story = {
 
 export const LongLabelNarrowScreen: Story = {
   render: () => (
-    <div className="w-72">
+    <div className="w-phone">
       <Field label="I agree that my public work link and bio are shown on my share page" inline>
         {(control) => <Checkbox {...control} />}
       </Field>

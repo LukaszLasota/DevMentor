@@ -12,6 +12,9 @@ import * as Stories from "./ListWithFilters.stories";
 | Active filter is visible (`aria-current`, underline) and removed with "All" | spec #27 |
 | "Nothing here yet" and "nothing for this filter" are separate states; the filter state links back to All | lesson 06, spec #27 |
 | Unknown tag: "Unknown stack tag." plus the filter, no list (HTTP 200) | spec #27 |
+| Empty states use `EmptyState` (title + next step / link to All) | Feedback states |
+| Private lists (favorites): hide the filter when nothing is saved yet; public `/mentors` always shows it | agent test, spec #27 |
+| Another list path: `MentorTagFilter basePath="/favorites"`; skeleton label: `MentorListSkeleton label="Loading favorites"` | agent test |
 | No result count, no position numbers, no sort or search | spec #27 ("no numbers"), R08, N02 |
 | Loading: `MentorListSkeleton` | spec #27 |
 

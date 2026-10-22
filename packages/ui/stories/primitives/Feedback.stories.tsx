@@ -49,7 +49,7 @@ export const Loading: Story = {
 
 export const NarrowScreen: Story = {
   render: () => (
-    <div className="flex w-72 flex-col gap-paragraph">
+    <div className="flex w-phone flex-col gap-paragraph">
       <EmptyState title="No mentors for this tag yet" description="Mentors appear here once they publish open times." />
       <ErrorMessage message="Could not load mentors. The server did not answer in time." onRetry={() => undefined} />
     </div>

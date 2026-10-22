@@ -1,4 +1,4 @@
-import { ErrorMessage } from "../../src";
+import { EmptyState, ErrorMessage, TextLink } from "../../src";
 import {
   MentorCard,
   MentorListSkeleton,
@@ -47,14 +47,12 @@ export function MentorListPattern({ state }: { state: MentorListState }) {
               ))}
             </ul>
           ) : state.tag ? (
-            <p className="text-body-small">
-              No {stackTagLabel(state.tag)} mentors have open times right now.{" "}
-              <a href="/mentors" className="rounded-control text-link underline underline-offset-4 outline-none focus-visible:focus-ring">
-                Show all mentors
-              </a>
-            </p>
+            <EmptyState
+              title={`No ${stackTagLabel(state.tag)} mentors have open times right now.`}
+              action={<TextLink href="/mentors">Show all mentors</TextLink>}
+            />
           ) : (
-            <p className="text-body-small">No mentors have open times right now. Check back soon.</p>
+            <EmptyState title="No mentors have open times right now. Check back soon." />
           )}
         </>
       ) : null}
