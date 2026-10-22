@@ -6,6 +6,8 @@ import { join, relative } from 'node:path';
 
 export const ROOTS = ['packages/app/src', 'packages/ui/src', 'packages/ui/stories', 'packages/ui/.storybook'];
 export const TOKEN_FILE = 'packages/ui/src/tokens.css';
+// Teaching pages quote the forbidden values on purpose ("What to avoid"); they are prose, not UI code.
+export const DOCS_DIR = 'packages/ui/stories/design-system/';
 const EXTENSIONS = ['.ts', '.tsx', '.css', '.mdx'];
 const SKIP_DIRS = new Set(['node_modules', 'storybook-static']);
 
@@ -25,7 +27,7 @@ export const RULES = [
 
 /** Files that are scanned: UI sources outside tests, build output and the token file. */
 export function isScanned(path) {
-  if (path === TOKEN_FILE) return false;
+  if (path === TOKEN_FILE || path.startsWith(DOCS_DIR)) return false;
   if (/\.test\.(?:ts|tsx|mjs)$/.test(path)) return false;
   return EXTENSIONS.some((ext) => path.endsWith(ext));
 }

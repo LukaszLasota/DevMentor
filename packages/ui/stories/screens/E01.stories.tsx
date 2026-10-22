@@ -176,7 +176,7 @@ export const MentorProfileDraft: Story = {
     <PanelFrame area="Mentor">
       <h1 className="text-heading-1 font-semibold">Profile</h1>
       <div className="grid gap-component lg:grid-cols-2">
-        <div className="flex flex-col gap-component">
+        <div className="flex min-w-0 flex-col gap-component">
           <ProfileFormPattern />
           <ReadinessChecklist
             title="Before you can publish"
@@ -189,7 +189,7 @@ export const MentorProfileDraft: Story = {
           />
           <ProfileActions published={false} onPublish={noop} onUnpublish={noop} />
         </div>
-        <section aria-label="Preview" className="rounded-card border border-dashed border-border p-panel">
+        <section aria-label="Preview" className="min-w-0 rounded-card border border-dashed border-border p-panel">
           <MentorPageView {...marta} offerReady={false} prices={null} slots={[]} />
         </section>
       </div>

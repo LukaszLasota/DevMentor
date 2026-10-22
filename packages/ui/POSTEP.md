@@ -11,9 +11,9 @@ Prompt: `lekcja-06/prompt-storybook.md` (copy of `lekcja-06/storybook-devmentor.
 | 2. Base components | done 2026-10-22 in 3 batches (851ef85, 3694817, c9f3aea) |
 | 3. Product components, patterns, screens | done 2026-10-22 in 4 parts (f6708e0, 4baecae + 4ee7f02, parts 3–4 committed with this update) |
 | 4. Teaching pages | done 2026-10-22 |
-| 5. Checks and report | not started |
+| 5. Checks and report | done 2026-10-22 |
 
-**Next step:** stage 5 — checks and report.
+**Next step:** homework step 5 (outside this prompt): "Wartości spoza tokenów w aplikacji" for `packages/app/src` (19 findings) incl. `(marketing)/globals.css` importing the tokens, CI jobs `tokens` and Storybook tests, then the agent test in a NEW session (see "Agent test" below).
 
 ## Stage 1 — what was built (2026-10-22)
 
@@ -93,6 +93,29 @@ Prompt: `lekcja-06/prompt-storybook.md` (copy of `lekcja-06/storybook-devmentor.
 
 - Design system/: Start here (character, five steps, component table with import/when/when not), Components (live previews + links), How to choose ("if… use…" tables incl. missing components), Usage and accessibility (rules with sources), Content (tone — proposal, buttons, errors, empty states, formats), What to avoid (product anti-patterns, generic AI look, implementation mistakes, each with how to spot it in code), What is missing (missing components, backlog coverage table, open decisions), Contributing (when to add component/variant/nothing, homes, docs requirements, token changes, approver, commands), E01 and E02 epic pages.
 - `docs/design-system.md` (agent-first summary) and a pointer in `AGENTS.md` under UI.
+
+## Stage 5 — checks and report (2026-10-22)
+
+**Built:** tokens (3 layers, light + dark), Tailwind mapping, Storybook 10 with docs, a11y (failing), Vitest browser story tests in both themes, msw; 21 base components (incl. Field, TextLink, Empty/Error/Loading) and 17 product components; 5 patterns + backlog overview; 28 screen stories with state maps; 10 teaching pages; `docs/design-system.md` + AGENTS.md pointer; `npm run check:tokens`.
+
+**Counts:** 45 documentation pages (MDX), 34 story files, 154 stories, 46 interaction tests (`play`), all 154 stories as a11y tests ×2 themes.
+
+**Checked:**
+- `npm run validate`: lint (one pre-existing warning in `.agents/skills/om-share-this-session`), typecheck, 230 unit tests with 100 % coverage, app build without DB, audit — pass.
+- `npm run build-storybook` — pass. `npm run test:storybook` — 154/154 in light and dark (axe `test: "error"`).
+- `npm run check:tokens` — 0 findings in `packages/ui`; 19 in `packages/app/src/app/(marketing)/page.tsx` (Next starter page, homework). Teaching pages (`stories/design-system/`) are excluded on purpose: they quote forbidden values.
+- Browser (agent-browser, Storybook dev): all 28 screen stories at 320, 768 and 1440 px in both themes — no horizontal scroll after fixing two real issues (sr-only text in an inline truncated link; `field-sizing-content` textarea widening a grid column). Overlays (dialog, confirm dialog, menu) render outside the story root with the dark theme. Keyboard order on `/sign-in`: GitHub → Email → Password → Sign in → Create an account.
+- A first browser pass ran against a stale Storybook server started before msw was added (every story showed an error page); it was discarded and repeated on a fresh server.
+
+**Not checked:** screen-reader output by ear; real pages in the Next app (they are not wired to these components yet); Safari/Firefox (Chromium only); `prefers-reduced-motion` visually (covered by tokens, not observed).
+
+**Proposals for decision:** dark action colour `#7d97ff`; overlay shadow and scrim values; text line heights and weights; badge vertical padding; avatar sizes 28/36/48; dialog widths 32/26 rem and menu 12 rem; chart colours; tone of voice; page frames (app shell); copy not in specs: sign-in error codes, verify-email, invalid invitation, copy-blocked, unpublish confirmation, payout states, 404 and list-load error.
+
+**Gaps (What is missing):** radio, switch, popover/tooltip, tabs, toast, side panel; app shell; `CrudForm` `datetime` (spec #25); session view (E04); `/admin` landing and `/admin/users` (no spec).
+
+## Agent test (prepared, not run in this session)
+
+Run in a NEW conversation with `lekcja-06/test-agentem-devmentor.txt` (course prompt). Screen: **"Ulubieni mentorzy" / Favorite mentors** for a mentee: list of saved mentors with a stack-tag filter, "Remove from favorites" and a link to the profile; states: loading, empty (nobody saved yet), load error, no results for the chosen filter. Saved at `packages/ui/src/components/favorites/FavoriteMentors.tsx` with `FavoriteMentors.stories.tsx` next to it. It is not in Storybook and not in the E01/E02 backlog (favorites is a later concept), so the agent has to rely on the documentation. Every place it guesses goes into the docs or "What is missing".
 
 ## Open questions (stage 1)
 

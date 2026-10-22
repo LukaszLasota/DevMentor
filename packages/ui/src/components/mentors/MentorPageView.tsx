@@ -58,7 +58,7 @@ export function MentorPageView({
           href={publicWorkUrl}
           target="_blank"
           rel="noopener nofollow ugc"
-          className="w-fit max-w-full truncate rounded-control font-mono text-body-small text-link underline underline-offset-4 outline-none focus-visible:focus-ring"
+          className="relative block w-fit max-w-full truncate rounded-control font-mono text-body-small text-link underline underline-offset-4 outline-none focus-visible:focus-ring"
         >
           {publicWorkLabel(publicWorkUrl)}
           <span className="sr-only"> (opens in a new tab)</span>

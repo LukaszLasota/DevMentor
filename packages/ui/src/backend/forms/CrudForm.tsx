@@ -192,7 +192,7 @@ export function CrudForm<S extends z.ZodObject>({
       onSubmit={handleSubmit}
       onKeyDown={handleKeyDown}
       aria-busy={isSubmitting || undefined}
-      className="flex flex-col gap-paragraph"
+      className="flex min-w-0 flex-col gap-paragraph"
     >
       {formError || rootErrors.length > 0 ? (
         <Alert tone="danger">

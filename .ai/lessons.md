@@ -10,6 +10,8 @@ Rules:
 ## Index
 
 <!-- Newest first. -->
+- 2026-10-22 — Before a browser check of Storybook, restart `storybook dev` after config changes (staticDirs, addons): a stale server rendered every story as an error page and a width check "passed" on error pages. Assert the story actually rendered (no error text, expected landmark) in such scripts.
+- 2026-10-22 — `npx shadcn add` for a component that depends on a restyled primitive (e.g. alert-dialog → button) prompts to overwrite it and hangs in a non-interactive shell; pipe `n` answers and fix the generated `@/components/ui/*` imports to relative ones (the app maps `@` to its own src).
 - 2026-10-22 — After changing `packages/ui/src/styles.css`/`tokens.css`, `next dev` and even `next build` served the old CSS from the `packages/app/.next` cache; `rm -rf packages/app/.next` fixed it. Check the served CSS (grep for a new token) before auditing UI changes.
 - 2026-10-22 — CSS custom properties that alias other tokens (`--primary: var(--dm-action-primary-fill)`) resolve where they are declared; declare aliases on `:root, .light, .dark` or a nested theme scope inherits the root theme's value (`packages/ui/src/tokens.css`).
 - 2026-10-22 — Storybook docs (MDX) pages run no story decorators: theme switching for docs needs a channel listener (`SET_GLOBALS`/`GLOBALS_UPDATED`) plus a custom `docs.container` (`packages/ui/.storybook/preview.tsx`).
