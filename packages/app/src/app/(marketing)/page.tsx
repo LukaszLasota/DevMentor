@@ -5,7 +5,7 @@ import { buttonVariants } from "@devmentor/ui/mentors";
 // still the Next starter until spec #27 adds "Find a mentor" here.
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-muted font-sans">
+    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-900 font-sans">
       <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-section px-section bg-background sm:items-start">
         <Image className="h-5 w-auto" src="/next.svg" alt="Next.js logo" width={100} height={20} priority />
         <div className="flex flex-col items-center gap-panel text-center sm:items-start sm:text-left">
