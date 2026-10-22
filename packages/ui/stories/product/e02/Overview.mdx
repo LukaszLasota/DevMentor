@@ -1,0 +1,21 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Product/E02 Finding a mentor/Overview" />
+
+# E02 components
+
+Public components for `/mentors` and `/m/[slug]` (specs #27, #28), exported from `@devmentor/ui/mentors` (Tailwind only). Signed-in pages may use them too.
+
+| Component | Use when | When not to use | Source |
+|---|---|---|---|
+| `MentorCard` | A row of the public mentor list | Rows that need actions or a headline (favorites), admin tables, the mentor's own page | spec #27 |
+| `MentorTagFilter` | One stack tag at a time on a list (`basePath`) | Several tags, search, admin filters (Select), actions | spec #27 |
+| `MentorPageView` | The share page and its preview | Lists, editing, explaining readiness to visitors | spec #28 |
+| `MentorListSkeleton` | Loading the mentor list (> 400 ms) | Short loads, actions in progress, other shapes (Skeleton) | spec #27 |
+| `LocalTime` | Any instant shown to a person | Durations; form inputs that must stay in the mentor's zone | spec #22 |
+| `MentorAvatar` | Avatar on public pages (plain `<img>`, initial fallback) | Signed-in panels (**Avatar**); without the name next to it | specs #21, #23 |
+| `SessionFacts` | Session length + price as chips when prices are known | Before both prices exist (show "Not bookable yet"); totals or payouts; status (Badge) | R03.3, spec #27 |
+| `TagList` | Showing a mentor's stack tags as labels | Choosing tags (Checkbox group / `multiselect`); filtering (MentorTagFilter); status | spec #23 |
+| `TextSessionNotice` | Every mentor page, in "Sessions" | Anywhere a booking is not offered (e.g. the list rows) — it is one line per page, not a banner | spec #28, N01 |
+| `InvitationPanel` (E01, public) | `/invitation/[token]` | Any "become a mentor" path (spec #22 forbids it) | spec #22 |
+| `buttonVariants` | Styling a plain `<a>`/`<button>` like Button on public pages | Panels (use **Button**); combining with raw palette classes | lesson 06 |

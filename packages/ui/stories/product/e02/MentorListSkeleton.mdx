@@ -8,5 +8,9 @@ import * as Stories from "./MentorListSkeleton.stories";
 - **`MentorListSkeleton`** (spec #27): filter and three row placeholders inside one `role="status"` with `aria-busy`; pulses only when motion is allowed.
 - **`LocalTime`** (spec #22): prints an ISO instant. Server and first render show UTC with a "UTC" label (no hydration mismatch, readable without JavaScript); after mount the viewer's time zone. Format "Thu 5 Nov, 17:30", mono with tabular figures (R03.1).
 
+## When not to use
+- **`MentorListSkeleton`**: for loads under about 400 ms (show nothing); for actions in progress (Button `loading`); for a list that is not shaped like mentor rows (use **Skeleton** blocks shaped like that content). Set `label` when it loads something other than mentors.
+- **`LocalTime`**: for durations ("25 min") or dates without a time of day that do not depend on the zone; for times that must stay in the mentor's zone in a form (the slot form echoes `Times are in <zone>`, spec #25 — built with that story).
+
 <Canvas of={Stories.ListLoading} />
 <Canvas of={Stories.LocalTimeInViewerZone} />

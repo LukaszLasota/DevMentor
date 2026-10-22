@@ -12,15 +12,15 @@ import * as Payouts from "./Payouts.stories";
 
 Product components for epic E01 (specs #21–#26), built from the primitives and tokens. Panel components come from `@devmentor/ui`; the invitation panel is public and comes from `@devmentor/ui/mentors` (Tailwind only).
 
-| Component | Screen | Rules | Source |
-|---|---|---|---|
-| `ReadinessChecklist` | `/mentor`, `/mentor/profile` | "Done" / "To do" in words and icon; link to fix; out-of-bounds price named | specs #22–#25 |
-| `ProfileActions` | `/mentor/profile` | Publish with the consequence line; Unpublish confirmed (focus on Cancel) | spec #23, R03.4 |
-| `CopyShareLink` | `/mentor/profile` | URL as text, Copy link, fallback selects text, result in `role="status"` | spec #23 |
-| `SlotsPanel` | `/mentor/slots` | Lead-time state as badge + word, Remove confirmed, "Show past", exact empty copy | spec #25 |
-| `SignInPanel` | `/sign-in` | GitHub first and primary; email fallback; error codes in plain words | spec #21 |
-| `InvitationPanel` | `/invitation/[token]` | Accept only for the invited account; one sentence when invalid | spec #22 |
-| `PayoutStatusPanel` | `/mentor/payouts` (1.1) | One state at a time, plain guidance, Refresh status | spec #26 |
+| Component | Screen | Rules | When not to use | Source |
+|---|---|---|---|---|
+| `ReadinessChecklist` | `/mentor`, `/mentor/profile` | "Done" / "To do" in words and icon; link to fix; out-of-bounds price named | Visitors (public pages show no reasons, spec #28); long instructions (Alert) | specs #22–#25 |
+| `ProfileActions` | `/mentor/profile` | Publish with the consequence line; Unpublish confirmed (focus on Cancel) | Other publishable objects without their own copy; publishing from a list row | spec #23, R03.4 |
+| `CopyShareLink` | `/mentor/profile` | URL as text, Copy link, fallback selects text, result in `role="status"` | Before the first publish (no slug yet); links that change (it promises the link stays the same) | spec #23 |
+| `SlotsPanel` | `/mentor/slots` | Lead-time state as badge + word, Remove confirmed, "Show past", exact empty copy | Mentees choosing a time (`MentorPageView` open times); booked sessions (E03) | spec #25 |
+| `SignInPanel` | `/sign-in` | GitHub first and primary; email fallback; error codes in plain words | Register (email only, `CrudForm` + Alert); re-authentication inside a flow | spec #21 |
+| `InvitationPanel` | `/invitation/[token]` | Accept only for the invited account; one sentence when invalid | Any self-service "become a mentor" path (spec #22); signed-in panels | spec #22 |
+| `PayoutStatusPanel` | `/mentor/payouts` (1.1) | One state at a time, plain guidance, Refresh status | Release 1.0 screens other than the link on `/mentor`; showing raw Stripe fields; public pages (no payout status in public, spec #26) | spec #26 |
 
 **Copy not in the specs, approved 2026-10-22:** sign-in error messages, invalid-invitation sentence, copy-blocked fallback message, unpublish confirmation text, payout states other than "Payouts enabled" and the failed message.
 

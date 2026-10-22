@@ -7,6 +7,12 @@ import * as Stories from "./MentorTagFilter.stories";
 
 The `/mentors` filter (spec #27): a `nav` (`aria-label="Filter by stack tag"`) of links — All, TypeScript, React, Python, AI agents — one value at a time via `?tag=<key>`.
 
+## When not to use
+- For more than one value at a time or for free text: there is no multi-tag filter and no search (spec #27, R08).
+- In admin screens with many values: **Select**.
+- For actions: links in the filter only change the URL; use **Button** for actions.
+- On a list other than `/mentors` without setting `basePath` (e.g. `basePath="/favorites"`).
+
 | Rule | Source |
 |---|---|
 | Links, not a select or chips with checkboxes; no text input, no sort control | spec #27, R08 |

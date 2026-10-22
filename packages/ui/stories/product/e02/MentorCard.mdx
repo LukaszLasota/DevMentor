@@ -7,6 +7,12 @@ import * as Stories from "./MentorCard.stories";
 
 One row of `/mentors` (spec #27): who the mentor is, what they have done, their prices and next open time. Built only with Tailwind and tokens, exported from `@devmentor/ui/mentors` (public pages never import shadcn, AGENTS.md, spec #27).
 
+## When not to use
+- On signed-in lists that need row actions or a professional headline (favorites): compose a row from its classes until the card gets an actions slot ("What is missing").
+- For the mentor's own page or preview: **Mentor page view**.
+- In admin tables: **Table / DataTable**.
+- Without a bookable offer: the list only shows offer-ready mentors (spec #27); never render a card with empty prices.
+
 ## Rules
 | Rule | Source |
 |---|---|
