@@ -31,8 +31,15 @@ export default defineConfig({
       "storybook/internal/core-events",
       "storybook/theming",
       "@storybook/addon-docs/blocks",
+      "msw",
+      "msw/browser",
+      "msw-storybook-addon",
+      "msw-storybook-addon/csf3",
+      "msw-storybook-addon/preview",
     ],
   },
+  // Serves mockServiceWorker.js to the browser tests, as staticDirs does for Storybook.
+  publicDir: fileURLToPath(new URL("./.storybook/public", import.meta.url)),
   test: {
     name: `storybook-${theme}`,
     browser: {

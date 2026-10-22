@@ -1,0 +1,31 @@
+import { Canvas, Meta, Source } from "@storybook/addon-docs/blocks";
+import * as Stories from "./MentorPageView.stories";
+
+<Meta of={Stories} />
+
+# Mentor page view
+
+The body of the share page `/m/[slug]` (specs #23, #28) and the preview on `/mentor/profile`. Same for every visitor; the owner sees no edit link.
+
+## Section order (spec #28)
+1. Header: `h1` display name, avatar (`alt=""`), stack tags.
+2. "What I have done" (bio as plain text, in full) and "Public work" (new tab, `rel="noopener nofollow ugc"`).
+3. "Sessions": always "Sessions are text — no video call. 25 or 50 minutes." (N01). If the offer is ready: price chips, "Times are shown in your time zone", the open times; a slot past its lead time stays visible but is marked "Starts in less than two hours — no longer bookable". If not: only "Not bookable yet" — no prices, no times, no reason.
+
+## Rules
+| Rule | Source |
+|---|---|
+| No booking button until E03 (#29) | spec #28 |
+| No ratings or counts | N02 |
+| Disabled slot: `aria-disabled`, disabled text colour and a written reason, not colour alone | WCAG 1.4.1 |
+| Times via `LocalTime` | spec #22 |
+
+## Data states
+<Canvas of={Stories.OfferReady} />
+<Canvas of={Stories.NotBookableYet} />
+<Canvas of={Stories.ManyOpenTimes} />
+<Canvas of={Stories.NarrowScreen} />
+
+Unknown or unpublished slug is the standard 404 page; the error state ("This mentor page cannot be shown right now. Try again in a minute.") belongs to the screen (Screens/E02).
+
+<Source language="tsx" code={`<MentorPageView {...view} prices={view.prices && { price25: formatMoney(view.prices.price25Cents), price50: formatMoney(view.prices.price50Cents) }} />`} />

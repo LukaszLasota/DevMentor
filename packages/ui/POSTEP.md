@@ -8,12 +8,12 @@ Prompt: `lekcja-06/prompt-storybook.md` (copy of `lekcja-06/storybook-devmentor.
 |---|---|
 | 0. Inventory and plan | done 2026-10-22, approved |
 | 1. Foundations | done 2026-10-22, approved, committed e7c56a8 |
-| 2. Base components | done 2026-10-22 in 3 batches (851ef85, 3694817, batch 3 pending commit), waiting for review ("dalej") |
-| 3. Product components, patterns, screens | not started |
+| 2. Base components | done 2026-10-22 in 3 batches (851ef85, 3694817, c9f3aea) |
+| 3. Product components, patterns, screens | part 1 of 4 (E02 public components) done 2026-10-22 |
 | 4. Teaching pages | not started |
 | 5. Checks and report | not started |
 
-**Next step:** review batch 3, then stage 3 (product components per epic, patterns, screens with state maps; add `msw` + `msw-storybook-addon` for API answers).
+**Next step:** stage 3 part 2 — E01 components (ReadinessChecklist, CopyShareLink, ProfileActions, StackTagPicker, PriceFields, SlotsPanel, invitation and sign-in panels, payout status 1.1); then part 3 patterns, part 4 screens.
 
 ## Stage 1 — what was built (2026-10-22)
 
@@ -72,6 +72,14 @@ Prompt: `lekcja-06/prompt-storybook.md` (copy of `lekcja-06/storybook-devmentor.
 - Proposals: scrim colours, dialog widths 32rem / 26rem, menu min width 12rem.
 - Checks: 59 stories pass a11y in light and dark (three consecutive runs). The a11y test found: table scroll container not keyboard-reachable (fixed in the component) and an open-by-default modal menu story hiding its own trigger (docs-only story made non-modal). Dialog tests now wait for the fade-in. Unit tests 205 pass, coverage 100 %, typecheck and lint clean, Storybook builds. `check:tokens`: no findings in `packages/ui` (19 left in the marketing page).
 - Stage 2 total: 19 base components with 13-section docs: Button, Text link, Input, Textarea, Checkbox, Field, Select, Card, Status badge, Avatar, Alert, Skeleton, Dialog, Confirm dialog, Menu, Table, Empty / Error / Loading states.
+
+## Stage 3 — part 1, E02 public components (2026-10-22)
+
+- UI facts from all nine specs were extracted first (screens, states, exact copy, forbidden UI); the components follow them.
+- Public pages are Tailwind only, no shadcn (AGENTS.md, specs #23/#27), so E02 components use tokens and plain elements, no Radix, and ship through a new entry `@devmentor/ui/mentors` (`src/mentors.ts`, `package.json` exports): `LocalTime` (UTC label before hydration, viewer zone after, via `useSyncExternalStore`), `MentorAvatar` (plain `<img>` per spec #21, initial fallback), `SessionFacts` (price chips, R03.3), `TagList`, `TextSessionNotice`, `MentorCard`, `MentorTagFilter` (nav of links, `aria-current`), `MentorListSkeleton`, `MentorPageView` (spec #28 section order, disabled slot with written reason, "Not bookable yet" without reasons, no booking button), vocabulary helpers.
+- `msw` 3 + `msw-storybook-addon` 3 installed (approved plan), `mockServiceWorker.js` in `.storybook/public`, CSF3 loader; handlers per story via `beforeEach({ msw })`.
+- Prices in stories use the spec's own examples ("$40.00", "$75.00"); currency is still open (#24).
+- Checks: 75 stories pass a11y in light and dark; unit tests 215, coverage 100 %; typecheck, lint, Storybook build clean. Public pages will only look right once `(marketing)/globals.css` imports the tokens (homework step 5).
 
 ## Open questions (stage 1)
 

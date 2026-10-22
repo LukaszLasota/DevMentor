@@ -1,0 +1,38 @@
+import { Canvas, Meta, Source } from "@storybook/addon-docs/blocks";
+import * as Stories from "./MentorCard.stories";
+
+<Meta of={Stories} />
+
+# Mentor card
+
+One row of `/mentors` (spec #27): who the mentor is, what they have done, their prices and next open time. Built only with Tailwind and tokens, exported from `@devmentor/ui/mentors` (public pages never import shadcn, AGENTS.md, spec #27).
+
+## Rules
+| Rule | Source |
+|---|---|
+| A list row with a thin line under it, not a floating card | R01.1, R03.2 |
+| Name links to `/m/<slug>`; public-work link opens a new tab with `rel="noopener nofollow ugc"`, text = host + path cut at 60 | spec #27, #28 |
+| Bio cut at 280 characters on the server and clamped to 3 lines | spec #27 |
+| Prices as separate fact chips, mono with tabular figures | R03.3, R03.1 |
+| "Next open time:" via `LocalTime` (viewer's zone, UTC before hydration) | spec #22, #27 |
+| No rating, score, rank, "top", "popular" or session count | N02, A02 |
+| Say "open times", never "available now" or "guaranteed" | spec #27 |
+| Avatar: GitHub photo or initial on `--muted` | A01, POSTEP Q4 |
+
+## Data states
+| State | Story |
+|---|---|
+| Typical data | Default |
+| Photo present | With photo |
+| Long name, link, bio, all four tags | Long texts |
+| Many mentors in a list | Many in a list |
+| 320 px | Narrow screen |
+| Loading, empty, unknown tag, error | `/mentors` screen (Screens/E02) and Loading |
+
+<Canvas of={Stories.Default} />
+<Canvas of={Stories.LongTexts} />
+
+## Props
+`MentorListItem` from spec #27 with prices preformatted: `{ slug, displayName, avatarUrl, publicWorkUrl, bio, stackTags, prices: { price25, price50 }, nextBookableSlotAt }`.
+
+<Source language="tsx" code={`<ul>{items.map((m) => <li key={m.slug}><MentorCard {...m} prices={{ price25: formatMoney(m.prices.price25Cents), price50: formatMoney(m.prices.price50Cents) }} /></li>)}</ul>`} />

@@ -1,5 +1,6 @@
 import { DocsContainer, type DocsContainerProps } from "@storybook/addon-docs/blocks";
 import type { Decorator, Preview } from "@storybook/react-vite";
+import { mswLoader } from "msw-storybook-addon/csf3";
 import { useEffect, useState, type PropsWithChildren } from "react";
 import { GLOBALS_UPDATED, SET_GLOBALS } from "storybook/internal/core-events";
 import { addons } from "storybook/preview-api";
@@ -51,6 +52,8 @@ function ThemedDocsContainer({ children, context }: PropsWithChildren<DocsContai
 
 const preview: Preview = {
   decorators: [withTheme],
+  // Simulated API answers per story: beforeEach({ msw }) => msw.use(http.post(...)) (msw-storybook-addon).
+  loaders: [mswLoader()],
   globalTypes: {
     theme: {
       description: "Colour theme",
