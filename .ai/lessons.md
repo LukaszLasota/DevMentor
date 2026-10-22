@@ -10,6 +10,8 @@ Rules:
 ## Index
 
 <!-- Newest first. -->
+- 2026-10-22 — CSS custom properties that alias other tokens (`--primary: var(--dm-action-primary-fill)`) resolve where they are declared; declare aliases on `:root, .light, .dark` or a nested theme scope inherits the root theme's value (`packages/ui/src/tokens.css`).
+- 2026-10-22 — Storybook docs (MDX) pages run no story decorators: theme switching for docs needs a channel listener (`SET_GLOBALS`/`GLOBALS_UPDATED`) plus a custom `docs.container` (`packages/ui/.storybook/preview.tsx`).
 - 2026-10-21 — Course reference specs can differ from what the trainer says in the video (mentor+operator: "separate" in the video, combinable in the final spec); check the spec file before adopting a course decision
 - 2026-10-21 — `om-backlog` filing: a story can depend on one filed later (E01-S06 → E03-S01), so write `Depends on:` lines after every issue exists, not while creating them
 - 2026-10-21 — `npm run dev -- -p <port>` does not reach `next dev` through the nested workspace script (it becomes a project dir); use `PORT=<port> npm run dev`

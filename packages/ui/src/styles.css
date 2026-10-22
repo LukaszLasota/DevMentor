@@ -1,11 +1,18 @@
-/* Admin (shadcn/ui) theme. Imported by the admin root layout in @devmentor/app. */
+/* Design-system stylesheet (shadcn/ui base). Imported by the admin root layout in @devmentor/app and by Storybook.
+   Values live in tokens.css; this file only maps them onto Tailwind. */
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "@fontsource-variable/inter";
+@import "@fontsource/dm-mono/400.css";
+@import "@fontsource/dm-mono/500.css";
+@import "./tokens.css";
 
 /* Workspace packages sit behind node_modules symlinks, so scan them explicitly. */
 @source "./";
+@source "../stories";
 
+/* The theme class sits on <html> so dialogs, menus and popovers rendered outside a story get it too. */
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -28,18 +35,12 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-link: var(--link);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -48,75 +49,55 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-}
 
-:root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
+  --font-sans: var(--dm-font-sans);
+  --font-mono: var(--dm-font-code);
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Text styles: text-display, text-heading-1 … text-caption */
+  --text-display: var(--dm-text-display);
+  --text-display--line-height: var(--dm-text-display-leading);
+  --text-heading-1: var(--dm-text-heading-1);
+  --text-heading-1--line-height: var(--dm-text-heading-1-leading);
+  --text-heading-2: var(--dm-text-heading-2);
+  --text-heading-2--line-height: var(--dm-text-heading-2-leading);
+  --text-heading-3: var(--dm-text-heading-3);
+  --text-heading-3--line-height: var(--dm-text-heading-3-leading);
+  --text-heading-4: var(--dm-text-heading-4);
+  --text-heading-4--line-height: var(--dm-text-heading-4-leading);
+  --text-body-large: var(--dm-text-body-large);
+  --text-body-large--line-height: var(--dm-text-body-large-leading);
+  --text-body: var(--dm-text-body);
+  --text-body--line-height: var(--dm-text-body-leading);
+  --text-body-small: var(--dm-text-body-small);
+  --text-body-small--line-height: var(--dm-text-body-small-leading);
+  --text-label: var(--dm-text-label);
+  --text-label--line-height: var(--dm-text-label-leading);
+  --text-caption: var(--dm-text-caption);
+  --text-caption--line-height: var(--dm-text-caption-leading);
+
+  /* Spacing by relation: p-panel, gap-related, mt-section … */
+  --spacing-related: var(--dm-space-related);
+  --spacing-paragraph: var(--dm-space-paragraph);
+  --spacing-panel: var(--dm-space-panel);
+  --spacing-component: var(--dm-space-component);
+  --spacing-section: var(--dm-space-section);
+
+  /* Radii by purpose; shadcn's sm…4xl names map onto them until stage 2 restyles the primitives */
+  --radius-control: var(--dm-radius-control);
+  --radius-button: var(--dm-radius-button);
+  --radius-card: var(--dm-radius-card);
+  --radius-panel: var(--dm-radius-panel);
+  --radius-sm: var(--dm-radius-control);
+  --radius-md: var(--dm-radius-button);
+  --radius-lg: var(--dm-radius-card);
+  --radius-xl: var(--dm-radius-panel);
+  --radius-2xl: var(--dm-radius-panel);
+  --radius-3xl: var(--dm-radius-panel);
+  --radius-4xl: var(--dm-radius-panel);
+
+  --shadow-overlay: var(--dm-shadow-overlay);
+
+  --container-measure: var(--dm-measure);
 }
 
 @layer base {
@@ -125,6 +106,6 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
   }
 }

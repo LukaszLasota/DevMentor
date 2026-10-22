@@ -1,0 +1,34 @@
+import { Meta, Unstyled } from "@storybook/addon-docs/blocks";
+import { ColorRoles, ContrastTable } from "../../.storybook/blocks/FoundationBlocks";
+
+<Meta title="Foundations/Color" />
+
+# Color
+
+Colour is a function, not decoration. Every colour on screen is a role from `src/tokens.css`. Components use the role names (Tailwind `bg-primary`, `text-muted-foreground`), never palette values or hex codes.
+
+## Decisions
+
+| Decision | Source |
+|---|---|
+| Warm greys instead of cold ones for backgrounds, lines and secondary text | R01.3 |
+| One action colour, `--primary`, for the single main action on a screen | tokeny.md (trainer), lesson 06 Hick's law |
+| No purple or indigo gradients, no glow, no glass | A01 |
+| Colour is never the only carrier of a state: a status also has text or an icon | WCAG 1.4.1 |
+| Dividers are thin `--border` lines; field outlines use the stronger `--input` | R01.1, R03.2, WCAG 1.4.11 |
+
+## Roles
+
+<Unstyled>
+  <ColorRoles />
+</Unstyled>
+
+## Contrast, measured in both themes
+
+The table resolves each token in a light and a dark scope and computes the WCAG ratio in the browser. Text needs at least 4.5 : 1, interface elements (field outlines, focus ring) at least 3 : 1. `--border` is a decorative divider and is exempt; it is never used as the outline of a control.
+
+<Unstyled>
+  <ContrastTable />
+</Unstyled>
+
+Proposals still open: the dark action colour (`--dm-primary-base-dark`) and the chart colours (unchanged shadcn defaults, no screen uses charts yet).

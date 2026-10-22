@@ -1,0 +1,28 @@
+import { Meta, Unstyled } from "@storybook/addon-docs/blocks";
+import { SpacingScale } from "../../.storybook/blocks/FoundationBlocks";
+
+<Meta title="Foundations/Spacing and layout" />
+
+# Spacing and layout
+
+Spacing groups content (law of proximity); it is not decoration. Choose by **relation**, from five steps only.
+
+<Unstyled>
+  <SpacingScale />
+</Unstyled>
+
+| Rule | Source |
+|---|---|
+| Five steps: 8, 16, 24, 32, 48 px, no other values | trainer (lesson 06) |
+| Dense lists (mentor list, session list, slot table): rows padded with `--dm-list-row-padding-y`, separated by `--border` lines, no card per row | R01.1, K1 |
+| Calm session view: messages separated by `--dm-message-gap` | R02.1, K1 |
+
+## Layout
+
+| Width | What changes | Source |
+|---|---|---|
+| 320 px | Single column; nothing scrolls sideways | WCAG 1.4.10 |
+| 768 px | Single column with wider panels | proposal |
+| 1440 px | Content width capped; running text at `max-w-measure` (65ch) | lesson 06 |
+
+Maximum content width for app screens: proposal, decided in stage 3 with the first screen.

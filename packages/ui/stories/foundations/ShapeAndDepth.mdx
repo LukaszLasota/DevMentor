@@ -1,0 +1,24 @@
+import { Meta, Unstyled } from "@storybook/addon-docs/blocks";
+import { OverlayShadow, RadiusScale } from "../../.storybook/blocks/FoundationBlocks";
+
+<Meta title="Foundations/Shape and depth" />
+
+# Shape and depth
+
+Every radius has a purpose. A shadow says what lies above what; it never separates content on the page.
+
+<Unstyled>
+  <RadiusScale />
+</Unstyled>
+
+| Rule | Source |
+|---|---|
+| Four radii: 8 controls, 10 buttons, 12 cards, 16 panels and dialogs | trainer (lesson 06) |
+| No pills (999 px) on chips, badges or buttons | A01 |
+| Thin `--border` lines instead of card borders and shadows on rows | R01.1, R03.2 |
+| One shadow, `--dm-shadow-overlay`, only for popovers, menus and dialogs | trainer; value is a proposal |
+| No card inside a card | A01, lesson 06 |
+
+<Unstyled>
+  <OverlayShadow />
+</Unstyled>

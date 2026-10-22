@@ -1,0 +1,19 @@
+import { Meta, Unstyled } from "@storybook/addon-docs/blocks";
+import { MotionScale } from "../../.storybook/blocks/FoundationBlocks";
+
+<Meta title="Foundations/Motion" />
+
+# Motion
+
+Three durations only. Motion confirms an action; it never decorates.
+
+<Unstyled>
+  <MotionScale />
+</Unstyled>
+
+| Rule | Source |
+|---|---|
+| 120 ms controls, 180 ms menus, 240 ms dialogs | trainer (lesson 06) |
+| A sent message appears immediately; no entrance animation for content | R02.3 |
+| With `prefers-reduced-motion: reduce` all three durations become 0 ms (set in `tokens.css`) | WCAG 2.3.3 |
+| No floating, pulsing or looping animations | A01 |
