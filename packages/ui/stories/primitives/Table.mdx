@@ -1,0 +1,49 @@
+import { Canvas, Meta, Source } from "@storybook/addon-docs/blocks";
+import * as Stories from "./Table.stories";
+
+<Meta of={Stories} />
+
+# Table
+
+## 1. Purpose
+Shows many records with the same fields so they can be scanned and compared.
+
+## 2. When to use
+`/mentor/slots` (spec #25), `/admin/users`, `/admin/payouts`; through `DataTable` in the panel.
+
+## 3. When not to use
+- The public mentor list: rows of mentor cards (spec #27).
+- One record: a detail view.
+
+## 4. Anatomy
+Header row (Label style, muted) · rows separated by thin `--border` lines (R01.1) · cells padded by `--dm-list-row-padding-y` (dense, K1) · optional caption.
+
+## 5. Variants
+One look. Times and amounts use `font-mono tabular-nums` (R03.1).
+
+## 6. States
+Row hover fills with `--muted`. Loading, empty and error states come from `DataTable` (Feedback states).
+
+## 7. Behaviour and accessibility
+Real `<table>` with `<th scope>`; the caption names the table. Wide tables scroll inside their container, never the page.
+
+## 8. Content
+Column headers are nouns; cells hold values, not sentences.
+
+## 9. Responsive
+<Canvas of={Stories.NarrowScreen} />
+
+## 10. API
+Parts: `Table`, `TableHeader`, `TableBody`, `TableFooter`, `TableRow`, `TableHead`, `TableCell`, `TableCaption`.
+
+## 11. Code
+<Source language="tsx" code={`<DataTable columns={columns} rows={slots} getRowId={(s) => s.id} isLoading={loading} error={error} />`} />
+
+## 12. Do and don't
+| Do | Don't |
+|---|---|
+| Thin lines between rows | Zebra stripes or a card per row |
+| Tabular figures for times | Proportional figures that jump |
+
+## 13. Related
+DataTable (panel layer), Menu (row actions), Status badge.

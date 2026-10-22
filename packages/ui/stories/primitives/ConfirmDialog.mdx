@@ -1,0 +1,55 @@
+import { Canvas, Meta, Source } from "@storybook/addon-docs/blocks";
+import * as Stories from "./ConfirmDialog.stories";
+
+<Meta of={Stories} />
+
+# Confirm dialog
+
+## 1. Purpose
+Stops a destructive or irreversible action until the user confirms it.
+
+## 2. When to use
+Remove a slot (spec #25), revoke an invitation (spec #22), unpublish the mentor page (spec #23).
+
+## 3. When not to use
+- For actions that can be undone easily: just do them.
+- For information: **Alert**.
+
+## 4. Anatomy
+Same surface as Dialog, narrower · title with the object's name · description of the consequence · Cancel · action. No close icon: the user must choose.
+
+## 5. Variants
+Action `intent` defaults to `destructive`; use `primary` for confirmations that are not destructive.
+
+## 6. States
+<Canvas of={Stories.Open} />
+
+## 7. Behaviour and accessibility
+- `alertdialog` role; focus starts on **Cancel**, the safe choice (WAI-ARIA alert dialog).
+- Escape cancels.
+
+## 8. Content
+- Title asks the question with the object: "Remove the slot on Thu 14 Nov, 18:30?"
+- Action is a verb + object: "Remove slot", never "OK" or "Yes" (lesson 06).
+- Cancel says what stays: "Keep slot".
+
+## 9. Responsive
+Buttons wrap under each other at 320 px, Cancel first.
+
+## 10. API
+Parts: `AlertDialog`, `AlertDialogTrigger`, `AlertDialogContent`, `AlertDialogHeader`, `AlertDialogTitle`, `AlertDialogDescription`, `AlertDialogFooter`, `AlertDialogCancel` (`size`), `AlertDialogAction` (`intent`, `appearance`, `size`).
+
+## 11. Code
+<Source language="tsx" code={`<AlertDialogFooter>
+  <AlertDialogCancel>Keep slot</AlertDialogCancel>
+  <AlertDialogAction onClick={remove}>Remove slot</AlertDialogAction>
+</AlertDialogFooter>`} />
+
+## 12. Do and don't
+| Do | Don't |
+|---|---|
+| Name the object in the question | "Are you sure?" |
+| Verb + object on the action | "OK" |
+
+## 13. Related
+Dialog, Button (`destructive`), delete-confirmation pattern (stage 3).

@@ -1,0 +1,55 @@
+import { Canvas, Meta, Source } from "@storybook/addon-docs/blocks";
+import * as Stories from "./Menu.stories";
+
+<Meta of={Stories} />
+
+# Menu
+
+## 1. Purpose
+Groups secondary actions for one object behind one button, so dense rows stay readable (R01.1).
+
+## 2. When to use
+Row actions in admin tables: resend or revoke an invitation (spec #22, `/admin/users`).
+
+## 3. When not to use
+- One or two actions: show them as buttons.
+- Navigation between pages: links.
+- Choosing a value: **Select**.
+
+## 4. Anatomy
+Trigger (icon-only button with a name that includes the object) · list in an overlay · optional label · items · separator · destructive item last.
+
+## 5. Variants
+Items: `default` and `destructive`.
+
+## 6. States
+<Canvas of={Stories.Open} />
+
+Item hover/focus fills with `--muted`; disabled items use the disabled text colour and are skipped by the keyboard.
+
+## 7. Behaviour and accessibility
+`menu` / `menuitem` roles; Enter/Space open, arrows move, Escape closes and returns focus to the trigger. Items are at least 32 px high. Opens in 180 ms (`--dm-duration-menu`).
+
+## 8. Content
+Verb + object ("Resend invitation"). Destructive items open a **Confirm dialog**.
+
+## 9. Responsive
+The list aligns to the trigger and flips when there is no room.
+
+## 10. API
+Parts: `DropdownMenu`, `DropdownMenuTrigger`, `DropdownMenuContent`, `DropdownMenuLabel`, `DropdownMenuGroup`, `DropdownMenuItem` (`variant`), `DropdownMenuSeparator`.
+
+## 11. Code
+<Source language="tsx" code={`<DropdownMenu>
+  <DropdownMenuTrigger asChild><Button appearance="text" size="sm" iconOnly aria-label={\`Actions for \${email}\`}><Ellipsis aria-hidden="true" /></Button></DropdownMenuTrigger>
+  <DropdownMenuContent align="end"><DropdownMenuItem variant="destructive">Revoke invitation</DropdownMenuItem></DropdownMenuContent>
+</DropdownMenu>`} />
+
+## 12. Do and don't
+| Do | Don't |
+|---|---|
+| Trigger name says whose actions | "More" without context |
+| Destructive item last, separated | Destructive item first |
+
+## 13. Related
+Table, Confirm dialog, Button.

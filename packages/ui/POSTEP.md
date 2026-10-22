@@ -8,12 +8,12 @@ Prompt: `lekcja-06/prompt-storybook.md` (copy of `lekcja-06/storybook-devmentor.
 |---|---|
 | 0. Inventory and plan | done 2026-10-22, approved |
 | 1. Foundations | done 2026-10-22, approved, committed e7c56a8 |
-| 2. Base components | batches 1–2 of 4 done 2026-10-22 (batch 1 committed 851ef85), waiting for review ("dalej") |
+| 2. Base components | done 2026-10-22 in 3 batches (851ef85, 3694817, batch 3 pending commit), waiting for review ("dalej") |
 | 3. Product components, patterns, screens | not started |
 | 4. Teaching pages | not started |
 | 5. Checks and report | not started |
 
-**Next step:** review batch 2 in Storybook, then batch 3: Dialog, Confirm dialog, Menu, Table (restyle, `-[2px]`), Empty state, Error state (panel layer).
+**Next step:** review batch 3, then stage 3 (product components per epic, patterns, screens with state maps; add `msw` + `msw-storybook-addon` for API answers).
 
 ## Stage 1 — what was built (2026-10-22)
 
@@ -64,6 +64,14 @@ Prompt: `lekcja-06/prompt-storybook.md` (copy of `lekcja-06/storybook-devmentor.
 - Decisions approved 2026-10-22: status colours success `#1f7a45` / dark `#5cc98a`, warning `#8a5300` / dark `#e3a64a` (always with text and icon); badge = rectangle with 8 px radius; avatar = circle. Proposals: badge vertical padding 4 px, avatar sizes 28/36/48.
 - Docs (13 sections) + stories for all six. Checks: 46 stories pass a11y in light and dark; unit tests 200 pass, coverage 100 %; typecheck, lint, Storybook build clean; `check:tokens` in `packages/ui`: only `table.tsx` (batch 3).
 - Example data from specs only; removed an invented password-link lifetime (not in spec #21).
+
+## Stage 2 — batch 3 (2026-10-22)
+
+- Added via `npx shadcn add dialog alert-dialog dropdown-menu` (the CLI asked to overwrite `button.tsx`; answered no, the restyled button stays). No new dependencies.
+- Dialog (scrim token, panel radius/padding, overlay shadow, 240 ms motion-safe, close icon = icon-only Button "Close", footer Cancel → primary), Confirm dialog (`alertdialog`, focus on Cancel, action defaults to destructive filled, no close icon; removed unplanned `AlertDialogMedia`), Menu (row actions; removed unplanned checkbox/radio items, shortcuts, submenus), Table (thin row lines, Label-style muted header, dense row padding token, scroll container focusable), Feedback states (`EmptyState` left-aligned with next step, `ErrorMessage` with optional title + message + Try again — no default "Something went wrong" (audit decision 4), `LoadingMessage` with motion-safe spinner). Fixed the shadcn alias import `@/components/ui/button` (would resolve to the app) to a relative import.
+- Proposals: scrim colours, dialog widths 32rem / 26rem, menu min width 12rem.
+- Checks: 59 stories pass a11y in light and dark (three consecutive runs). The a11y test found: table scroll container not keyboard-reachable (fixed in the component) and an open-by-default modal menu story hiding its own trigger (docs-only story made non-modal). Dialog tests now wait for the fade-in. Unit tests 205 pass, coverage 100 %, typecheck and lint clean, Storybook builds. `check:tokens`: no findings in `packages/ui` (19 left in the marketing page).
+- Stage 2 total: 19 base components with 13-section docs: Button, Text link, Input, Textarea, Checkbox, Field, Select, Card, Status badge, Avatar, Alert, Skeleton, Dialog, Confirm dialog, Menu, Table, Empty / Error / Loading states.
 
 ## Open questions (stage 1)
 

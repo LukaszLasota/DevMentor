@@ -41,6 +41,7 @@
   --color-destructive-hover: var(--dm-destructive-hover);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-scrim: var(--dm-scrim);
   --color-disabled: var(--dm-disabled-fill);
   --color-disabled-foreground: var(--dm-disabled-foreground);
   --color-chart-1: var(--chart-1);
@@ -124,6 +125,9 @@
   --shadow-overlay: var(--dm-shadow-overlay);
 
   --container-measure: var(--dm-measure);
+  --container-dialog: var(--dm-dialog-width);
+  --container-dialog-confirm: var(--dm-dialog-width-confirm);
+  --container-menu: var(--dm-menu-min-width);
 }
 
 /* Clear focus outline (focus-visible:focus-ring). */

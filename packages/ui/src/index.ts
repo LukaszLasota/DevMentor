@@ -2,11 +2,45 @@
 
 // shadcn/ui primitives (added via `npx shadcn@latest add`, never hand-written)
 export { Alert, AlertDescription, AlertTitle, alertVariants } from "./components/ui/alert";
+export {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
+  AlertDialogPortal,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "./components/ui/alert-dialog";
 export { Avatar, AvatarFallback, AvatarImage } from "./components/ui/avatar";
 export { Badge, badgeVariants } from "./components/ui/badge";
 export { Button, buttonVariants, type ButtonProps } from "./components/ui/button";
 export { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./components/ui/card";
 export { Checkbox } from "./components/ui/checkbox";
+export {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
+} from "./components/ui/dialog";
+export {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./components/ui/dropdown-menu";
 export {
   Select,
   SelectContent,
