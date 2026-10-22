@@ -1,0 +1,37 @@
+import { Meta, Unstyled } from "@storybook/addon-docs/blocks";
+import { Alert, AlertDescription, Avatar, AvatarFallback, Badge, Button, Card, CardContent, Checkbox, EmptyState, Field, Input, Skeleton, TextLink } from "../../src";
+import { MentorTagFilter, SessionFacts } from "../../src/mentors";
+
+<Meta title="Design system/Components" />
+
+# Components
+
+Every component with a small live preview and a link to its documentation. Open a link in the sidebar or below.
+
+<Unstyled>
+<div className="grid gap-paragraph sm:grid-cols-2">
+  {[
+    ["Button", "Primitives", "Starts an action on this screen.", "primitives-button--docs", <Button intent="primary" appearance="filled">Book session</Button>],
+    ["Text link", "Primitives", "Navigates from text; always underlined.", "primitives-text-link--docs", <TextLink href="#x">Find a mentor</TextLink>],
+    ["Input + Field", "Primitives", "One line of text with a visible label.", "primitives-input--docs", <Field label="Display name">{(c) => <Input {...c} />}</Field>],
+    ["Checkbox", "Primitives", "On/off; stack tags.", "primitives-checkbox--docs", <Field label="TypeScript" inline>{(c) => <Checkbox {...c} defaultChecked />}</Field>],
+    ["Status badge", "Primitives", "State of one object, icon + word.", "primitives-status-badge--docs", <Badge tone="success">Published</Badge>],
+    ["Avatar", "Primitives", "Next to a name; neutral initial.", "primitives-avatar--docs", <Avatar><AvatarFallback>M</AvatarFallback></Avatar>],
+    ["Alert", "Primitives", "Page-level message with a next step.", "primitives-alert--docs", <Alert tone="warning"><AlertDescription>Not bookable yet</AlertDescription></Alert>],
+    ["Card", "Primitives", "One self-contained block, no shadow.", "primitives-card--docs", <Card><CardContent>Publish your page</CardContent></Card>],
+    ["Skeleton", "Primitives", "Loading placeholder shaped like content.", "primitives-skeleton--docs", <Skeleton className="h-4 w-1/2" />],
+    ["Feedback states", "Primitives", "Empty, error and loading for every region.", "primitives-feedback-states--docs", <EmptyState title="No upcoming slots." />],
+    ["Tag filter", "Product / E02", "Public filter as links.", "product-e02-finding-a-mentor-tag-filter--docs", <MentorTagFilter active="react" />],
+    ["Session facts", "Product / E02", "Length and price as chips.", "product-e02-finding-a-mentor-mentor-card--docs", <SessionFacts prices={{ price25: "$40.00", price50: "$75.00" }} />],
+  ].map(([name, group, text, id, preview]) => (
+    <article key={name} className="flex flex-col gap-related rounded-card border border-border p-paragraph">
+      <div className="min-h-button-lg">{preview}</div>
+      <p className="text-caption text-muted-foreground">{group}</p>
+      <a href={`?path=/docs/${id}`} target="_top" className="text-label font-medium text-link underline underline-offset-4">{name}</a>
+      <p className="text-body-small">{text}</p>
+    </article>
+  ))}
+</div>
+</Unstyled>
+
+Also documented: Textarea, Select, Dialog, Confirm dialog, Menu, Table (Primitives); E01 components (Product/E01 Overview); Mentor card, Mentor page view, Loading and time (Product/E02).

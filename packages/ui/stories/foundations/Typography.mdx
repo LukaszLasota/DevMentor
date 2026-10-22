@@ -1,0 +1,43 @@
+import { Meta, Unstyled } from "@storybook/addon-docs/blocks";
+import { TypeScale } from "../../.storybook/blocks/FoundationBlocks";
+
+<Meta title="Foundations/Typography" />
+
+# Typography
+
+Pick a **style**, not a size. Ten named styles plus one code style cover every screen.
+
+| Decision | Source |
+|---|---|
+| Inter for the interface, bundled with the project (Fontsource, no CDN) | tokeny.md (trainer), POSTEP Q2 |
+| DM Mono for logo, code, file names, versions and prices | R01.2, R03.1 |
+| Tabular figures (`tabular-nums`) wherever prices and times line up in columns | R03.1 |
+| Ten styles from Display 56 px to Caption 12 px; middle steps approved 2026-10-22 | trainer, POSTEP Q3 |
+| Running text at most about 65 characters per line (`max-w-measure`) | lesson 06, Baymard |
+| Line heights and weights | proposal |
+
+## Roles
+
+| Role | Style |
+|---|---|
+| Page title | Heading 1 |
+| Section title | Heading 2 |
+| Panel title | Heading 3 |
+| Running text | Body |
+| Field label, button | Label |
+| Metadata, timestamps | Caption |
+| Numbers in columns | Code / price with `tabular-nums` |
+| Code | Code / price |
+| Secondary line in a row (headline, metadata) | Body small, `text-muted-foreground` |
+
+## Heading levels
+| Element | Style |
+|---|---|
+| `h1` page title | Heading 1 |
+| `h2` section | Heading 2 |
+| `h3` panel or card | Heading 3 |
+| Row title (`h2`/`h3` by its place in the outline) | Heading 4 |
+
+<Unstyled>
+  <TypeScale />
+</Unstyled>

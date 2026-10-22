@@ -85,8 +85,9 @@ describe("CrudForm", () => {
     await user.type(screen.getByLabelText("Minutes"), "5");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    const button = screen.getByRole("button", { name: "Saving…" }) as HTMLButtonElement;
+    const button = screen.getByRole("button", { name: /Saving…/ }) as HTMLButtonElement;
     expect(button.disabled).toBe(true);
+    expect(button.getAttribute("aria-busy")).toBe("true");
     resolve({ ok: true, data: null });
     expect(await screen.findByRole("button", { name: "Save" })).toBeTruthy();
   });
@@ -177,5 +178,89 @@ describe("CrudForm", () => {
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     expect(onSubmit).toHaveBeenCalledWith({ title: "" });
+  });
+
+  it("validates a field when the user leaves it and focuses the first error on submit", async () => {
+    const { user } = setup();
+
+    await user.click(screen.getByLabelText("Title"));
+    await user.tab();
+    expect(screen.getByText("Title is required")).toBeTruthy();
+
+    await user.type(screen.getByLabelText("Title"), "Helm upgrade");
+    await user.tab();
+    expect(screen.queryByText("Title is required")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(document.activeElement).toBe(screen.getByLabelText("Minutes"));
+  });
+
+  it("puts Cancel before the primary action", () => {
+    setup();
+    expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual(["Cancel", "Save"]);
+  });
+
+  it("supports a multiselect group, a suffix, a decimal keyboard and required fields", async () => {
+    const priceSchema = z.object({
+      price25: z.string().regex(/^(0|[1-9]\d*)(\.\d{1,2})?$/, "Enter a price like 40 or 40.50"),
+      tags: z.array(z.string()).min(1, "Pick at least one stack tag").max(4),
+    });
+    const onSubmit = vi.fn(async (): Promise<ApiResult<unknown>> => ({ ok: true, data: null }));
+    render(
+      <CrudForm
+        schema={priceSchema}
+        fields={[
+          { name: "price25", label: "25 minutes", inputMode: "decimal", suffix: "USD", required: true },
+          {
+            name: "tags",
+            label: "Stack tags",
+            type: "multiselect",
+            description: "Up to four",
+            options: [
+              { value: "typescript", label: "TypeScript" },
+              { value: "react", label: "React" },
+            ],
+          },
+        ]}
+        defaultValues={{ tags: ["react"] }}
+        onSubmit={onSubmit}
+      />,
+    );
+    const user = userEvent.setup();
+
+    expect(screen.getByText("USD")).toBeTruthy();
+    expect(screen.getByLabelText(/25 minutes/).getAttribute("inputmode")).toBe("decimal");
+    expect(screen.getByRole("group", { name: "Stack tags" })).toBeTruthy();
+
+    await user.click(screen.getByRole("checkbox", { name: "React" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(screen.getByText("Pick at least one stack tag")).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Stack tags" }).getAttribute("aria-describedby")).toBe("tags-group-error");
+    expect(document.activeElement).toBe(screen.getByLabelText(/25 minutes/));
+
+    await user.type(screen.getByLabelText(/25 minutes/), "40");
+    await user.click(screen.getByRole("checkbox", { name: "TypeScript" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSubmit).toHaveBeenCalledWith({ price25: "40", tags: ["typescript"] });
+  });
+
+  it("starts a multiselect empty without a default and validates textarea on blur", async () => {
+    const bioSchema = z.object({ bio: z.string().min(1, "Write what you have done"), tags: z.array(z.string()) });
+    render(
+      <CrudForm
+        schema={bioSchema}
+        fields={[
+          { name: "bio", label: "What you have done", type: "textarea" },
+          { name: "tags", label: "Stack tags", type: "multiselect" },
+        ]}
+        onSubmit={vi.fn(async (): Promise<ApiResult<unknown>> => ({ ok: true, data: null }))}
+      />,
+    );
+    const user = userEvent.setup();
+
+    await user.click(screen.getByLabelText("What you have done"));
+    await user.tab();
+    expect(screen.getByText("Write what you have done")).toBeTruthy();
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
   });
 });

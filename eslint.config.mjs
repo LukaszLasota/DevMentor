@@ -66,6 +66,8 @@ const eslintConfig = defineConfig([
     "**/dist/**",
     "**/next-env.d.ts",
     "**/coverage/**",
+    "**/storybook-static/**",
+    "packages/ui/.storybook/public/**",
   ]),
 ]);
 

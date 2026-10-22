@@ -1,0 +1,18 @@
+import { Canvas, Meta } from "@storybook/addon-docs/blocks";
+import * as Stories from "./DeleteConfirmation.stories";
+
+<Meta of={Stories} />
+
+# Delete confirmation
+
+Removing a slot (spec #25), revoking an invitation (spec #22), unpublishing (spec #23).
+
+| Rule | Source |
+|---|---|
+| The question names the object: "Remove the slot on Thu 5 Nov, 17:30?" | lesson 06 |
+| Cancel is easy to find, comes first and has focus | WAI-ARIA alert dialog, R03.4 |
+| The action is a verb + object ("Remove slot"), never "OK" | lesson 06 |
+| Escape cancels | WAI-ARIA |
+
+<Canvas of={Stories.RemoveSlot} />
+<Canvas of={Stories.KeepSlot} />

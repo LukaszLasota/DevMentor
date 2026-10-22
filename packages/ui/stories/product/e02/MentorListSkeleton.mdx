@@ -1,0 +1,12 @@
+import { Canvas, Meta } from "@storybook/addon-docs/blocks";
+import * as Stories from "./MentorListSkeleton.stories";
+
+<Meta of={Stories} />
+
+# Loading and time
+
+- **`MentorListSkeleton`** (spec #27): filter and three row placeholders inside one `role="status"` with `aria-busy`; pulses only when motion is allowed.
+- **`LocalTime`** (spec #22): prints an ISO instant. Server and first render show UTC with a "UTC" label (no hydration mismatch, readable without JavaScript); after mount the viewer's time zone. Format "Thu 5 Nov, 17:30", mono with tabular figures (R03.1).
+
+<Canvas of={Stories.ListLoading} />
+<Canvas of={Stories.LocalTimeInViewerZone} />

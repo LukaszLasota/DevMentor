@@ -1,0 +1,58 @@
+import { Canvas, Meta, Source } from "@storybook/addon-docs/blocks";
+import * as Stories from "./Feedback.stories";
+
+<Meta of={Stories} />
+
+# Feedback states: empty, error, loading
+
+## 1. Purpose
+Tell the user why a region has no content and what to do: still loading, nothing yet, or failed.
+
+## 2. When to use
+Every list and data region (lesson 06: no screen without loading, empty and error states). `DataTable` uses them automatically.
+
+## 3. When not to use
+- Field errors: **Field**.
+- Page-level messages: **Alert**.
+- Errors that need action are never toasts (lesson 06).
+
+## 4. Anatomy
+- **Empty**: dashed outline · why it is empty · next step · optional action.
+- **Error**: destructive outline · icon · title (what failed) · message (what happened) · Try again.
+- **Loading**: status line with a spinner that turns only when motion is allowed.
+
+## 5. Variants
+<Canvas of={Stories.Empty} />
+<Canvas of={Stories.Error} />
+<Canvas of={Stories.Loading} />
+
+## 6. States
+Error without a title leads with the message (used by `DataTable` with the API error):
+
+<Canvas of={Stories.ErrorWithoutTitle} />
+
+## 7. Behaviour and accessibility
+Loading is `role="status"` (`aria-live="polite"`); error is `role="alert"`. Empty state is plain content. Left-aligned, not centred (A01).
+
+## 8. Content
+- Empty: why + next step ("No open times yet. Publish your first slot so mentees can book you.").
+- Error: what failed + what happened + Try again. Never "Something went wrong" alone (lesson 06 audit).
+- Loading: what is loading ("Loading open times…"); show it only after about 400 ms (Doherty).
+
+## 9. Responsive
+<Canvas of={Stories.NarrowScreen} />
+
+## 10. API
+`EmptyState({ title, description?, action? })`, `ErrorMessage({ title?, message, onRetry? })`, `LoadingMessage({ label? })`.
+
+## 11. Code
+<Source language="tsx" code={`<EmptyState title="No open times yet" description="Publish your first slot so mentees can book you." action={<Button intent="primary" appearance="filled" size="sm">Publish slot</Button>} />`} />
+
+## 12. Do and don't
+| Do | Don't |
+|---|---|
+| Separate "nothing yet" from "nothing for this filter" (list pattern, stage 3) | One empty message for both |
+| Say what to do next | A blank region |
+
+## 13. Related
+DataTable, Skeleton, Alert, list-with-filters pattern (stage 3).

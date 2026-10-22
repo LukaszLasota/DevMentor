@@ -1,0 +1,57 @@
+import { ArgTypes, Canvas, Meta, Source } from "@storybook/addon-docs/blocks";
+import * as Stories from "./Card.stories";
+
+<Meta of={Stories} />
+
+# Card
+
+## 1. Purpose
+Groups one self-contained piece of a screen: an onboarding step, the invitation, a sign-in panel.
+
+## 2. When to use
+`/mentor` onboarding steps, `/invitation/[token]`, `/sign-in` and `/register` panels (specs #21, #22).
+
+## 3. When not to use
+- Rows of a list: rows are separated by thin lines, not cards (R01.1).
+- Inside another card (A01).
+- To make a section look important: use a heading and spacing.
+
+## 4. Anatomy
+Container (1 px `--border`, `--dm-radius-card`, `p-panel`) · header (title, description, optional action) · content · footer separated by a line.
+
+## 5. Variants
+One look. No shadow, no fill colour (R03.2).
+
+<Canvas of={Stories.ContentOnly} />
+
+## 6. States
+Static. A card that is a link target gets a focus outline on the link inside it, not on the card.
+
+## 7. Behaviour and accessibility
+`CardTitle` is a `div`: wrap the title in the right heading level for the page (`<CardTitle><h2>…</h2></CardTitle>`) so the outline stays correct.
+
+## 8. Content
+Title is a task or noun; description is one sentence about what to do.
+
+## 9. Responsive
+<Canvas of={Stories.LongContentNarrowScreen} />
+
+## 10. API
+<ArgTypes of={Stories} />
+
+Parts: `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardAction`, `CardContent`, `CardFooter`.
+
+## 11. Code
+<Source language="tsx" code={`<Card>
+  <CardHeader><CardTitle>Publish your page</CardTitle><CardAction><Badge>Draft</Badge></CardAction></CardHeader>
+  <CardFooter><Button>Cancel</Button><Button intent="primary" appearance="filled">Publish</Button></CardFooter>
+</Card>`} />
+
+## 12. Do and don't
+| Do | Don't |
+|---|---|
+| Footer: Cancel first, then the primary action (R03.4) | Primary action on the left in one card and the right in another |
+| Thin border, no shadow | Shadow as the only separation (A01) |
+
+## 13. Related
+Status badge, Button. Used by the onboarding checklist and the auth panels (stage 3).

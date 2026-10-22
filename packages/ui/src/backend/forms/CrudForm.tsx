@@ -1,31 +1,47 @@
 "use client";
 
-import { useId, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { z } from "zod";
 import { Button } from "../../components/ui/button";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
+import { Alert, AlertDescription } from "../../components/ui/alert";
 import { Textarea } from "../../components/ui/textarea";
 import { FORM_ERRORS_KEY, type ApiResult, type FieldErrors } from "../api/types";
+import { Field } from "./Field";
 
-export type CrudFormFieldType = "text" | "email" | "password" | "number" | "textarea" | "checkbox";
+export type CrudFormFieldType = "text" | "email" | "password" | "number" | "textarea" | "checkbox" | "multiselect";
+
+export interface CrudFormOption {
+  value: string;
+  label: string;
+}
 
 export interface CrudFormField<Name extends string> {
   name: Name;
   label: string;
   type?: CrudFormFieldType;
+  /** An example, never the name of the field (lesson 06). */
   placeholder?: string;
+  /** Hint under the label: format, bounds, example. */
   description?: string;
+  /** Mobile keyboard for text fields, e.g. "decimal" for prices (spec #24). */
+  inputMode?: "text" | "decimal" | "numeric" | "email" | "url";
+  /** Text after the input, e.g. the currency (spec #24). */
+  suffix?: string;
+  /** Options of a "multiselect" checkbox group (spec #23, stack tags). */
+  options?: CrudFormOption[];
+  required?: boolean;
 }
 
-type FieldValue = string | boolean;
+type FieldValue = string | boolean | string[];
+type DefaultValue = string | number | boolean | string[];
 
 export interface CrudFormProps<S extends z.ZodObject> {
   /** The same Zod schema the API route validates with (from @devmentor/core validators). */
   schema: S;
   fields: CrudFormField<keyof z.output<S> & string>[];
-  defaultValues?: Partial<Record<keyof z.output<S> & string, string | number | boolean>>;
+  defaultValues?: Partial<Record<keyof z.output<S> & string, DefaultValue>>;
   /** Usually `(values) => apiCall("/api/...", { method: "POST", body: values })`. */
   onSubmit: (values: z.output<S>) => Promise<ApiResult<unknown>>;
   onSuccess?: (data: unknown) => void;
@@ -34,9 +50,13 @@ export interface CrudFormProps<S extends z.ZodObject> {
   cancelLabel?: string;
 }
 
-function initialValue(type: CrudFormFieldType, value: string | number | boolean | undefined): FieldValue {
+function initialValue(type: CrudFormFieldType, value: DefaultValue | undefined): FieldValue {
   if (type === "checkbox") {
     return value === true;
+  }
+
+  if (type === "multiselect") {
+    return Array.isArray(value) ? value : [];
   }
 
   return value === undefined ? "" : String(value);
@@ -81,7 +101,7 @@ export function CrudForm<S extends z.ZodObject>({
   submitLabel = "Save",
   cancelLabel = "Cancel",
 }: CrudFormProps<S>) {
-  const formId = useId();
+  const formRef = useRef<HTMLFormElement>(null);
   const [values, setValues] = useState<Record<string, FieldValue>>(() =>
     Object.fromEntries(
       fields.map((field) => [field.name, initialValue(field.type ?? "text", defaultValues[field.name])]),
@@ -93,6 +113,29 @@ export function CrudForm<S extends z.ZodObject>({
 
   const setValue = (name: string, value: FieldValue) => setValues((current) => ({ ...current, [name]: value }));
 
+  // After a failed submit, focus moves to the first field with an error (lesson 06 form pattern).
+  // Runs after render, when the field is already marked invalid.
+  const [focusRequest, setFocusRequest] = useState<{ name: string } | null>(null);
+  useEffect(() => {
+    if (focusRequest) {
+      formRef.current
+        ?.querySelector<HTMLElement>(`[data-field="${focusRequest.name}"] :is(input, textarea, button)`)
+        ?.focus();
+    }
+  }, [focusRequest]);
+
+  function focusFirstError(errors: FieldErrors) {
+    const first = fields.find((field) => (errors[field.name] ?? []).length > 0);
+    setFocusRequest(first ? { name: first.name } : null);
+  }
+
+  /** Validates one field when the user leaves it; other fields keep their current errors. */
+  function validateField(name: string) {
+    const parsed = schema.safeParse(toSchemaInput(fields, values));
+    const errors = parsed.success ? {} : toFieldErrors(parsed.error);
+    setFieldErrors((current) => ({ ...current, [name]: errors[name] ?? [] }));
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -103,8 +146,10 @@ export function CrudForm<S extends z.ZodObject>({
     const parsed = schema.safeParse(toSchemaInput(fields, values));
 
     if (!parsed.success) {
-      setFieldErrors(toFieldErrors(parsed.error));
+      const errors = toFieldErrors(parsed.error);
+      setFieldErrors(errors);
       setFormError(null);
+      focusFirstError(errors);
       return;
     }
 
@@ -113,8 +158,10 @@ export function CrudForm<S extends z.ZodObject>({
     setIsSubmitting(false);
 
     if (!result.ok) {
-      setFieldErrors(result.error.fieldErrors ?? {});
+      const errors = result.error.fieldErrors ?? {};
+      setFieldErrors(errors);
       setFormError(result.error.message);
+      focusFirstError(errors);
       return;
     }
 
@@ -139,81 +186,120 @@ export function CrudForm<S extends z.ZodObject>({
   const rootErrors = fieldErrors[FORM_ERRORS_KEY] ?? [];
 
   return (
-    <form noValidate onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="flex flex-col gap-4">
+    <form
+      ref={formRef}
+      noValidate
+      onSubmit={handleSubmit}
+      onKeyDown={handleKeyDown}
+      aria-busy={isSubmitting || undefined}
+      className="flex min-w-0 flex-col gap-paragraph"
+    >
       {formError || rootErrors.length > 0 ? (
-        <div role="alert" className="rounded-md border border-destructive/40 p-3 text-sm text-destructive">
-          {[formError, ...rootErrors].filter(Boolean).join(" ")}
-        </div>
+        <Alert tone="danger">
+          <AlertDescription>{[formError, ...rootErrors].filter(Boolean).join(" ")}</AlertDescription>
+        </Alert>
       ) : null}
 
       {fields.map((field) => {
         const type = field.type ?? "text";
-        const inputId = `${formId}-${field.name}`;
-        const errorId = `${inputId}-error`;
         const errors = fieldErrors[field.name] ?? [];
-        const hasError = errors.length > 0;
-        const describedBy = hasError ? errorId : undefined;
+        const error = errors.length > 0 ? errors.join(" ") : undefined;
         const value = values[field.name];
 
+        if (type === "multiselect") {
+          const selected = value as string[];
+          return (
+            <fieldset
+              key={field.name}
+              data-field={field.name}
+              aria-describedby={error ? `${field.name}-group-error` : undefined}
+              className="flex flex-col gap-related"
+            >
+              <legend className="pb-related text-label font-medium">{field.label}</legend>
+              {field.description ? <p className="text-caption text-muted-foreground">{field.description}</p> : null}
+              {(field.options ?? []).map((option) => (
+                <Field key={option.value} label={option.label} inline>
+                  {(control) => (
+                    <Checkbox
+                      {...control}
+                      aria-invalid={error ? true : undefined}
+                      checked={selected.includes(option.value)}
+                      onCheckedChange={(checked) =>
+                        setValue(
+                          field.name,
+                          checked === true ? [...selected, option.value] : selected.filter((v) => v !== option.value),
+                        )
+                      }
+                    />
+                  )}
+                </Field>
+              ))}
+              {error ? (
+                <p id={`${field.name}-group-error`} className="text-caption text-destructive">
+                  {error}
+                </p>
+              ) : null}
+            </fieldset>
+          );
+        }
+
         return (
-          <div key={field.name} className="flex flex-col gap-1.5">
-            {type === "checkbox" ? (
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id={inputId}
-                  checked={value === true}
-                  onCheckedChange={(checked) => setValue(field.name, checked === true)}
-                  aria-invalid={hasError}
-                  aria-describedby={describedBy}
-                />
-                <Label htmlFor={inputId}>{field.label}</Label>
-              </div>
-            ) : (
-              <>
-                <Label htmlFor={inputId}>{field.label}</Label>
-                {type === "textarea" ? (
+          <div key={field.name} data-field={field.name}>
+            <Field
+              label={field.label}
+              hint={field.description}
+              error={error}
+              required={field.required}
+              inline={type === "checkbox"}
+            >
+              {(control) =>
+                type === "checkbox" ? (
+                  <Checkbox
+                    {...control}
+                    checked={value === true}
+                    onCheckedChange={(checked) => setValue(field.name, checked === true)}
+                  />
+                ) : type === "textarea" ? (
                   <Textarea
-                    id={inputId}
+                    {...control}
                     name={field.name}
                     value={String(value)}
                     placeholder={field.placeholder}
                     onChange={(event) => setValue(field.name, event.target.value)}
-                    aria-invalid={hasError}
-                    aria-describedby={describedBy}
+                    onBlur={() => validateField(field.name)}
                   />
                 ) : (
-                  <Input
-                    id={inputId}
-                    name={field.name}
-                    type={type}
-                    value={String(value)}
-                    placeholder={field.placeholder}
-                    onChange={(event) => setValue(field.name, event.target.value)}
-                    aria-invalid={hasError}
-                    aria-describedby={describedBy}
-                  />
-                )}
-              </>
-            )}
-            {field.description ? <p className="text-xs text-muted-foreground">{field.description}</p> : null}
-            {hasError ? (
-              <p id={errorId} className="text-xs text-destructive">
-                {errors.join(" ")}
-              </p>
-            ) : null}
+                  <div className="flex items-center gap-related">
+                    <Input
+                      {...control}
+                      name={field.name}
+                      type={type}
+                      inputMode={field.inputMode}
+                      value={String(value)}
+                      placeholder={field.placeholder}
+                      className={field.inputMode === "decimal" ? "font-mono tabular-nums" : undefined}
+                      onChange={(event) => setValue(field.name, event.target.value)}
+                      onBlur={() => validateField(field.name)}
+                    />
+                    {field.suffix ? <span className="text-body-small text-muted-foreground">{field.suffix}</span> : null}
+                  </div>
+                )
+              }
+            </Field>
           </div>
         );
       })}
 
-      <div className="flex gap-2">
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Saving…" : submitLabel}
-        </Button>
+      {/* R03.4: Cancel first, then the primary action, right-aligned; same order in code and on screen. */}
+      <div className="flex flex-wrap justify-end gap-related">
         {onCancel ? (
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+          <Button type="button" onClick={onCancel} disabled={isSubmitting}>
             {cancelLabel}
           </Button>
         ) : null}
+        <Button type="submit" intent="primary" appearance="filled" loading={isSubmitting} loadingLabel="Saving…">
+          {submitLabel}
+        </Button>
       </div>
     </form>
   );

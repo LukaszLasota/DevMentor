@@ -1,0 +1,48 @@
+import { Canvas, Meta } from "@storybook/addon-docs/blocks";
+import * as Checklist from "./ReadinessChecklist.stories";
+import * as Share from "./ShareAndPublish.stories";
+import * as Slots from "./SlotsPanel.stories";
+import * as SignIn from "./SignIn.stories";
+import * as Invitation from "./Invitation.stories";
+import * as Payouts from "./Payouts.stories";
+
+<Meta title="Product/E01 Mentor onboarding/Overview" />
+
+# E01 components
+
+Product components for epic E01 (specs #21–#26), built from the primitives and tokens. Panel components come from `@devmentor/ui`; the invitation panel is public and comes from `@devmentor/ui/mentors` (Tailwind only).
+
+| Component | Screen | Rules | Source |
+|---|---|---|---|
+| `ReadinessChecklist` | `/mentor`, `/mentor/profile` | "Done" / "To do" in words and icon; link to fix; out-of-bounds price named | specs #22–#25 |
+| `ProfileActions` | `/mentor/profile` | Publish with the consequence line; Unpublish confirmed (focus on Cancel) | spec #23, R03.4 |
+| `CopyShareLink` | `/mentor/profile` | URL as text, Copy link, fallback selects text, result in `role="status"` | spec #23 |
+| `SlotsPanel` | `/mentor/slots` | Lead-time state as badge + word, Remove confirmed, "Show past", exact empty copy | spec #25 |
+| `SignInPanel` | `/sign-in` | GitHub first and primary; email fallback; error codes in plain words | spec #21 |
+| `InvitationPanel` | `/invitation/[token]` | Accept only for the invited account; one sentence when invalid | spec #22 |
+| `PayoutStatusPanel` | `/mentor/payouts` (1.1) | One state at a time, plain guidance, Refresh status | spec #26 |
+
+**Proposals** (the specs give no copy): sign-in error messages, invalid-invitation sentence, copy-blocked fallback message, unpublish confirmation text, payout states other than "Payouts enabled" and the failed message.
+
+**Not built here, belongs to the stories' implementation:** `CrudForm` `datetime` field with the `Times are in <zone>` note and the resolved-time echo (spec #25); the stack-tag picker is the `CrudForm` `multiselect` field (Patterns/Form).
+
+## Readiness
+<Canvas of={Checklist.MentorHome} />
+<Canvas of={Checklist.Partial} />
+
+## Publish and share
+<Canvas of={Share.NotPublished} />
+<Canvas of={Share.ShareLink} />
+
+## Slots
+<Canvas of={Slots.Upcoming} />
+<Canvas of={Slots.Empty} />
+
+## Sign-in and invitation
+<Canvas of={SignIn.GitHubCancelled} />
+<Canvas of={Invitation.SignedOut} />
+<Canvas of={Invitation.OtherAccount} />
+<Canvas of={Invitation.NotValid} />
+
+## Payouts (1.1)
+<Canvas of={Payouts.ActionRequired} />

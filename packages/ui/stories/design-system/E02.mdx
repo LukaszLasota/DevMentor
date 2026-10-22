@@ -1,0 +1,20 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design system/E02 Finding a mentor" />
+
+# E02 Finding a mentor
+
+A developer finds a mentor through the stack-tag list or a mentor's own share link, sees what they have built, their prices and open times.
+
+## Flow
+1. `/mentors` — filter by one stack tag; mentors with the most recently published open times first; no search, no ranking (spec #27).
+2. `/m/[slug]` — the share page: who, what they have done, public work, sessions (spec #28). Booking arrives with E03.
+
+## Screens and stories
+Screens/E02 Finding a mentor; Patterns/List with filters; Patterns/Detail view; states in Screens/State maps.
+
+## Source files
+`src/components/mentors/`, `src/time/LocalTime.tsx`, entry `src/mentors.ts`; specs `2026-10-21-mentor-list.md`, `…-mentor-share-link-page.md`.
+
+## Work left in the product
+`(marketing)/globals.css` must import the tokens before these components look right on the real pages (homework step 5); wire `/mentors` and `/m/[slug]` to the components.

@@ -1,0 +1,18 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Patterns/Backlog patterns" />
+
+# Patterns from the backlog
+
+| Pattern | Where | Built from | Stories |
+|---|---|---|---|
+| Onboarding checklist | `/mentor`, `/mentor/profile` (specs #22–#25) | `ReadinessChecklist`, Card | Product/E01/Readiness checklist |
+| Sign in: GitHub first, email fallback | `/sign-in` (spec #21) | `SignInPanel`, `CrudForm` | Product/E01/Sign-in panel |
+| Register: email only, then "Check your inbox to finish registration" | `/register` (spec #21) | `CrudForm`, Alert | Screens/E01 |
+| Invitation acceptance | `/invitation/[token]` (spec #22) | `InvitationPanel` (public) | Product/E01/Invitation panel |
+| Publish and share | `/mentor/profile` (spec #23) | `ProfileActions`, `CopyShareLink` | Product/E01/Publish and share |
+| Own slots with lead-time state | `/mentor/slots` (spec #25) | `SlotsPanel`, Confirm dialog | Product/E01/Slots panel |
+| Public share page | `/m/[slug]` (spec #28) | `MentorPageView` | Patterns/Detail view |
+
+## Remove from your own list (*proposal*, from the agent test)
+For personal lists such as favorites: no confirm dialog. The row disappears; a status line above the list says what happened and offers Undo (`Button appearance="text" size="sm"`); focus moves to the next row's action, or to the list heading when the list is now empty. A failed removal shows its error under the row with Try again. Rows: name as the link to the profile, secondary line muted, one row action = `text` button, `sm`.

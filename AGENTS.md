@@ -77,6 +77,7 @@ New reusable components have one home each:
 
 ## UI
 
+- **Design system:** read `docs/design-system.md` before building any screen; components, tokens and rules are documented in the Storybook in `packages/ui` (`npm run storybook -w @devmentor/ui`). Use semantic tokens only (`npm run check:tokens`). Interface language: English.
 - `packages/app/src/app/(marketing)` — public pages, Tailwind only (no shadcn). `(admin)` — admin panel, shadcn/ui via `@devmentor/ui`. Persona groups `(auth)`, `(student)`, `(mentor)` are created with their first page. Each group that needs its own `<html>` has its own root layout; there is no `src/app/layout.tsx`.
 - Admin theme: `packages/ui/src/styles.css`, imported by the admin root layout.
 

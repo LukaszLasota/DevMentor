@@ -1,0 +1,31 @@
+import { Canvas, Meta } from "@storybook/addon-docs/blocks";
+import * as Stories from "./ListWithFilters.stories";
+
+<Meta of={Stories} />
+
+# List with filters
+
+`/mentors` (spec #27): tag filter as links, results as a list of mentor rows.
+
+| Rule | Source |
+|---|---|
+| Active filter is visible (`aria-current`, underline) and removed with "All" | spec #27 |
+| "Nothing here yet" and "nothing for this filter" are separate states; the filter state links back to All | lesson 06, spec #27 |
+| Unknown tag: "Unknown stack tag." plus the filter, no list (HTTP 200) | spec #27 |
+| Empty states use `EmptyState` (title + next step / link to All) | Feedback states |
+| Private lists (favorites): hide the filter when nothing is saved yet; public `/mentors` always shows it | agent test, spec #27 |
+| Another list path: `MentorTagFilter basePath="/favorites"`; skeleton label: `MentorListSkeleton label="Loading favorites"` | agent test |
+| No result count, no position numbers, no sort or search | spec #27 ("no numbers"), R08, N02 |
+| Loading: `MentorListSkeleton` | spec #27 |
+
+The lesson's list pattern asks for a result counter; spec #27 shows none and forbids numbers in the list, so the spec wins (counter: not shown).
+
+<Canvas of={Stories.Results} />
+<Canvas of={Stories.FilteredByTag} />
+<Canvas of={Stories.Loading} />
+<Canvas of={Stories.NothingYet} />
+<Canvas of={Stories.NoResultsForFilter} />
+<Canvas of={Stories.UnknownTag} />
+<Canvas of={Stories.LoadError} />
+
+Load error copy is a proposal (the spec names no list error copy).

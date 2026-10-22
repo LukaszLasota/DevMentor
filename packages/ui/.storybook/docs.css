@@ -1,0 +1,87 @@
+/* Styles for documentation blocks only. Every value comes from src/tokens.css. */
+.dm-doc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--dm-font-sans);
+  font-size: var(--dm-text-body-small);
+  line-height: var(--dm-text-body-small-leading);
+  color: var(--foreground);
+  background: var(--background);
+}
+.dm-doc-table th,
+.dm-doc-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: var(--dm-list-row-padding-y) var(--dm-space-related);
+  border-bottom: 1px solid var(--border);
+}
+.dm-doc-table code {
+  font-family: var(--dm-font-code);
+}
+.dm-doc-swatch,
+.dm-doc-shape {
+  display: inline-block;
+  width: var(--dm-space-48);
+  height: var(--dm-space-32);
+  border: 1px solid var(--input);
+}
+.dm-doc-swatch {
+  border-radius: var(--dm-radius-control);
+}
+.dm-doc-shape {
+  background: var(--muted);
+}
+.dm-doc-bar {
+  display: inline-block;
+  height: var(--dm-space-16);
+  background: var(--primary);
+}
+.dm-doc-motion {
+  display: inline-block;
+  padding: var(--dm-space-8) var(--dm-space-16);
+  border: 1px solid var(--input);
+  border-radius: var(--dm-radius-button);
+  transition-property: background-color;
+}
+.dm-doc-motion:hover {
+  background: var(--muted);
+}
+.dm-doc-overlay {
+  max-width: var(--dm-measure);
+  padding: var(--dm-space-panel);
+  border-radius: var(--dm-radius-panel);
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: var(--dm-shadow-overlay);
+}
+.dm-doc-probe {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+.dm-doc-theme-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--dm-space-16);
+}
+.dm-doc-theme {
+  padding: var(--dm-space-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--dm-radius-panel);
+  background: var(--background);
+  color: var(--foreground);
+}
+/* Wide tables scroll inside their box, never the page (WCAG 1.4.10 at 320 px). */
+.dm-doc-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.sbdocs-content table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.sbdocs-content code {
+  overflow-wrap: anywhere;
+}

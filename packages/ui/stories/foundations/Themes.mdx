@@ -1,0 +1,24 @@
+import { Meta, Unstyled } from "@storybook/addon-docs/blocks";
+import { ThemePair } from "../../.storybook/blocks/FoundationBlocks";
+
+<Meta title="Foundations/Themes" />
+
+# Themes
+
+Light and dark use the same token names; only the values change. Switch with the **Theme** control in the toolbar: it sets the `dark` class on `<html>`, so dialogs, menus and popovers rendered outside the story follow the theme (prompt rule 9).
+
+| Rule | Source |
+|---|---|
+| Every colour role has a light and a dark value; contrast is checked in both (Foundations/Color) | lesson 06 |
+| The action colour is lighter in dark mode (the light value would be 3.7 : 1 on the dark background) | trainer; dark value is a proposal |
+| Story tests run in both themes: `npm run test:storybook -w @devmentor/ui` | lesson 06, stage 1 |
+
+<Unstyled>
+  <ThemePair>
+    <p className="text-heading-4 font-semibold">Upgrade ingress-nginx to 1.28</p>
+    <p className="text-body-small text-muted-foreground">Marta K. · 18:30</p>
+    <p className="text-body-small">
+      Check <code className="font-mono">values.yaml</code> before you bump the chart. <a className="text-link underline" href="#themes">Read the note</a>
+    </p>
+  </ThemePair>
+</Unstyled>

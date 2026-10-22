@@ -1,0 +1,34 @@
+import { Canvas, Meta, Source } from "@storybook/addon-docs/blocks";
+import * as Stories from "./Form.stories";
+
+<Meta of={Stories} />
+
+# Form pattern
+
+Every create/edit form is a `CrudForm` (AGENTS.md). The rules live in the component, so every screen gets them.
+
+| Rule | Source |
+|---|---|
+| Label always visible; placeholder is an example, never the field name | lesson 06, WCAG 3.3.2 |
+| Same Zod schema on the client and the server | AGENTS.md |
+| Validation when a field is left and on submit | lesson 06 form pattern |
+| After a failed submit, focus moves to the first field with an error | lesson 06 |
+| Entered data stays after an error | lesson 06 |
+| Submit shows a loading state; Cancel and submit are blocked, no double submit | trainer, Doherty |
+| Success only after the server confirms | lesson 06 |
+| Errors under the field, linked with `aria-describedby`; form errors in a danger Alert | WCAG 3.3.1 |
+| Footer: Cancel first, then the primary action, right-aligned | R03.4 |
+| Cmd/Ctrl+Enter submits, Escape cancels | AGENTS.md (`CrudForm`) |
+| Field types: text, email, password, number, textarea, checkbox, `multiselect` (stack tags), `inputMode` + `suffix` (prices) | specs #23, #24 |
+
+## API answers (simulated with msw)
+<Canvas of={Stories.Success} />
+<Canvas of={Stories.Pending} />
+<Canvas of={Stories.ClientValidation} />
+<Canvas of={Stories.ServerFieldError} />
+<Canvas of={Stories.ServerError} />
+<Canvas of={Stories.Offline} />
+
+<Source language="tsx" code={`<CrudForm schema={mentorProfileUpdateSchema} fields={fields} onSubmit={(v) => apiCall("/api/mentor-profile", { method: "PUT", body: v })} onSuccess={() => setSaved(true)} onCancel={back} submitLabel="Save profile" />`} />
+
+Missing: the `datetime` field for `/mentor/slots` (spec #25) is built with that story.

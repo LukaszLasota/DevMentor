@@ -1,0 +1,21 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design system/Usage and accessibility" />
+
+# Usage and accessibility
+
+| Area | Rule | Source |
+|---|---|---|
+| Keyboard | Everything works with Tab, Enter, Space, arrows and Escape; dialogs trap focus and return it | WAI-ARIA, lesson 06 |
+| Focus | 2 px `--ring` outline with 2 px offset on every focusable element | WCAG 2.4.7, trainer |
+| Targets | At least 24 × 24 px (smallest button 28 px); inline links exempt | WCAG 2.5.8 |
+| Forms | Visible label, hint, error under the field, focus to the first error | WCAG 3.3.1–3.3.3, lesson 06 |
+| Colour | Text 4.5 : 1, controls 3 : 1 in both themes (Foundations/Color measures them) | WCAG 1.4.3, 1.4.11 |
+| Colour is never alone | Status = icon + word; links underlined; active filter underlined | WCAG 1.4.1 |
+| Motion | 120/180/240 ms; zero with `prefers-reduced-motion`; no looping decoration | WCAG 2.3.3, trainer |
+| Text | Running text ≤ 65 characters per line (`max-w-measure`) | lesson 06 |
+| Widths | Works at 320, 768, 1440 px; wide tables scroll inside a focusable box | WCAG 1.4.10 |
+| Time | Instants through `LocalTime`: UTC before hydration, viewer's zone after | spec #22 |
+| Product rules the UI keeps | No ratings or scores (N02); no video (N01); no booking button before #29; "open times", never "available now" (spec #27); no readiness reasons for visitors (spec #28); no currency selector (spec #24) | brief, specs |
+
+Story tests enforce the a11y part: `npm run test:storybook -w @devmentor/ui` runs every story in both themes with axe set to fail.

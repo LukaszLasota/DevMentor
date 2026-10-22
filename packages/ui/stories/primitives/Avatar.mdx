@@ -1,0 +1,53 @@
+import { ArgTypes, Canvas, Meta, Source } from "@storybook/addon-docs/blocks";
+import * as Stories from "./Avatar.stories";
+
+<Meta of={Stories} />
+
+# Avatar
+
+## 1. Purpose
+Helps recognise a mentor next to their name.
+
+## 2. When to use
+Mentor card and mentor page (specs #23, #27), message author in a session (R02.2, later).
+
+## 3. When not to use
+- Without the person's name next to it.
+- With presence dots, status rings or badges (Slack-style signals rejected, R02).
+
+## 4. Anatomy
+Circle · photo from the GitHub avatar URL, or the initial when there is none.
+
+## 5. Variants
+`sm` 28, `md` 36 (default), `lg` 48 px.
+
+<Canvas of={Stories.Sizes} />
+
+## 6. States
+Image loaded or fallback initial. The fallback is the initial on `--muted` with `--foreground`, never a colour per person (A01, Q4).
+
+## 7. Behaviour and accessibility
+Decorative next to a visible name: the image gets `alt=""` and the wrapper `aria-hidden`. When it stands alone, give the image the person's name as `alt`.
+
+## 8. Content
+Initial = first letter of the display name.
+
+## 9. Responsive
+Fixed size at every width.
+
+<Canvas of={Stories.WithName} />
+
+## 10. API
+<ArgTypes of={Stories} />
+
+## 11. Code
+<Source language="tsx" code={`<Avatar size="lg"><AvatarImage src={avatarUrl} alt="" /><AvatarFallback>{displayName[0]}</AvatarFallback></Avatar>`} />
+
+## 12. Do and don't
+| Do | Don't |
+|---|---|
+| Neutral fallback | Initials on a random colour (A01) |
+| Name next to the avatar | Avatar as the only identification |
+
+## 13. Related
+Mentor card (stage 3).

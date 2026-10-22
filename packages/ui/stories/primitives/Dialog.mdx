@@ -1,0 +1,61 @@
+import { Canvas, Meta, Source } from "@storybook/addon-docs/blocks";
+import * as Stories from "./Dialog.stories";
+
+<Meta of={Stories} />
+
+# Dialog
+
+## 1. Purpose
+Asks for a short, focused input without leaving the page.
+
+## 2. When to use
+Editing one small thing in place, e.g. prices from the `/mentor` checklist (spec #24), the share link with a copy button (spec #23).
+
+## 3. When not to use
+- Confirming a destructive action: **Confirm dialog**.
+- A long form or a full flow (profile, register): its own page.
+- Information the user must keep while working: a page section.
+
+## 4. Anatomy
+Scrim (`--dm-scrim`) · panel (`--dm-radius-panel`, `p-panel`, one overlay shadow) · title · description · content · footer (Cancel, then primary) · close icon.
+
+## 5. Variants
+One look; `showCloseButton={false}` when the footer has its own Close.
+
+## 6. States
+Open and closed. Opens and closes in 240 ms (`--dm-duration-dialog`), instantly with reduced motion.
+
+<Canvas of={Stories.Open} />
+
+## 7. Behaviour and accessibility
+- Focus moves into the dialog, stays there, and returns to the trigger on close (WAI-ARIA dialog pattern).
+- Escape and the close icon close it; the close icon has the name "Close".
+- Title is announced as the dialog name; description is linked with `aria-describedby`.
+
+## 8. Content
+Title names the thing ("Your prices"); footer buttons are verb + object.
+
+## 9. Responsive
+At 320 px the panel spans the screen minus 16 px each side and scrolls inside if it is too tall.
+
+## 10. API
+Parts: `Dialog`, `DialogTrigger`, `DialogContent` (`showCloseButton`), `DialogHeader`, `DialogTitle`, `DialogDescription`, `DialogFooter`, `DialogClose`.
+
+## 11. Code
+<Source language="tsx" code={`<Dialog>
+  <DialogTrigger asChild><Button>Edit prices</Button></DialogTrigger>
+  <DialogContent>
+    <DialogHeader><DialogTitle>Your prices</DialogTitle></DialogHeader>
+    …
+    <DialogFooter><DialogClose asChild><Button>Cancel</Button></DialogClose><Button intent="primary" appearance="filled">Save prices</Button></DialogFooter>
+  </DialogContent>
+</Dialog>`} />
+
+## 12. Do and don't
+| Do | Don't |
+|---|---|
+| One task per dialog | A dialog that opens another dialog |
+| Cancel, then the primary action (R03.4) | "OK" / "Submit" |
+
+## 13. Related
+Confirm dialog, Card, form pattern (stage 3).

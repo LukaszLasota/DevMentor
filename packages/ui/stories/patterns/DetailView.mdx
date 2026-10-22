@@ -1,0 +1,20 @@
+import { Canvas, Meta } from "@storybook/addon-docs/blocks";
+import * as Stories from "./DetailView.stories";
+
+<Meta of={Stories} />
+
+# Detail view
+
+`/m/[slug]` (spec #28): the most important information (who, what they have done, prices, open times) is visible without scrolling on desktop; there is no main action until booking exists (#29).
+
+| State | Rule | Source |
+|---|---|---|
+| Ready | Prices and open times | spec #28 |
+| Not bookable yet | Only "Not bookable yet", no reasons | spec #28 |
+| Does not exist or not published | The standard 404 page (copy shown here is a proposal) | spec #23, #28 |
+| Cannot load | "This mentor page cannot be shown right now. Try again in a minute." with retry | spec #28 |
+
+<Canvas of={Stories.Ready} />
+<Canvas of={Stories.NotBookableYet} />
+<Canvas of={Stories.NotFound} />
+<Canvas of={Stories.LoadError} />

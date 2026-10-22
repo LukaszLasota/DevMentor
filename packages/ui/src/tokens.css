@@ -1,0 +1,276 @@
+/*
+ * DevMentor design tokens: the only file allowed to hold raw values.
+ * Layers: raw (palette, scales) → semantic (named by purpose) → component (only where needed).
+ * Sources: lekcja-06/referencje.md (R.., A.., K..) and lekcja-06/tokeny.md. Values marked
+ * "proposal" are not yet confirmed by a decision.
+ */
+
+/* ---------- Raw values (use only inside this file) ---------- */
+:root {
+  /* Warm greys, light theme (R01.3) */
+  --dm-warm-0: #fdfbf9;
+  --dm-warm-50: #f6f3ef;
+  --dm-warm-200: #e1ddd8;
+  --dm-warm-500: #8b857f;
+  --dm-warm-600: #69625b;
+  --dm-warm-950: #1f1915;
+
+  /* Warm greys, dark theme (R01.3) */
+  --dm-warm-dark-0: #120f0c;
+  --dm-warm-dark-50: #1d1915;
+  --dm-warm-dark-200: #322d29;
+  --dm-warm-dark-500: #77706a;
+  --dm-warm-dark-600: #aca7a0;
+  --dm-warm-dark-950: #f1eeea;
+
+  /* Action blue (trainer's DevMentor); dark variant is a proposal (tokeny.md) */
+  --dm-primary-base: #335cff;
+  --dm-primary-base-dark: #7d97ff;
+  /* Hover / pressed shades of the action blue (approved 2026-10-22, stage 2 Q4) */
+  --dm-primary-hover: #2a4ad6;
+  --dm-primary-pressed: #2140b8;
+  --dm-primary-hover-dark: #9bb0ff;
+  --dm-primary-pressed-dark: #b4c3ff;
+
+  --dm-red-600: #be2323;
+  /* Status colours (approved 2026-10-22, stage 2 batch 2): always with text and an icon */
+  --dm-green-700: #1f7a45;
+  --dm-green-dark: #5cc98a;
+  --dm-amber-700: #8a5300;
+  --dm-amber-dark: #e3a64a;
+  --dm-red-dark: #f66d67;
+  --dm-white: #ffffff;
+
+  /* Chart colours: shadcn defaults kept unchanged (no decision yet, see POSTEP.md) */
+  --dm-chart-1: oklch(0.646 0.222 41.116);
+  --dm-chart-2: oklch(0.6 0.118 184.704);
+  --dm-chart-3: oklch(0.398 0.07 227.392);
+  --dm-chart-4: oklch(0.828 0.189 84.429);
+  --dm-chart-5: oklch(0.769 0.188 70.08);
+  --dm-chart-dark-1: oklch(0.488 0.243 264.376);
+  --dm-chart-dark-2: oklch(0.696 0.17 162.48);
+  --dm-chart-dark-3: oklch(0.769 0.188 70.08);
+  --dm-chart-dark-4: oklch(0.627 0.265 303.9);
+  --dm-chart-dark-5: oklch(0.645 0.246 16.439);
+
+  /* Spacing scale (trainer: 8 / 16 / 24 / 32 / 48) */
+  --dm-space-8: 0.5rem;
+  --dm-space-16: 1rem;
+  --dm-space-24: 1.5rem;
+  --dm-space-32: 2rem;
+  --dm-space-48: 3rem;
+
+  /* Radius scale (trainer: 8 / 10 / 12 / 16) */
+  --dm-radius-8: 0.5rem;
+  --dm-radius-10: 0.625rem;
+  --dm-radius-12: 0.75rem;
+  --dm-radius-16: 1rem;
+  --dm-radius-4: 0.25rem;
+
+  /* Type scale (Display 56 and Caption 12 from the trainer; middle steps approved 2026-10-22, Q3) */
+  --dm-size-56: 3.5rem;
+  --dm-size-40: 2.5rem;
+  --dm-size-32: 2rem;
+  --dm-size-24: 1.5rem;
+  --dm-size-20: 1.25rem;
+  --dm-size-18: 1.125rem;
+  --dm-size-16: 1rem;
+  --dm-size-14: 0.875rem;
+  --dm-size-12: 0.75rem;
+
+  /* Motion (trainer: 120 / 180 / 240 ms) */
+  --dm-duration-120: 120ms;
+  --dm-duration-180: 180ms;
+  --dm-duration-240: 240ms;
+
+  /* Overlay shadow: proposal (value not given by the trainer) */
+  --dm-shadow-overlay-light: 0 8px 24px rgb(31 25 21 / 0.12);
+  --dm-shadow-overlay-dark: 0 8px 24px rgb(0 0 0 / 0.5);
+  /* Scrim behind dialogs: proposal (stage 2 batch 3) */
+  --dm-scrim-light: rgb(31 25 21 / 0.4);
+  --dm-scrim-dark: rgb(0 0 0 / 0.6);
+}
+
+/* ---------- Semantic tokens, theme-independent ---------- */
+:root {
+  /* R01.2, R03.1: Inter for the interface, DM Mono for logo, code, paths and prices (trainer) */
+  --dm-font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --dm-font-code: "DM Mono", ui-monospace, monospace;
+
+  /* Text styles (agent picks a style, not a size). Line heights and weights: proposal */
+  --dm-text-display: var(--dm-size-56);
+  --dm-text-display-leading: 1.15;
+  --dm-text-heading-1: var(--dm-size-40);
+  --dm-text-heading-1-leading: 1.2;
+  --dm-text-heading-2: var(--dm-size-32);
+  --dm-text-heading-2-leading: 1.25;
+  --dm-text-heading-3: var(--dm-size-24);
+  --dm-text-heading-3-leading: 1.33;
+  --dm-text-heading-4: var(--dm-size-20);
+  --dm-text-heading-4-leading: 1.4;
+  --dm-text-body-large: var(--dm-size-18);
+  --dm-text-body-large-leading: 1.55;
+  --dm-text-body: var(--dm-size-16);
+  --dm-text-body-leading: 1.5;
+  --dm-text-body-small: var(--dm-size-14);
+  --dm-text-body-small-leading: 1.43;
+  --dm-text-label: var(--dm-size-14);
+  --dm-text-label-leading: 1.43;
+  --dm-text-caption: var(--dm-size-12);
+  --dm-text-caption-leading: 1.33;
+
+  /* Spacing by relation (trainer; K1 for density) */
+  --dm-space-related: var(--dm-space-8); /* related text, label and field, chips side by side */
+  --dm-space-paragraph: var(--dm-space-16); /* between paragraphs, between messages in a session */
+  --dm-space-panel: var(--dm-space-24); /* inside a panel */
+  --dm-space-component: var(--dm-space-32); /* between components */
+  --dm-space-section: var(--dm-space-48); /* between page sections */
+
+  /* Shape (trainer); no pills (A01) */
+  --dm-radius-control: var(--dm-radius-8); /* checkbox, chip, field */
+  --dm-radius-button: var(--dm-radius-10);
+  --dm-radius-card: var(--dm-radius-12);
+  --dm-radius-panel: var(--dm-radius-16); /* panels and dialogs */
+
+  /* Motion (trainer, R02.3); zeroed under prefers-reduced-motion below */
+  --dm-duration-control: var(--dm-duration-120);
+  --dm-duration-menu: var(--dm-duration-180);
+  --dm-duration-dialog: var(--dm-duration-240);
+
+  /* Readable line length (lesson 06: about 65 characters) */
+  --dm-measure: 65ch;
+  /* Narrowest supported screen (WCAG 1.4.10): used by narrow-screen stories */
+  --dm-phone-width: 20rem;
+
+  /* Focus: a clear outline, not a faint halo (trainer "fokus z wyraźnym obrysem"; width/offset: proposal) */
+  --dm-focus-width: 2px;
+  --dm-focus-offset: 2px;
+
+  /* Component tokens: button (trainer: four sizes 40→28, icon box 20; default 36 approved stage 2 Q1,
+     horizontal padding approved stage 2 Q2) */
+  --dm-button-height-lg: 2.5rem;
+  --dm-button-height-md: 2.25rem;
+  --dm-button-height-sm: 2rem;
+  --dm-button-height-xs: 1.75rem;
+  --dm-button-padding-lg: var(--dm-space-16);
+  --dm-button-padding-md: var(--dm-space-16);
+  --dm-button-padding-sm: 0.75rem;
+  --dm-button-padding-xs: var(--dm-space-8);
+  --dm-button-icon: 1.25rem;
+
+  /* Component tokens: fields share the button heights (36 default) */
+  --dm-field-height: var(--dm-button-height-md);
+  --dm-field-padding-x: 0.75rem;
+
+  /* Component token: checkbox (4px, approved stage 2 Q3; 8px makes a 16px box almost round) */
+  --dm-radius-checkbox: var(--dm-radius-4);
+  --dm-checkbox-size: 1rem;
+
+  /* Component tokens: status badge and avatar (proposal, stage 2 batch 2) */
+  --dm-badge-padding-y: 0.25rem;
+  --dm-avatar-sm: var(--dm-button-height-xs);
+  --dm-avatar-md: var(--dm-button-height-md);
+  --dm-avatar-lg: var(--dm-space-48);
+
+  /* Component tokens: dialog widths (proposal: about 32rem keeps text near 65ch; confirm is narrower) */
+  --dm-dialog-width: 32rem;
+  --dm-dialog-width-confirm: 26rem;
+  --dm-menu-min-width: 12rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dm-duration-control: 0ms;
+    --dm-duration-menu: 0ms;
+    --dm-duration-dialog: 0ms;
+  }
+}
+
+/* ---------- Semantic colours, light theme (.light scopes it inside a dark page) ---------- */
+:root,
+.light {
+  --background: var(--dm-warm-0); /* R01.3 page background */
+  --foreground: var(--dm-warm-950); /* R01.3 main text */
+  --dm-action-primary-fill: var(--dm-primary-base); /* trainer: one primary action */
+  --dm-action-primary-hover: var(--dm-primary-hover); /* 6.9:1 with primary-foreground */
+  --dm-action-primary-pressed: var(--dm-primary-pressed); /* 8.4:1 */
+  --dm-disabled-fill: var(--dm-warm-50); /* trainer: disabled has its own colours, no opacity */
+  --dm-disabled-foreground: var(--dm-warm-600); /* 5.4:1 on disabled fill */
+  --primary-foreground: var(--dm-white); /* 5.1:1 on primary */
+  --secondary: var(--dm-warm-50); /* R01.3 */
+  --muted: var(--dm-warm-50); /* R01.3, R03.3 chips, row hover, code blocks */
+  --muted-foreground: var(--dm-warm-600); /* R01.3, R02.2 author, time, metadata */
+  --accent: var(--dm-warm-50);
+  --destructive: var(--dm-red-600); /* trainer: red delete variant */
+  --destructive-foreground: var(--dm-white); /* 6.1:1 */
+  --success: var(--dm-green-700); /* 5.2:1 on background, 4.8:1 on muted */
+  --warning: var(--dm-amber-700); /* 6.1:1 on background, 5.7:1 on muted */
+  --border: var(--dm-warm-200); /* R01.1, R03.2 decorative row and section lines only */
+  --input: var(--dm-warm-500); /* R03.2 + WCAG 1.4.11 field outline, 3.5:1 */
+  --ring: var(--dm-primary-base); /* trainer, WCAG 2.4.7 focus, 4.9:1 */
+  --link: var(--dm-primary-base); /* trainer, 4.9:1 on background, 4.6:1 on muted */
+  --dm-shadow-overlay: var(--dm-shadow-overlay-light);
+  --dm-scrim: var(--dm-scrim-light); /* dims the page behind a dialog */
+  --chart-1: var(--dm-chart-1);
+  --chart-2: var(--dm-chart-2);
+  --chart-3: var(--dm-chart-3);
+  --chart-4: var(--dm-chart-4);
+  --chart-5: var(--dm-chart-5);
+
+  /* Component tokens */
+  --dm-list-row-padding-y: var(--dm-space-related); /* R01.1, K1 dense lists */
+  --dm-message-gap: var(--dm-space-paragraph); /* R02.1, K1 calm session view */
+}
+
+/* ---------- Semantic colours, dark theme ---------- */
+.dark {
+  --background: var(--dm-warm-dark-0);
+  --foreground: var(--dm-warm-dark-950); /* 16.5:1 */
+  --secondary: var(--dm-warm-dark-50);
+  --muted: var(--dm-warm-dark-50);
+  --muted-foreground: var(--dm-warm-dark-600); /* 8.0:1 */
+  --accent: var(--dm-warm-dark-50);
+  --dm-action-primary-fill: var(--dm-primary-base-dark); /* #335cff is 3.7:1 here, too low */
+  --dm-action-primary-hover: var(--dm-primary-hover-dark); /* 9.1:1 */
+  --dm-action-primary-pressed: var(--dm-primary-pressed-dark); /* 11.1:1 */
+  --dm-disabled-fill: var(--dm-warm-dark-50);
+  --dm-disabled-foreground: var(--dm-warm-dark-600); /* 7.3:1 */
+  --primary-foreground: var(--dm-warm-dark-0); /* 7.0:1 */
+  --destructive: var(--dm-red-dark);
+  --destructive-foreground: var(--dm-warm-dark-0); /* 6.6:1 */
+  --success: var(--dm-green-dark); /* 9.3:1 */
+  --warning: var(--dm-amber-dark); /* 8.9:1 */
+  --border: var(--dm-warm-dark-200);
+  --input: var(--dm-warm-dark-500); /* 3.9:1 */
+  --ring: var(--dm-primary-base-dark);
+  --link: var(--dm-primary-base-dark); /* 7.0:1 */
+  --dm-shadow-overlay: var(--dm-shadow-overlay-dark);
+  --dm-scrim: var(--dm-scrim-dark);
+  --chart-1: var(--dm-chart-dark-1);
+  --chart-2: var(--dm-chart-dark-2);
+  --chart-3: var(--dm-chart-dark-3);
+  --chart-4: var(--dm-chart-dark-4);
+  --chart-5: var(--dm-chart-dark-5);
+}
+
+/* ---------- Aliases, re-declared on .dark so they resolve against the active theme ---------- */
+:root,
+.light,
+.dark {
+  --card: var(--background); /* R03.2 panels have no own fill */
+  --card-foreground: var(--foreground);
+  --popover: var(--background); /* R03.2; separated by --dm-shadow-overlay */
+  --popover-foreground: var(--foreground);
+  --primary: var(--dm-action-primary-fill); /* trainer: one primary action */
+  --secondary-foreground: var(--foreground);
+  --accent-foreground: var(--foreground);
+  --dm-destructive-hover: color-mix(in oklab, var(--destructive) 85%, var(--foreground)); /* proposal */
+  --sidebar: var(--muted);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}

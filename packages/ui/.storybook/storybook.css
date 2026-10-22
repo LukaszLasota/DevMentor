@@ -1,0 +1,8 @@
+/* Storybook entry stylesheet: the design system plus frozen state previews.
+   Prompt (stage 2): hover / focus / pressed are shown with the SAME declarations as the
+   component's :hover, :focus-visible and :active, attached to data-preview-state (docs only). */
+@import "../src/styles.css";
+
+@custom-variant hover (&:hover, &[data-preview-state~="hover"]);
+@custom-variant focus-visible (&:focus-visible, &[data-preview-state~="focus"]);
+@custom-variant active (&:active, &[data-preview-state~="pressed"]);

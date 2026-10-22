@@ -85,3 +85,35 @@ jobs:
       - run: npx agent-browser install --with-deps
       # Builds the app, then starts PostgreSQL via testcontainers (Docker is preinstalled on the runner).
       - run: npm run test:integration
+
+  tokens:
+    name: Values outside tokens
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      # Lesson 06: fails on hex/rgb/hsl/oklch, Tailwind palette classes and arbitrary values outside
+      # packages/ui/src/tokens.css, and on a missing scan path (exit 2), unlike a bare grep.
+      - run: npm run check:tokens
+
+  storybook:
+    name: Storybook tests (a11y, light and dark)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      # Chromium for the Vitest browser runner (Playwright) plus its system libraries.
+      - run: npx playwright install --with-deps chromium
+      # Every story runs as a test with axe set to fail, once per theme (packages/ui/POSTEP.md, stage 1).
+      - run: npm run test:storybook -w @devmentor/ui
+      - run: npm run build-storybook -w @devmentor/ui

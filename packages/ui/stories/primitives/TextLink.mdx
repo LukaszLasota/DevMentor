@@ -1,0 +1,63 @@
+import { ArgTypes, Canvas, Meta, Source } from "@storybook/addon-docs/blocks";
+import * as Stories from "./TextLink.stories";
+
+<Meta of={Stories} />
+
+# Text link
+
+## 1. Purpose
+Takes the user to another page or site from running text.
+
+## 2. When to use
+- "Find a mentor" on the home page (spec #27), switching between `/sign-in` and `/register` (spec #21).
+- A mentor's public work link on `/m/[slug]` (`external`, R04).
+
+## 3. When not to use
+- For an action that changes data: use **Button**.
+- For the main call to action of a page: use a `Button` with `asChild` around the router link.
+
+## 4. Anatomy
+Underlined text · optional external icon with "(opens in a new tab)" for screen readers.
+
+## 5. Variants
+| Variant | Choose when |
+|---|---|
+| internal (default) | Pages inside DevMentor |
+| `external` | Other sites; opens a new tab and says so |
+
+<Canvas of={Stories.InRunningText} />
+<Canvas of={Stories.External} />
+
+## 6. States
+<Canvas of={Stories.StateMatrix} />
+
+Hover thickens the underline; focus shows the 2 px `--ring` outline. Links have no disabled state: hide or replace a link that leads nowhere.
+
+## 7. Behaviour and accessibility
+- Always underlined, so colour is not the only cue (WCAG 1.4.1). Contrast `--link` on background 4.9 : 1 light, 7.0 : 1 dark.
+- Enter follows the link. External links get `rel="noopener noreferrer"`.
+- Inline links in a sentence are exempt from the 24 px target rule (WCAG 2.5.8).
+
+## 8. Content
+Describe the destination, not "click here": "Browse mentors by stack tag". Keep it under about eight words.
+
+## 9. Responsive
+Wraps with the text at 320 px.
+
+<Canvas of={Stories.LongTextNarrowScreen} />
+
+## 10. API
+<ArgTypes of={Stories} />
+
+## 11. Code
+<Source language="tsx" code={`<TextLink href="/mentors">Find a mentor</TextLink>`} />
+<Source language="tsx" code={`<TextLink asChild><Link href={\`/m/\${slug}\`}>{displayName}</Link></TextLink>`} />
+
+## 12. Do and don't
+| Do | Don't |
+|---|---|
+| Underlined link in the action colour | Colour-only link without underline |
+| Say when a link opens a new tab | Open new tabs silently |
+
+## 13. Related
+Button (actions). Used on the mentor card and mentor page (stage 3).

@@ -1,0 +1,48 @@
+import { ArgTypes, Canvas, Meta, Source } from "@storybook/addon-docs/blocks";
+import * as Stories from "./Skeleton.stories";
+
+<Meta of={Stories} />
+
+# Skeleton
+
+## 1. Purpose
+Shows where content will appear while it loads, so the layout does not jump.
+
+## 2. When to use
+Mentor list while the tag filter streams (`MentorListSkeleton`, spec #27); slot table while loading.
+
+## 3. When not to use
+- Loads under 400 ms: show nothing (Doherty threshold, lesson 06).
+- Actions in progress: the button `loading` state.
+
+## 4. Anatomy
+Blocks in `--muted` with the control radius, shaped like the content they replace.
+
+## 5. Variants
+Shape is set with size classes; circles use `rounded-full` for avatars.
+
+## 6. States
+Pulses only when motion is allowed (`motion-safe:animate-pulse`, WCAG 2.3.3).
+
+## 7. Behaviour and accessibility
+Each block is `aria-hidden`; wrap the group in `role="status"` with a label such as "Loading mentors".
+
+## 8. Content
+None; the status label says what is loading.
+
+## 9. Responsive
+<Canvas of={Stories.NarrowScreen} />
+
+## 10. API
+<ArgTypes of={Stories} />
+
+## 11. Code
+<Source language="tsx" code={`<div role="status" aria-label="Loading mentors"><Skeleton className="h-4 w-1/3" /></div>`} />
+
+## 12. Do and don't
+| Do | Don't |
+|---|---|
+| Match the real layout | A spinner in the middle of an empty page |
+
+## 13. Related
+LoadingMessage (panel layer), Button loading state.
