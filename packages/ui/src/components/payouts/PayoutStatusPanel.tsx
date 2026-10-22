@@ -18,7 +18,7 @@ export interface PayoutStatusPanelProps {
 
 /**
  * /mentor/payouts (spec #26, release 1.1): one state at a time, guidance in plain words (never raw
- * Stripe field names), Refresh status everywhere. Copy marked "proposal" is not given by the spec.
+ * Stripe field names), Refresh status everywhere. Copy not given by the spec was approved 2026-10-22.
  */
 export function PayoutStatusPanel({ state, onStart, onRefresh }: PayoutStatusPanelProps) {
   return (

@@ -13,7 +13,7 @@ Prompt: `lekcja-06/prompt-storybook.md` (copy of `lekcja-06/storybook-devmentor.
 | 4. Teaching pages | done 2026-10-22 |
 | 5. Checks and report | done 2026-10-22 |
 
-**Next step:** review and merge PR #37 (all CI jobs green); decide the open proposals. Homework done: app values on tokens (f1735e1), CI jobs (8e0dcf4), agent test + gaps filled (this commit).
+**Next step:** optional second agent test in a new session; otherwise lesson 06 is complete (PR #37 merged).
 
 ## Stage 1 — what was built (2026-10-22)
 
@@ -242,3 +242,4 @@ Screens/        14 screens × ~3–4 states ≈ 50
 - 2026-10-22 Q3: typography scale accepted: Display 56, Heading 1 40, Heading 2 32, Heading 3 24, Heading 4 20, Body large 18, Body 16, Body small 14, Label 14 medium, Caption 12.
 - 2026-10-22 Q4: avatar fallback = initial on `--muted` with `--foreground`, never a colour per person.
 - 2026-10-22 Q5 (default, not objected): Radio, Switch, Popover, Tooltip, Tabs, Toast go to "What is missing".
+- 2026-10-22 after PR #37: all proposals approved ("propozycje ok") — dark action colour `#7d97ff`, overlay shadow, scrim, line heights/weights, badge padding, avatar sizes, dialog/menu widths, tone of voice, page frames, copy not in specs, remove-from-list with Undo, row-action errors. Still open: chart colours; DataTable vs. row lists (engineering standards).

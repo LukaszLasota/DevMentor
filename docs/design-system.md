@@ -51,8 +51,8 @@ Matter-of-fact, not generic. Dense where people scan (mentor and slot lists: thi
 ## Lists and row actions (from the agent test, 2026-10-22)
 - People and saved items are rows separated by thin lines (MentorCard style); `DataTable` is for record tables in panels. The name in a row is the link to the profile (`/m/<slug>`); secondary line `text-body-small text-muted-foreground`.
 - Row actions: one action → Button `appearance="text"`, several → `appearance="soft"`; size `sm` in dense rows and tables, `md` in forms and panels. The accessible name includes the object ("Remove Marta Kowal from favorites").
-- Confirm only when the action cannot be undone in one click or affects other people (remove a bookable slot, revoke an invitation, unpublish). Removing from your own list (favorites) needs no confirmation: remove the row, show a status line above the list ("Removed Marta Kowal from favorites." + Undo button), move focus to the next row's action or, if none, the list heading. *Proposal.*
-- A failed row action shows its error under that row (`text-caption text-destructive`) with Try again; never an Alert above the list or a toast. *Proposal.*
+- Confirm only when the action cannot be undone in one click or affects other people (remove a bookable slot, revoke an invitation, unpublish). Removing from your own list (favorites) needs no confirmation: remove the row, show a status line above the list ("Removed Marta Kowal from favorites." + Undo button), move focus to the next row's action or, if none, the list heading.
+- A failed row action shows its error under that row (`text-caption text-destructive`) with Try again; never an Alert above the list or a toast.
 - Empty private list ("nothing saved yet"): hide the filter, show `EmptyState` with the next step; "nothing for this filter": keep the filter, `EmptyState` with a link to All. Public `/mentors` always shows the filter (spec #27).
 - Headings: page `h1` → `text-heading-1`; section `h2` → `text-heading-2`; panel `h3` → `text-heading-3`; row titles keep their semantic level (`h2`/`h3`) but use `text-heading-4`.
 
