@@ -1,0 +1,64 @@
+import { ArgTypes, Canvas, Meta, Source } from "@storybook/addon-docs/blocks";
+import * as Stories from "./Field.stories";
+
+<Meta of={Stories} />
+
+# Field
+
+## 1. Purpose
+Keeps a label, hint, control and error together so people (and screen readers) always know what a field is and what went wrong.
+
+## 2. When to use
+Around every Input, Textarea and Checkbox.
+
+## 3. When not to use
+- For a group of checkboxes as a whole: use `<fieldset>` with `<legend>` and one inline Field per box.
+
+## 4. Anatomy
+Label (+ "(required)" or "(optional)") · hint (optional) · control · error (optional). Checkbox fields use `inline`: control, then label.
+
+## 5. Variants
+| Variant | Choose when |
+|---|---|
+| stacked (default) | Text inputs |
+| `inline` | Checkboxes |
+| `required` / `optional` | Mark the rarer case: `optional` when most fields are required, `required` otherwise |
+
+<Canvas of={Stories.Optional} />
+
+## 6. States
+Error shown under the control in `--destructive`, linked with `aria-describedby`, and the control gets `aria-invalid`.
+
+<Canvas of={Stories.WithError} />
+
+## 7. Behaviour and accessibility
+- Label uses `htmlFor` with a generated id.
+- `aria-describedby` lists the hint, then the error, so both are read with the field.
+- After a failed submit the form moves focus to the first field with an error (form pattern, stage 3).
+
+## 8. Content
+- Label: noun, sentence case.
+- Hint: example or format ("Within the bounds set by the operator").
+- Error: what is wrong and what to do ("Enter a price between the operator's bounds, for example 120."). Never "Invalid input" (lesson 06).
+
+## 9. Responsive
+<Canvas of={Stories.LongLabelNarrowScreen} />
+
+## 10. API
+<ArgTypes of={Stories} />
+
+`children` is a function that receives `{ id, aria-describedby, aria-invalid, required }` for the control.
+
+## 11. Code
+<Source language="tsx" code={`<Field label="Price for 50 minutes" hint="Within the bounds set by the operator" error={errors.price50} required>
+  {(control) => <Input {...control} inputMode="decimal" className="font-mono tabular-nums" />}
+</Field>`} />
+
+## 12. Do and don't
+| Do | Don't |
+|---|---|
+| Error under the field it belongs to | All errors in one toast |
+| Hint with an example | Rules only in the placeholder |
+
+## 13. Related
+Input, Textarea, Checkbox. `CrudForm` will render its fields through Field (stage 3).

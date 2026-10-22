@@ -93,11 +93,10 @@ export function DataTable<T>({
           <span className="text-muted-foreground">
             Page {page + 1} of {pageCount}
           </span>
-          <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setRequestedPage(page - 1)}>
+          <Button size="sm" disabled={page === 0} onClick={() => setRequestedPage(page - 1)}>
             Previous
           </Button>
           <Button
-            variant="outline"
             size="sm"
             disabled={page === pageCount - 1}
             onClick={() => setRequestedPage(page + 1)}

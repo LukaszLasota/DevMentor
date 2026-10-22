@@ -17,7 +17,7 @@ export function ErrorMessage({ title = "Something went wrong", message, onRetry,
       <p className="font-medium text-destructive">{title}</p>
       <p className="text-muted-foreground">{message}</p>
       {onRetry ? (
-        <Button variant="outline" size="sm" onClick={onRetry}>
+        <Button size="sm" onClick={onRetry}>
           Try again
         </Button>
       ) : null}

@@ -206,11 +206,11 @@ export function CrudForm<S extends z.ZodObject>({
       })}
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" intent="primary" appearance="filled" disabled={isSubmitting}>
           {isSubmitting ? "Saving…" : submitLabel}
         </Button>
         {onCancel ? (
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+          <Button type="button" onClick={onCancel} disabled={isSubmitting}>
             {cancelLabel}
           </Button>
         ) : null}

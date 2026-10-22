@@ -1,63 +1,129 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
+import { LoaderCircle } from "lucide-react"
 import { Slot } from "radix-ui"
 
+// shadcn base, restyled for DevMentor (stage 2). Two independent props, as in the trainer's system:
+// `intent` says what the action does, `appearance` how loud it is. Four sizes, 40 → 28 px.
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  [
+    "relative inline-flex shrink-0 items-center justify-center gap-related whitespace-nowrap rounded-button border border-transparent",
+    "text-label font-medium transition-colors duration-control outline-none",
+    "focus-visible:focus-ring",
+    "disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled disabled:text-disabled-foreground",
+    "aria-disabled:cursor-not-allowed aria-disabled:border-transparent aria-disabled:bg-disabled aria-disabled:text-disabled-foreground",
+    "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-button-icon",
+  ],
   {
     variants: {
-      variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive:
-          "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40",
-        outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost:
-          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        link: "text-primary underline-offset-4 hover:underline",
+      intent: {
+        primary: "",
+        neutral: "",
+        destructive: "",
+      },
+      appearance: {
+        filled: "",
+        outline: "bg-transparent",
+        soft: "",
+        text: "bg-transparent underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-9 px-4 py-2 has-[>svg]:px-3",
-        xs: "h-6 gap-1 rounded-md px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-8 gap-1.5 rounded-md px-3 has-[>svg]:px-2.5",
-        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
-        icon: "size-9",
-        "icon-xs": "size-6 rounded-md [&_svg:not([class*='size-'])]:size-3",
-        "icon-sm": "size-8",
-        "icon-lg": "size-10",
+        lg: "h-button-lg px-button-pad-lg",
+        md: "h-button-md px-button-pad-md",
+        sm: "h-button-sm px-button-pad-sm",
+        xs: "h-button-xs px-button-pad-xs text-caption",
+      },
+      iconOnly: {
+        true: "px-0",
+        false: "",
       },
     },
+    compoundVariants: [
+      // primary and destructive text on --border would drop below 4.5:1, so their hover/pressed
+      // states change the fill to --muted or add an outline instead.
+      // primary
+      { intent: "primary", appearance: "filled", class: "bg-primary text-primary-foreground hover:bg-primary-hover active:bg-primary-pressed" },
+      { intent: "primary", appearance: "outline", class: "border-primary text-link hover:bg-muted active:bg-muted" },
+      { intent: "primary", appearance: "soft", class: "bg-muted text-link hover:border-primary active:border-primary" },
+      { intent: "primary", appearance: "text", class: "text-link" },
+      // neutral
+      { intent: "neutral", appearance: "filled", class: "bg-foreground text-background hover:bg-muted-foreground active:bg-muted-foreground" },
+      { intent: "neutral", appearance: "outline", class: "border-input text-foreground hover:bg-muted active:bg-border" },
+      { intent: "neutral", appearance: "soft", class: "bg-muted text-foreground hover:bg-border active:bg-border" },
+      { intent: "neutral", appearance: "text", class: "text-foreground" },
+      // destructive
+      { intent: "destructive", appearance: "filled", class: "bg-destructive text-destructive-foreground hover:bg-destructive-hover active:bg-destructive-hover" },
+      { intent: "destructive", appearance: "outline", class: "border-destructive text-destructive hover:bg-muted active:bg-muted" },
+      { intent: "destructive", appearance: "soft", class: "bg-muted text-destructive hover:border-destructive active:border-destructive" },
+      { intent: "destructive", appearance: "text", class: "text-destructive" },
+      // icon-only buttons are square
+      { iconOnly: true, size: "lg", class: "w-button-lg" },
+      { iconOnly: true, size: "md", class: "w-button-md" },
+      { iconOnly: true, size: "sm", class: "w-button-sm" },
+      { iconOnly: true, size: "xs", class: "w-button-xs" },
+    ],
     defaultVariants: {
-      variant: "default",
-      size: "default",
+      intent: "neutral",
+      appearance: "outline",
+      size: "md",
+      iconOnly: false,
     },
   }
 )
 
-function Button({
-  className,
-  variant = "default",
-  size = "default",
-  asChild = false,
-  ...props
-}: React.ComponentProps<"button"> &
+type ButtonProps = React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
-  }) {
+    /** Shows a spinner, blocks clicks and announces `loadingLabel` (trainer: loading state). */
+    loading?: boolean
+    /** Announced to screen readers while `loading` (e.g. "Saving…"). */
+    loadingLabel?: string
+  }
+
+function Button({
+  className,
+  intent = "neutral",
+  appearance = "outline",
+  size = "md",
+  iconOnly = false,
+  asChild = false,
+  loading = false,
+  loadingLabel = "Loading…",
+  disabled,
+  children,
+  ...props
+}: ButtonProps) {
   const Comp = asChild ? Slot.Root : "button"
+  const content = asChild ? (
+    children
+  ) : (
+    <>
+      {loading ? <LoaderCircle aria-hidden="true" className="motion-safe:animate-spin" /> : null}
+      {children}
+      {loading ? (
+        <span role="status" className="sr-only">
+          {loadingLabel}
+        </span>
+      ) : null}
+    </>
+  )
 
   return (
     <Comp
       data-slot="button"
-      data-variant={variant}
+      data-intent={intent}
+      data-appearance={appearance}
       data-size={size}
-      className={cn(buttonVariants({ variant, size, className }))}
+      aria-busy={loading || undefined}
+      disabled={asChild ? undefined : disabled || loading}
+      aria-disabled={asChild && (disabled || loading) ? true : undefined}
+      className={cn(buttonVariants({ intent, appearance, size, iconOnly, className }))}
       {...props}
-    />
+    >
+      {content}
+    </Comp>
   )
 }
 
-export { Button, buttonVariants }
+export { Button, buttonVariants, type ButtonProps }

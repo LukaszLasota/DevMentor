@@ -14,6 +14,25 @@ export default defineConfig({
       initialGlobals: { theme },
     }),
   ],
+  // Pre-bundle story dependencies: otherwise the first run after a new import re-optimises
+  // them mid-run and the story files fail to load.
+  optimizeDeps: {
+    include: [
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+      "class-variance-authority",
+      "cn",
+      "lucide-react",
+      "radix-ui",
+      "storybook/test",
+      "storybook/preview-api",
+      "storybook/internal/core-events",
+      "storybook/theming",
+      "@storybook/addon-docs/blocks",
+    ],
+  },
   test: {
     name: `storybook-${theme}`,
     browser: {

@@ -1,0 +1,63 @@
+import { ArgTypes, Canvas, Meta, Source } from "@storybook/addon-docs/blocks";
+import * as Stories from "./Input.stories";
+
+<Meta of={Stories} />
+
+# Input
+
+## 1. Purpose
+Lets the user type one line: a name, an email, a link, a price.
+
+## 2. When to use
+Sign-in and register (email, password; spec #21), mentor profile (display name, public work link; spec #23), prices (spec #24).
+
+## 3. When not to use
+- More than one line (bio): **Textarea**.
+- A choice from a fixed list (stack tags): **Checkbox** group.
+- Never without a **Field** around it: the placeholder is an example, not the name of the field (lesson 06).
+
+## 4. Anatomy
+Outline (1 px `--input`) · value · placeholder (example only). Label, hint and error come from **Field**.
+
+## 5. Variants
+One look. The `type` attribute changes the keyboard and autofill: `email`, `password`, `url`, `text`; prices use `inputMode="decimal"` with `font-mono tabular-nums` (R03.1).
+
+<Canvas of={Stories.Types} />
+
+## 6. States
+<Canvas of={Stories.StateMatrix} />
+
+Error: `aria-invalid` turns the outline `--destructive` and the Field shows the message. Disabled: own colours, and the hint says why.
+
+## 7. Behaviour and accessibility
+- Height 36 px, the same as the default button (stage 2 Q1).
+- Focus: 2 px `--ring` outline. Outline vs background 3.5 : 1 light, 3.9 : 1 dark (WCAG 1.4.11).
+- Text is 16 px on small screens so iOS does not zoom, 14 px from `md` up.
+- Use `autoComplete` for email and passwords.
+
+## 8. Content
+Labels are nouns ("Display name"). Placeholders show a real example ("e.g. Marta Kowal"). Errors say what to do.
+
+## 9. Responsive
+Full width of its container; long values scroll inside the field.
+
+<Canvas of={Stories.LongValueNarrowScreen} />
+
+## 10. API
+<ArgTypes of={Stories} />
+
+All `<input>` attributes. Spread the `control` props from **Field** first.
+
+## 11. Code
+<Source language="tsx" code={`<Field label="Display name" required>
+  {(control) => <Input {...control} autoComplete="name" />}
+</Field>`} />
+
+## 12. Do and don't
+| Do | Don't |
+|---|---|
+| Visible label above the field | Placeholder as the only label |
+| "Enter a display name of 1 to 80 characters." (spec #23) | "Invalid input" |
+
+## 13. Related
+Field, Textarea. Used in the form pattern (`CrudForm`) and the sign-in panel (stage 3).

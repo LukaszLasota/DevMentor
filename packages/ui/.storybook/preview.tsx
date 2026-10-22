@@ -4,7 +4,7 @@ import { useEffect, useState, type PropsWithChildren } from "react";
 import { GLOBALS_UPDATED, SET_GLOBALS } from "storybook/internal/core-events";
 import { addons } from "storybook/preview-api";
 import { themes } from "storybook/theming";
-import "../src/styles.css";
+import "./storybook.css";
 import "./docs.css";
 
 type Theme = "light" | "dark";

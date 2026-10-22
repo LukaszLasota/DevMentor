@@ -13,15 +13,47 @@ describe("shadcn primitives", () => {
     render(
       <>
         <Button className="extra">Save</Button>
-        <Button asChild variant="link">
+        <Button asChild appearance="text">
           <a href="/x">Link</a>
         </Button>
       </>,
     );
 
-    expect(screen.getByRole("button", { name: "Save" }).className).toContain("extra");
+    const button = screen.getByRole("button", { name: "Save" });
+    expect(button.className).toContain("extra");
+    expect(button.dataset).toMatchObject({ intent: "neutral", appearance: "outline", size: "md" });
     expect(screen.getByRole("link", { name: "Link" }).getAttribute("data-slot")).toBe("button");
-    expect(buttonVariants({ variant: "destructive", size: "lg" })).toContain("bg-destructive");
+    expect(buttonVariants({ intent: "destructive", appearance: "filled", size: "lg" })).toContain("bg-destructive");
+    expect(buttonVariants({ iconOnly: true, size: "sm" })).toContain("w-button-sm");
+  });
+
+  it("Button in loading state is disabled, busy and announces its label", () => {
+    render(
+      <Button intent="primary" appearance="filled" loading loadingLabel="Saving…">
+        Save
+      </Button>,
+    );
+
+    const button = screen.getByRole("button", { name: /Save/ });
+    expect(button).toHaveProperty("disabled", true);
+    expect(button.getAttribute("aria-busy")).toBe("true");
+    expect(screen.getByRole("status").textContent).toBe("Saving…");
+  });
+
+  it("Button with asChild marks a disabled child with aria-disabled instead of disabled", () => {
+    render(
+      <>
+        <Button asChild disabled>
+          <a href="/off">Off</a>
+        </Button>
+        <Button asChild>
+          <a href="/on">On</a>
+        </Button>
+      </>,
+    );
+
+    expect(screen.getByRole("link", { name: "Off" }).getAttribute("aria-disabled")).toBe("true");
+    expect(screen.getByRole("link", { name: "On" }).hasAttribute("aria-disabled")).toBe(false);
   });
 
   it("Input, Textarea and Label render with their slots", () => {

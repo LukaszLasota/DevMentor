@@ -1,0 +1,92 @@
+import { ArgTypes, Canvas, Meta, Source } from "@storybook/addon-docs/blocks";
+import * as Stories from "./Button.stories";
+
+<Meta of={Stories} />
+
+# Button
+
+## 1. Purpose
+Starts an action on the current screen: book a session, save prices, publish a slot, remove a slot.
+
+## 2. When to use
+- The one main action of a screen (`intent="primary" appearance="filled"`): "Book session" on `/m/[slug]`, "Save prices" on `/mentor/prices`.
+- Secondary actions next to it: "Cancel" in a form footer (`neutral`, `outline`).
+- Destroying something after confirmation: "Remove slot" (`destructive`).
+
+## 3. When not to use
+- To go to another page: use **Text link** (GOV.UK rule, lesson 06).
+- For more than one filled primary button on a screen (Hick's law, lesson 06): demote the rest to `outline` or `text`.
+- As a tag or filter chip on `/mentors`: the tag filter is a list of links (spec #27).
+
+## 4. Anatomy
+Container (radius `--dm-radius-button`) · optional leading icon in a 20 px box · label · optional spinner while loading. Icon-only buttons drop the label and must have `aria-label`.
+
+## 5. Variants
+Two independent props (trainer):
+
+| Prop | Value | Choose when | Source |
+|---|---|---|---|
+| `intent` | `primary` | The action the screen exists for | trainer |
+| | `neutral` (default) | Supporting actions: Cancel, Previous, Try again | trainer |
+| | `destructive` | Removes or cancels something | trainer |
+| `appearance` | `filled` | The single main action | trainer |
+| | `outline` (default) | Secondary actions | trainer |
+| | `soft` | Quiet actions inside dense rows (R01.1) | trainer ("jaśniejszy") |
+| | `text` | Lowest emphasis, e.g. inline "Edit" | trainer |
+| `size` | `lg` 40 · `md` 36 (default) · `sm` 32 · `xs` 28 | `lg` for the main action on public pages, `md` everywhere else, `sm`/`xs` inside tables | trainer, stage 2 Q1 |
+
+<Canvas of={Stories.IntentsAndAppearances} />
+<Canvas of={Stories.Sizes} />
+<Canvas of={Stories.WithIcon} />
+
+## 6. States
+Default, hover, focus, pressed, disabled and loading. Hover/focus/pressed below are frozen previews of the real `:hover`, `:focus-visible` and `:active` styles.
+
+<Canvas of={Stories.StateMatrix} />
+
+- **Disabled** has its own fill and text colours (`--dm-disabled-fill`, `--dm-disabled-foreground`), never opacity (trainer). A disabled button always has a visible reason next to it, linked with `aria-describedby`:
+
+<Canvas of={Stories.DisabledWithReason} />
+
+- **Hover and pressed** darken the fill of `filled` buttons. On `outline` and `soft`, blue and red text would drop below 4.5 : 1 on a darker grey, so hover fills with `--muted` (outline) or adds an outline (soft); pressed looks like hover there. Found by the a11y test of the state matrix (WCAG 1.4.3).
+- **Loading** disables the button, sets `aria-busy` and announces `loadingLabel` through a status region (lesson 06: Doherty threshold, show progress after 400 ms).
+
+## 7. Behaviour and accessibility
+- Native `<button>`: Enter and Space activate it; Tab order follows the DOM.
+- Focus: 2 px `--ring` outline with 2 px offset (WCAG 2.4.7; values are a proposal).
+- Icon-only buttons need `aria-label` (WCAG 4.1.2). Icons inside buttons are `aria-hidden`.
+- Smallest size is 28 px high, above the 24 × 24 px target (WCAG 2.5.8).
+- With `asChild` (e.g. a router link) the disabled state becomes `aria-disabled`.
+
+## 8. Content
+Verb + object, sentence case, up to three words: "Book session", "Save prices", "Remove slot" (lesson 06 content rules). Never "OK" or "Submit". Prices and times never go in a button label.
+
+## 9. Responsive
+At 320 px the main action of a form goes full width (`className="w-full"`). Long labels are a content problem: shorten them first.
+
+<Canvas of={Stories.LongLabelNarrowScreen} />
+
+## 10. API
+<ArgTypes of={Stories} />
+
+`loading?: boolean`, `loadingLabel?: string` (default "Loading…"), `iconOnly?: boolean`, `asChild?: boolean` plus every `<button>` attribute.
+
+## 11. Code
+<Source language="tsx" code={`<Button intent="primary" appearance="filled">Book session</Button>`} />
+<Source language="tsx" code={`<div className="flex justify-end gap-related">
+  <Button type="button" onClick={onCancel}>Cancel</Button>
+  <Button type="submit" intent="primary" appearance="filled" loading={saving} loadingLabel="Saving prices…">
+    Save prices
+  </Button>
+</div>`} />
+
+## 12. Do and don't
+| Do | Don't |
+|---|---|
+| One filled primary action per screen | Two filled primaries side by side ("Start free" + "See demo", A01) |
+| "Cancel" first, then the primary action, aligned right (R03.4) | Primary first on one form and last on another |
+| Disabled button with a visible reason | Disabled button with no explanation (lesson 06) |
+| `text-link` for navigation | A button that only changes the URL |
+
+## 13. Related
+Text link (navigation), Field (forms), Confirm dialog (stage 2, batch 3) for destructive actions. Used in the form pattern (`CrudForm`), `ErrorMessage` (Try again) and `DataTable` (pagination).

@@ -1,0 +1,50 @@
+import { ArgTypes, Canvas, Meta, Source } from "@storybook/addon-docs/blocks";
+import * as Stories from "./Textarea.stories";
+
+<Meta of={Stories} />
+
+# Textarea
+
+## 1. Purpose
+Lets the user write several lines.
+
+## 2. When to use
+A mentor's bio (spec #23): what they have done, in plain words (R04).
+
+## 3. When not to use
+- One line: **Input**.
+- Messages during a session: the session composer is a product component (stage 3, R02.1).
+
+## 4. Anatomy
+Outline · text · grows with content (`field-sizing-content`), minimum 96 px.
+
+## 5. Variants
+One look.
+
+## 6. States
+<Canvas of={Stories.StateMatrix} />
+
+## 7. Behaviour and accessibility
+Same outline, focus and disabled rules as **Input**. Enter adds a new line; it never submits a form.
+
+## 8. Content
+Say how long the text may be in the hint, and give the current count in the error.
+
+## 9. Responsive
+<Canvas of={Stories.LongTextNarrowScreen} />
+
+## 10. API
+<ArgTypes of={Stories} />
+
+## 11. Code
+<Source language="tsx" code={`<Field label="Bio" hint="What you have done, in plain words.">
+  {(control) => <Textarea {...control} />}
+</Field>`} />
+
+## 12. Do and don't
+| Do | Don't |
+|---|---|
+| Hint with the length limit | A counter that turns red as the only warning |
+
+## 13. Related
+Input, Field. Used on the mentor profile form (stage 3).

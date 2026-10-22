@@ -36,6 +36,11 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-link: var(--link);
+  --color-primary-hover: var(--dm-action-primary-hover);
+  --color-primary-pressed: var(--dm-action-primary-pressed);
+  --color-destructive-hover: var(--dm-destructive-hover);
+  --color-disabled: var(--dm-disabled-fill);
+  --color-disabled-foreground: var(--dm-disabled-foreground);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -82,11 +87,26 @@
   --spacing-component: var(--dm-space-component);
   --spacing-section: var(--dm-space-section);
 
+  /* Component sizes: h-button-md, px-button-pad-sm, size-button-icon, h-field, px-field-pad, size-checkbox */
+  --spacing-button-lg: var(--dm-button-height-lg);
+  --spacing-button-md: var(--dm-button-height-md);
+  --spacing-button-sm: var(--dm-button-height-sm);
+  --spacing-button-xs: var(--dm-button-height-xs);
+  --spacing-button-pad-lg: var(--dm-button-padding-lg);
+  --spacing-button-pad-md: var(--dm-button-padding-md);
+  --spacing-button-pad-sm: var(--dm-button-padding-sm);
+  --spacing-button-pad-xs: var(--dm-button-padding-xs);
+  --spacing-button-icon: var(--dm-button-icon);
+  --spacing-field: var(--dm-field-height);
+  --spacing-field-pad: var(--dm-field-padding-x);
+  --spacing-checkbox: var(--dm-checkbox-size);
+
   /* Radii by purpose; shadcn's sm…4xl names map onto them until stage 2 restyles the primitives */
   --radius-control: var(--dm-radius-control);
   --radius-button: var(--dm-radius-button);
   --radius-card: var(--dm-radius-card);
   --radius-panel: var(--dm-radius-panel);
+  --radius-checkbox: var(--dm-radius-checkbox);
   --radius-sm: var(--dm-radius-control);
   --radius-md: var(--dm-radius-button);
   --radius-lg: var(--dm-radius-card);
@@ -98,6 +118,23 @@
   --shadow-overlay: var(--dm-shadow-overlay);
 
   --container-measure: var(--dm-measure);
+}
+
+/* Clear focus outline (focus-visible:focus-ring). */
+@utility focus-ring {
+  outline: var(--dm-focus-width) solid var(--ring);
+  outline-offset: var(--dm-focus-offset);
+}
+
+/* Motion durations by purpose: duration-control, duration-menu, duration-dialog. */
+@utility duration-control {
+  transition-duration: var(--dm-duration-control);
+}
+@utility duration-menu {
+  transition-duration: var(--dm-duration-menu);
+}
+@utility duration-dialog {
+  transition-duration: var(--dm-duration-dialog);
 }
 
 @layer base {

@@ -7,13 +7,13 @@ Prompt: `lekcja-06/prompt-storybook.md` (copy of `lekcja-06/storybook-devmentor.
 | Stage | State |
 |---|---|
 | 0. Inventory and plan | done 2026-10-22, approved |
-| 1. Foundations | done 2026-10-22, waiting for approval ("dalej") |
-| 2. Base components | not started |
+| 1. Foundations | done 2026-10-22, approved, committed e7c56a8 |
+| 2. Base components | batch 1 of 4 done 2026-10-22, waiting for review ("dalej") |
 | 3. Product components, patterns, screens | not started |
 | 4. Teaching pages | not started |
 | 5. Checks and report | not started |
 
-**Next step:** review stage 1 in Storybook, then stage 2 (base components, batches of about six; first list how shape, density and states differ from shadcn defaults).
+**Next step:** review batch 1 in Storybook (Primitives/*), then batch 2: Select, Card/Panel, Status badge, Avatar, Alert, Skeleton.
 
 ## Stage 1 — what was built (2026-10-22)
 
@@ -32,6 +32,31 @@ Prompt: `lekcja-06/prompt-storybook.md` (copy of `lekcja-06/storybook-devmentor.
 - `npm run build-storybook`, `npm run validate` (lint, typecheck, 100% coverage, app build without DB, audit): pass. The only lint warning is pre-existing in `.agents/skills/om-share-this-session`.
 - Browser (agent-browser): all Foundations pages at 320 px have no horizontal scroll; dark theme applies to docs pages and overlays via `<html>`.
 - `npm run check:tokens` currently reports 26 findings: `packages/app/src/app/(marketing)/page.tsx` (default Next starter page: palette classes, hex, arbitrary sizes) and the shadcn primitives in `src/components/ui/*` (`text-white`, `-[3px]` rings). Primitives are restyled in stage 2; app code is fixed with the lesson's "Wartości spoza tokenów w aplikacji" prompt before the CI job is enabled.
+
+## Stage 2 — differences from shadcn defaults (approved 2026-10-22)
+
+| Trait | shadcn default | DevMentor | Source |
+|---|---|---|---|
+| Button API | 6 `variant`s | `intent` (primary, neutral, destructive) × `appearance` (filled, outline, soft, text) | trainer |
+| Button sizes | 8 (24–40 px) | lg 40, md 36 (default), sm 32, xs 28; icon box 20 | trainer, Q1 |
+| Button padding | Tailwind steps | component tokens 16/16/12/8 px | Q2 |
+| Radii | `rounded-md`, `rounded-full` | `rounded-button` 10, `rounded-control` 8, `rounded-checkbox` 4 | tokens, Q3, A01 |
+| Borders, shadows | `shadow-xs` | no shadows; fields outlined with `--input` | R03.2 |
+| Focus | 3 px halo at 50 % | 2 px `--ring` outline, 2 px offset (`focus-ring`) | trainer; values proposal |
+| Disabled | `opacity-50` | `--dm-disabled-fill` / `--dm-disabled-foreground` + visible reason | trainer |
+| Loading | none | `loading` + `loadingLabel` (status region, `aria-busy`) | trainer |
+| Hover / pressed | `/90` opacity | `--dm-action-primary-hover` #2a4ad6 / pressed #2140b8 (dark #9bb0ff / #b4c3ff); destructive hover via color-mix (proposal) | Q4 |
+| Control text | `text-sm` | `text-label` (14, medium); inputs 16 px below `md` | typography Q3 |
+
+## Stage 2 — batch 1 (2026-10-22)
+
+- Restyled shadcn primitives: `components/ui/button.tsx` (new API), `input.tsx`, `textarea.tsx`, `checkbox.tsx`, `label.tsx`. Usages moved to the new API: `CrudForm`, `ErrorMessage`, `DataTable` (button order in `CrudForm` changes in stage 3, R03.4).
+- New: `backend/forms/Field.tsx` (label, hint, error, required/optional, inline for checkboxes, wired ids) and `backend/navigation/TextLink.tsx` (always underlined, `external`, `asChild`). Home chosen per AGENTS.md rule 2 (generic, concept-agnostic → `backend/<category>/`); to confirm because public pages will use them too.
+- Tokens added: hover/pressed/disabled colours, button and field sizes, checkbox size and radius, focus width/offset, `focus-ring` and `duration-*` utilities.
+- Storybook: `.storybook/storybook.css` extends `hover`, `focus-visible`, `active` with `data-preview-state` (docs only). Pages with all 13 sections + stories (playground, variants, state matrix, long content / narrow, play tests): Button, Text link, Input, Textarea, Checkbox, Field.
+- Checks: 29 stories pass the a11y test in light and dark. The state-matrix test caught low contrast of blue/red text on `--border` in outline/soft hover/pressed states; fixed (fill `--muted` or outline instead). Unit tests 193 pass, coverage 100 %, typecheck and lint clean, Storybook builds. `check:tokens`: 21 findings left (marketing page, `table.tsx` `-[2px]`).
+- Example data follows the specs: password 12–128 (#21), display name 1–80, bio up to 2,000, stack tags TypeScript/React/Python/AI agents (#23). No currency in price examples (#24 blocked).
+- `vitest.storybook.config.mts` pre-bundles story dependencies (otherwise the first run after a new import fails to load the story files).
 
 ## Open questions (stage 1)
 

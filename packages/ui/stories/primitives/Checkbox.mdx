@@ -1,0 +1,56 @@
+import { ArgTypes, Canvas, Meta, Source } from "@storybook/addon-docs/blocks";
+import * as Stories from "./Checkbox.stories";
+
+<Meta of={Stories} />
+
+# Checkbox
+
+## 1. Purpose
+Turns one option on or off, or picks several options from a short list.
+
+## 2. When to use
+Stack tags on the mentor profile: TypeScript, React, Python, AI agents (spec #23).
+
+## 3. When not to use
+- One choice out of several: radio group (not in the system yet, see "What is missing").
+- An instant on/off setting: switch (not in the system yet).
+
+## 4. Anatomy
+16 px box with a 4 px radius (stage 2 Q3) · check mark · label to the right, inside a **Field** with `inline`.
+
+## 5. Variants
+One look; groups use `<fieldset>` with a `<legend>`.
+
+<Canvas of={Stories.StackTags} />
+
+## 6. States
+<Canvas of={Stories.StateMatrix} />
+
+## 7. Behaviour and accessibility
+- Space toggles; clicking the label toggles too.
+- The box is 16 px, but the label row is at least 24 px high and clickable, so the target passes WCAG 2.5.8.
+- Checked uses `--primary` with a check mark, so state is not shown by colour alone.
+
+## 8. Content
+Labels are the option names as written in the vocabulary ("AI agents").
+
+## 9. Responsive
+<Canvas of={Stories.LongLabelNarrowScreen} />
+
+## 10. API
+<ArgTypes of={Stories} />
+
+## 11. Code
+<Source language="tsx" code={`<fieldset>
+  <legend>Stack tags</legend>
+  <Field label="TypeScript" inline>{(control) => <Checkbox {...control} />}</Field>
+</fieldset>`} />
+
+## 12. Do and don't
+| Do | Don't |
+|---|---|
+| Label next to every box | A box with no label |
+| Group related boxes in a fieldset with a legend | Loose boxes under a bold paragraph |
+
+## 13. Related
+Field. Used in the stack-tag picker (stage 3).
