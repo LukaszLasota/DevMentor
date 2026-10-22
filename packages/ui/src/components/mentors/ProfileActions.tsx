@@ -55,7 +55,7 @@ export function ProfileActions({ published, busy = false, onPublish, onUnpublish
           <AlertDialogHeader>
             <AlertDialogTitle>Unpublish your page?</AlertDialogTitle>
             <AlertDialogDescription>
-              Mentees with the link will see "not found" and you leave /mentors until you publish again.
+              Mentees with the link will see “not found” and you leave /mentors until you publish again.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
