@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 // Minimal page frames for screen stories. The specs define no app shell (header, navigation), so these
-// are proposals and the shell is listed on "What is missing".
+// were approved as minimal frames on 2026-10-22; a full app shell is still listed on "What is missing".
 
 function Logo() {
   return <span className="font-mono text-label font-medium tracking-tight">DevMentor</span>;

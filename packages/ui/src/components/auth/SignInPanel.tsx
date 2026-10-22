@@ -3,7 +3,7 @@ import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 
-/** `?error=` codes from spec #21 (platform primitives). The copy is a proposal: the spec gives none. */
+/** `?error=` codes from spec #21 (platform primitives). The spec gives no copy; this copy was approved 2026-10-22. */
 export const SIGN_IN_ERRORS = {
   github_unavailable: "GitHub sign-in is not available right now. Use your email and password, or try again later.",
   github_cancelled: "You cancelled GitHub sign-in. Continue with GitHub again, or use your email.",

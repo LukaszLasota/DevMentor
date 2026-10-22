@@ -4,7 +4,7 @@ import { Meta } from "@storybook/addon-docs/blocks";
 
 # Screen state maps
 
-Which story shows which state of each key screen. Copy in quotes comes from the specs; copy marked *proposal* does not.
+Which story shows which state of each key screen. Copy in quotes comes from the specs; copy marked *ours* does not (approved 2026-10-22).
 
 ## E01 Mentor onboarding
 
@@ -13,10 +13,10 @@ Which story shows which state of each key screen. Copy in quotes comes from the 
 | `/sign-in` | default, GitHub first | Screens/E01/`/sign-in` |
 | | wrong credentials: "Invalid email or password." | `/sign-in — wrong email or password` |
 | | 429 with retry time | `/sign-in — too many attempts` |
-| | GitHub error codes (*proposal* copy) | Product/E01/Sign-in panel |
+| | GitHub error codes (*ours*) | Product/E01/Sign-in panel |
 | `/register` | email only | `/register` |
 | | "Check your inbox to finish registration" + resend | `/register — check your inbox` |
-| `/verify-email` | link expired/used/wrong (*proposal* copy) | `/verify-email — link not valid` |
+| `/verify-email` | link expired/used/wrong (*ours*) | `/verify-email — link not valid` |
 | | set password | not built: the password form is a `CrudForm` like `/register` |
 | `/invitation/[token]` | signed out, invited account, other account, not valid | Product/E01/Invitation panel; `/invitation/[token]` stories |
 | `/mentor` | checklist with deadline | `/mentor — onboarding` |
@@ -44,6 +44,6 @@ Which story shows which state of each key screen. Copy in quotes comes from the 
 | | "Unknown stack tag." | `/mentors?tag=java — unknown tag` |
 | `/m/[slug]` | bookable, many open times, not bookable yet | `/m/[slug] — …` stories |
 | | "This mentor page cannot be shown right now. Try again in a minute." | `/m/[slug] — cannot load` |
-| | unknown/unpublished: standard 404 | Patterns/Detail view/Not found (*proposal*) |
+| | unknown/unpublished: standard 404 | Patterns/Detail view/Not found (*ours*) |
 
 Not covered (no spec): `/admin` landing content, `/admin/users`, the app shell (header, navigation). See "What is missing".

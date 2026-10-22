@@ -20,7 +20,7 @@ export function InvitationPanel({ state, acceptAction }: { state: InvitationStat
     return (
       <section className={panel}>
         <h1 className="text-heading-3 font-semibold">This invitation is not valid</h1>
-        {/* Spec #22 asks for one sentence and no form; the wording is a proposal. */}
+        {/* Spec #22 asks for one sentence and no form; the wording is ours, approved 2026-10-22. */}
         <p className="text-body-small text-muted-foreground">
           It may have expired, been used or been revoked. Ask the person who invited you for a new link.
         </p>

@@ -2,7 +2,7 @@
  * DevMentor design tokens: the only file allowed to hold raw values.
  * Layers: raw (palette, scales) → semantic (named by purpose) → component (only where needed).
  * Sources: lekcja-06/referencje.md (R.., A.., K..) and lekcja-06/tokeny.md. Values marked
- * "proposal" are not yet confirmed by a decision.
+ * "approved 2026-10-22" were agent proposals accepted by the product owner (POSTEP.md).
  */
 
 /* ---------- Raw values (use only inside this file) ---------- */
@@ -23,7 +23,7 @@
   --dm-warm-dark-600: #aca7a0;
   --dm-warm-dark-950: #f1eeea;
 
-  /* Action blue (trainer's DevMentor); dark variant is a proposal (tokeny.md) */
+  /* Action blue (trainer's DevMentor); dark variant approved 2026-10-22 (tokeny.md) */
   --dm-primary-base: #335cff;
   --dm-primary-base-dark: #7d97ff;
   /* Hover / pressed shades of the action blue (approved 2026-10-22, stage 2 Q4) */
@@ -83,10 +83,10 @@
   --dm-duration-180: 180ms;
   --dm-duration-240: 240ms;
 
-  /* Overlay shadow: proposal (value not given by the trainer) */
+  /* Overlay shadow: approved 2026-10-22 (value not given by the trainer) */
   --dm-shadow-overlay-light: 0 8px 24px rgb(31 25 21 / 0.12);
   --dm-shadow-overlay-dark: 0 8px 24px rgb(0 0 0 / 0.5);
-  /* Scrim behind dialogs: proposal (stage 2 batch 3) */
+  /* Scrim behind dialogs: approved 2026-10-22 */
   --dm-scrim-light: rgb(31 25 21 / 0.4);
   --dm-scrim-dark: rgb(0 0 0 / 0.6);
 }
@@ -97,7 +97,7 @@
   --dm-font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
   --dm-font-code: "DM Mono", ui-monospace, monospace;
 
-  /* Text styles (agent picks a style, not a size). Line heights and weights: proposal */
+  /* Text styles (agent picks a style, not a size). Line heights and weights: approved 2026-10-22 */
   --dm-text-display: var(--dm-size-56);
   --dm-text-display-leading: 1.15;
   --dm-text-heading-1: var(--dm-size-40);
@@ -142,7 +142,7 @@
   /* Narrowest supported screen (WCAG 1.4.10): used by narrow-screen stories */
   --dm-phone-width: 20rem;
 
-  /* Focus: a clear outline, not a faint halo (trainer "fokus z wyraźnym obrysem"; width/offset: proposal) */
+  /* Focus: a clear outline, not a faint halo (trainer "fokus z wyraźnym obrysem"; width/offset approved 2026-10-22) */
   --dm-focus-width: 2px;
   --dm-focus-offset: 2px;
 
@@ -166,13 +166,13 @@
   --dm-radius-checkbox: var(--dm-radius-4);
   --dm-checkbox-size: 1rem;
 
-  /* Component tokens: status badge and avatar (proposal, stage 2 batch 2) */
+  /* Component tokens: status badge and avatar (approved 2026-10-22) */
   --dm-badge-padding-y: 0.25rem;
   --dm-avatar-sm: var(--dm-button-height-xs);
   --dm-avatar-md: var(--dm-button-height-md);
   --dm-avatar-lg: var(--dm-space-48);
 
-  /* Component tokens: dialog widths (proposal: about 32rem keeps text near 65ch; confirm is narrower) */
+  /* Component tokens: dialog widths (approved 2026-10-22: about 32rem keeps text near 65ch; confirm is narrower) */
   --dm-dialog-width: 32rem;
   --dm-dialog-width-confirm: 26rem;
   --dm-menu-min-width: 12rem;
@@ -264,7 +264,7 @@
   --primary: var(--dm-action-primary-fill); /* trainer: one primary action */
   --secondary-foreground: var(--foreground);
   --accent-foreground: var(--foreground);
-  --dm-destructive-hover: color-mix(in oklab, var(--destructive) 85%, var(--foreground)); /* proposal */
+  --dm-destructive-hover: color-mix(in oklab, var(--destructive) 85%, var(--foreground)); /* approved 2026-10-22 */
   --sidebar: var(--muted);
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
