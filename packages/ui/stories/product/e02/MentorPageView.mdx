@@ -7,6 +7,11 @@ import * as Stories from "./MentorPageView.stories";
 
 The body of the share page `/m/[slug]` (specs #23, #28) and the preview on `/mentor/profile`. Same for every visitor; the owner sees no edit link.
 
+## When not to use
+- In lists: **Mentor card**.
+- For editing: it is read-only; the edit form is `CrudForm` on `/mentor/profile`, with this view only as the preview.
+- To explain to visitors why a mentor is not bookable: the view shows only "Not bookable yet" (spec #28); reasons belong in `ReadinessChecklist` for the owner.
+
 ## Section order (spec #28)
 1. Header: `h1` display name, avatar (`alt=""`), stack tags.
 2. "What I have done" (bio as plain text, in full) and "Public work" (new tab, `rel="noopener nofollow ugc"`).
