@@ -15,6 +15,7 @@ export {
   type SessionSecrets,
 } from './security/session-token';
 export { getSessionUser, type SessionUser, type SessionUserDeps } from './auth/session-user';
+export { homeFor } from './auth/home';
 export type { Role } from '@devmentor/db';
 export { EventBus, type DomainEventListener, type DomainEventName, type DomainEvents } from './events/events';
 export { HealthService, type HealthStatus } from './services/health/health.service';

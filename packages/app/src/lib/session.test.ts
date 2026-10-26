@@ -9,7 +9,9 @@ const mocks = vi.hoisted(() => ({
   cradle: { name: 'cradle' },
 }));
 
-vi.mock('@devmentor/core', () => ({
+vi.mock('@devmentor/core', async (importOriginal) => ({
+  // The real `homeFor` (pure); the session check and the scope are faked.
+  homeFor: (await importOriginal<typeof import('@devmentor/core')>()).homeFor,
   getSessionUser: mocks.getSessionUser,
   withScope: mocks.withScope,
 }));
@@ -26,7 +28,7 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-const { getPageSession, homeFor, requirePageRole, requirePageSession, SESSION_ENDED_REASON } = await import('./session');
+const { getPageSession, requirePageRole, requirePageSession, SESSION_ENDED_REASON } = await import('./session');
 
 function user(roles: SessionUser['roles']): SessionUser {
   return { id: 'user-1', email: 'octo@devmentor.test', roles, githubLogin: null, avatarUrl: null, emailVerified: true };
@@ -36,18 +38,6 @@ beforeEach(() => {
   mocks.cookieValue = undefined;
   mocks.getSessionUser.mockReset();
   mocks.withScope.mockReset().mockImplementation((fn: (cradle: unknown) => Promise<unknown>) => fn(mocks.cradle));
-});
-
-describe('homeFor', () => {
-  it.each([
-    [['mentee'], '/mentors'],
-    [['mentee', 'mentor'], '/mentor'],
-    [['mentor'], '/mentor'],
-    [['mentee', 'operator'], '/admin'],
-    [['mentee', 'mentor', 'operator'], '/admin'],
-  ] as const)('%j → %s', (roles, home) => {
-    expect(homeFor(roles)).toBe(home);
-  });
 });
 
 describe('getPageSession', () => {

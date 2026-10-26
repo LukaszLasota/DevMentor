@@ -1,5 +1,5 @@
 import 'server-only';
-import { getSessionUser, withScope, type Role, type SessionUser } from '@devmentor/core';
+import { getSessionUser, homeFor, withScope, type Role, type SessionUser } from '@devmentor/core';
 import { SESSION_COOKIE } from '@devmentor/core/http';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -19,19 +19,6 @@ export const SESSION_ENDED_REASON = 'session_ended';
 
 /** `?notice=` value on `homeFor(roles)` after a role page refused the user. */
 export type RoleNotice = `${Role}_only`;
-
-/** Where a user lands by default: operator → `/admin`, then mentor → `/mentor`, else `/mentors` (L01). */
-export function homeFor(roles: readonly Role[]): string {
-  if (roles.includes('operator')) {
-    return '/admin';
-  }
-
-  if (roles.includes('mentor')) {
-    return '/mentor';
-  }
-
-  return '/mentors';
-}
 
 interface PageSession {
   user: SessionUser | null;

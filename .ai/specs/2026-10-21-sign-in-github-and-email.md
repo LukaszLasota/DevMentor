@@ -70,7 +70,7 @@ Why the password is set from the link: if registration accepted a password, some
 
 ## 📝 Edge Cases & Failure Scenarios
 - User cancels on GitHub → callback with `error=access_denied` → `/sign-in?error=github_cancelled`.
-- `state` missing or mismatched (CSRF on the callback, expired `dm_oauth`) → refuse before any outbound call, no account touched.
+- `state` missing or mismatched (CSRF on the callback, expired `dm_oauth`) → refuse before any outbound call, no account touched → `/sign-in?error=github_state_invalid`.
 - GitHub down, slow or token exchange fails → `fetchJson` 10 s timeout / 503 → `/sign-in?error=github_unavailable`; logged without the code or token.
 - GitHub login renamed → matched by `github_id`, login refreshed. GitHub primary email changed → nothing changes; `users.email` is not rewritten, so operator authority is unaffected.
 - GitHub verified email already used by a password account → linked (rule 2); an unverified GitHub email never links.

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { SessionUser, SessionUserDeps } from '../auth/session-user';
-import { requireRole, requireSession } from './auth';
+import { endSession, requireRole, requireSession } from './auth';
 import { ForbiddenError, UnauthorizedError } from './errors';
 
 const getSessionUser = vi.hoisted(() => vi.fn());
@@ -54,5 +54,41 @@ describe('requireRole', () => {
 
   it('fails closed when no role is listed', () => {
     expect(() => requireRole(USER)).toThrow(ForbiddenError);
+  });
+});
+
+describe('endSession', () => {
+  const deps = (sessionSecret?: string) => {
+    const signOut = vi.fn(async () => undefined);
+    const env = { SESSION_SECRET: sessionSecret } as SessionUserDeps['env'];
+
+    return { signOut, cradle: { env, accountService: { signOut } } as unknown as SessionUserDeps };
+  };
+
+  it('bumps the session version of a live session', async () => {
+    const { signOut, cradle: live } = deps('a'.repeat(64));
+    getSessionUser.mockResolvedValueOnce(USER);
+
+    await endSession(request('dm_session=tok.en.value'), live);
+
+    expect(getSessionUser).toHaveBeenLastCalledWith('tok.en.value', live);
+    expect(signOut).toHaveBeenCalledWith('user-1');
+  });
+
+  it('changes nothing for a missing, expired or tampered cookie', async () => {
+    const { signOut, cradle: dead } = deps('a'.repeat(64));
+    getSessionUser.mockResolvedValueOnce(null);
+
+    await expect(endSession(request('dm_session=tampered'), dead)).resolves.toBeUndefined();
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it('does not fail without SESSION_SECRET (nothing to verify the cookie with)', async () => {
+    const { signOut, cradle: unconfigured } = deps();
+    getSessionUser.mockClear();
+
+    await expect(endSession(request('dm_session=tok.en.value'), unconfigured)).resolves.toBeUndefined();
+    expect(getSessionUser).not.toHaveBeenCalled();
+    expect(signOut).not.toHaveBeenCalled();
   });
 });

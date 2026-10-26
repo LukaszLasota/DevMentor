@@ -31,14 +31,18 @@ export function requireSessionSecrets(env: Pick<Env, 'SESSION_SECRET' | 'SESSION
   return { current: env.SESSION_SECRET, previous: env.SESSION_SECRET_PREVIOUS };
 }
 
+/** Secrets a verifier tries in order: current, then previous (verify only). */
+export function verificationKeys({ current, previous }: SessionSecrets): string[] {
+  return previous === undefined ? [current] : [current, previous];
+}
+
 export function signSession({ sub, sv }: SessionClaims, secret: string, clock: Clock): Promise<string> {
   return signToken({ sub, sv }, { audience: SESSION_AUDIENCE, ttlSeconds: SESSION_TTL_SECONDS }, secret, clock);
 }
 
 /** Verified session claims, or `null` for any invalid, expired or foreign token. */
 export async function verifySession(token: string, secrets: SessionSecrets, clock: Clock): Promise<SessionClaims | null> {
-  const keys = secrets.previous === undefined ? [secrets.current] : [secrets.current, secrets.previous];
-  const payload = await verifyToken(token, SESSION_AUDIENCE, keys, clock);
+  const payload = await verifyToken(token, SESSION_AUDIENCE, verificationKeys(secrets), clock);
   const { sub, sv } = payload ?? {};
 
   if (typeof sub !== 'string' || sub === '' || typeof sv !== 'number' || !Number.isSafeInteger(sv) || sv < 0) {
