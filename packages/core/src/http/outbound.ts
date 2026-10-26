@@ -53,8 +53,10 @@ export function createFetchJson({ logger, fetch: fetchImpl = fetch }: FetchJsonD
     }
 
     if (!response.ok) {
-      // Release the connection without reading the body (it may echo secrets).
-      await response.body?.cancel();
+      // Release the connection without reading the body (it may echo secrets). An errored body
+      // (e.g. the timeout fired after the headers) rejects `cancel()`; the upstream status is the
+      // failure to report, so a cleanup error must not replace it.
+      await response.body?.cancel().catch(() => undefined);
       throw fail(new Error(`Upstream ${upstream.method} ${upstream.url} responded ${response.status}`), response.status);
     }
 

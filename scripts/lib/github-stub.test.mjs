@@ -63,6 +63,8 @@ describe('pure helpers', () => {
     expect(githubIdFor('mock-mentee')).not.toBe(githubIdFor('mock-operator'));
     expect(Number.isSafeInteger(githubIdFor('x')) && githubIdFor('x') > 0).toBe(true);
     expect(emailFor('Mock-Operator')).toBe('mock-operator@devmentor.test');
+    expect(emailFor('mock-link--b')).toBe('mock-link@devmentor.test');
+    expect(githubIdFor('mock-link--b')).not.toBe(githubIdFor('mock-link'));
   });
 
   it('round-trips a code and rejects malformed ones', () => {

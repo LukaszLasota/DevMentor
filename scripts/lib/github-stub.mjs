@@ -4,6 +4,7 @@
 //
 // Personas come from GitHub's `login` hint (`/api/auth/github?login=<persona>`):
 // - any valid login → a user `<login>` with the verified primary email `<login>@devmentor.test`;
+// - `<base>--<suffix>` → another GitHub account (own id) sharing `<base>`'s email (link races);
 // - no hint → DEFAULT_LOGIN;
 // - DENY_LOGIN → the user "cancels" on GitHub (`?error=access_denied`);
 // - UNVERIFIED_LOGIN → the only email is not verified (`github_email_unverified`).
@@ -32,8 +33,9 @@ export function githubIdFor(login) {
   return Number.parseInt(createHash('sha256').update(login).digest('hex').slice(0, 12), 16) + 1;
 }
 
+/** Verified primary email; `<base>--<suffix>` shares `<base>`'s email (a different GitHub id). */
 export function emailFor(login) {
-  return `${login.toLowerCase()}@${EMAIL_DOMAIN}`;
+  return `${login.toLowerCase().split('--')[0]}@${EMAIL_DOMAIN}`;
 }
 
 /** The authorization code carries the persona and the PKCE challenge it must be redeemed with. */

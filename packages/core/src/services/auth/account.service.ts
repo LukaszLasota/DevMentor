@@ -131,7 +131,7 @@ export class AccountService {
     return user;
   }
 
-  /** Rules 1–3; `null` means rule 4 (create). Changes are flushed by the caller. */
+  /** Rules 1–3; `null` means rule 4 (create). Changes other than the link are flushed by the caller. */
   private async findOrLink(profile: GithubProfile, email: string): Promise<User | null> {
     // Rule 1: known GitHub id → refresh login and avatar; the email stays as stored.
     const byGithubId = await this.em.findOne(User, { githubId: profile.githubId });
@@ -146,26 +146,43 @@ export class AccountService {
       return null;
     }
 
-    // Rule 1 again: a concurrent first sign-in of the same GitHub account committed its row between
-    // the two lookups (the integration race test hit this), so the email row already holds our id.
+    if (byEmail.githubId == null) {
+      await this.linkGithub(byEmail, profile);
+    }
+
+    // Rule 1 again: a concurrent sign-in of the same GitHub account committed its row or link after
+    // our github_id lookup (the integration race test hit this), so the email row holds our id.
     if (byEmail.githubId === profile.githubId) {
       return this.refreshGithubProfile(byEmail, profile);
     }
 
     // Rule 3: the email belongs to another GitHub account → refuse, change nothing.
-    if (byEmail.githubId != null) {
-      this.logger.warn({ userId: byEmail.id }, 'GitHub sign-in refused: email linked to another GitHub account');
-      throw new GithubAccountConflictError();
+    this.logger.warn({ userId: byEmail.id }, 'GitHub sign-in refused: email linked to another GitHub account');
+    throw new GithubAccountConflictError();
+  }
+
+  /**
+   * Rule 2: links GitHub's verified primary email (also completes a pending registration). The
+   * write is one conditional UPDATE (`github_id IS NULL`), not check-then-write: of two parallel
+   * callbacks for different GitHub accounts with the same email only one can link; the entity is
+   * then reloaded, so the caller sees whichever GitHub id won (ours → rule 1, another → rule 3).
+   */
+  private async linkGithub(user: User, profile: GithubProfile): Promise<void> {
+    const linked = await this.em.nativeUpdate(
+      User,
+      { id: user.id, githubId: null },
+      {
+        githubId: profile.githubId,
+        githubLogin: profile.login,
+        avatarUrl: profile.avatarUrl,
+        emailVerifiedAt: user.emailVerifiedAt ?? this.clock.now(),
+      },
+    );
+    await this.em.refreshOrFail(user);
+
+    if (linked === 1) {
+      this.logger.info({ userId: user.id }, 'GitHub account linked by verified email');
     }
-
-    // Rule 2: link GitHub's verified primary email; also completes a pending registration.
-    byEmail.githubId = profile.githubId;
-    byEmail.githubLogin = profile.login;
-    byEmail.avatarUrl = profile.avatarUrl;
-    byEmail.emailVerifiedAt ??= this.clock.now();
-    this.logger.info({ userId: byEmail.id }, 'GitHub account linked by verified email');
-
-    return byEmail;
   }
 
   /** Rule 1: the email stays as stored; login and avatar follow GitHub. */

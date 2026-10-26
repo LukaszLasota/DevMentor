@@ -55,7 +55,7 @@ No personal data beyond email, GitHub login and avatar URL; passwords, tokens an
 | `GET /api/auth/me` | `{ user }` or 401 |
 `user` = `{ id, email, roles, githubLogin, avatarUrl, emailVerified }`. Password: 12–128 characters, no other composition rules. POST routes keep `apiHandler`'s central CSRF check.
 
-GitHub account resolution: (1) a user with this `github_id` → sign in, refresh login/avatar; (2) else a user whose email equals GitHub's **verified primary** email and whose `github_id` is null → link `github_id`, set `email_verified_at`, sign in (a pending registration without a password is completed this way too: it holds no password anyone could know); (3) a matching email that already has a different `github_id` → `/sign-in?error=github_account_conflict`, nothing changed; (4) else create a mentee with that email, verified. If GitHub returns no verified primary email → `/sign-in?error=github_email_unverified`. `users.email` is never rewritten.
+GitHub account resolution: (1) a user with this `github_id` → sign in, refresh login/avatar; (2) else a user whose email equals GitHub's **verified primary** email and whose `github_id` is null → link `github_id` (one conditional update `WHERE github_id IS NULL`; a parallel callback that loses re-reads and falls under rule 1 or 3), set `email_verified_at`, sign in (a pending registration without a password is completed this way too: it holds no password anyone could know); (3) a matching email that already has a different `github_id` → `/sign-in?error=github_account_conflict`, nothing changed; (4) else create a mentee with that email, verified. If GitHub returns no verified primary email → `/sign-in?error=github_email_unverified`. `users.email` is never rewritten.
 
 Session check (every route via `requireSession`, every page via `requirePageSession`): verify the token (`aud: 'session'`, current or previous secret) → load the user → 401 when missing or `session_version ≠ sv` → `operator` effective iff the verified email is in `OPERATOR_EMAILS` → when the stored set disagrees, reconcile it (idempotent, keeps other roles, emits `auth.user.roles_changed`, no `session_version` bump).
 
@@ -84,7 +84,7 @@ Why the password is set from the link: if registration accepted a password, some
 - Stored roles empty despite the `CHECK` → 500 logged, never a 401 loop.
 - Rate limit hit → 429 with `Retry-After`; hashing gate saturated → 503, not counted; GitHub path is not rate limited by us.
 - Mail delivery fails → register/resend 503; no success reported without delivery.
-- `returnTo` off-site, `//x`, `/api/…`, `/_next/…` → replaced by the fallback.
+- `returnTo` off-site, `//x`, `/api/…`, `/_next/…`, or an auth page (`/sign-in`, `/register`, `/verify-email`: they bounce a signed-in user on) → replaced by the fallback.
 - Forgotten password → no recovery path in this spec; accepted until the password-reset story (out of scope). GitHub users are unaffected.
 - Email matching uses lower-casing only; no alias or dot stripping, so `a+x@` and `a@` are different accounts.
 - Pages that read the session cookie run at request time under `cacheComponents`: the reading component sits inside `<Suspense>`, and `npm run build` with no database must still pass.

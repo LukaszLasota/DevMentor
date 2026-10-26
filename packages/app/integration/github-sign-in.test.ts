@@ -71,6 +71,13 @@ describe('GitHub sign-in through the stub (agent-browser)', () => {
     await browser.waitForText('This page is for operators.');
   });
 
+  it('sends a signed-in user from /sign-in with an auth-page returnTo straight home', async () => {
+    await browser.open(`${baseUrl}/sign-in?${new URLSearchParams({ returnTo: '/sign-in?returnTo=%2Fsign-in' })}`);
+    await browser.waitForUrl('**/mentors');
+
+    expect(new URL(await browser.url()).search).toBe('');
+  });
+
   it('signs out with the button, and the old cookie is refused afterwards', async () => {
     await browser.open(`${baseUrl}/mentors`);
     await browser.waitForText('mock-mentee@devmentor.test');
@@ -150,5 +157,27 @@ describe('concurrent first GitHub sign-in (plain HTTP)', () => {
     }
 
     expect(await psql("select count(*) from users where email = 'mock-race@devmentor.test'")).toBe('1');
+  });
+
+  it('links an email account to only one of two GitHub accounts racing with the same verified email (rule 2/3)', async () => {
+    // A pending registration (no github_id); the stub gives `mock-link--b` mock-link's email under another id.
+    await psql(
+      "insert into users (id, email, created_at, updated_at) values (gen_random_uuid(), 'mock-link@devmentor.test', now(), now())",
+    );
+    const logins = ['mock-link', 'mock-link--b'];
+    const flows = await Promise.all(logins.map((login) => startFlow(login)));
+    const results = await Promise.all(
+      flows.map(({ callback, cookie }) => fetch(callback, { redirect: 'manual', headers: { cookie } })),
+    );
+    const locations = results.map((response) => new URL(response.headers.get('location') as string, baseUrl).toString());
+    const signedIn = results.map((response) =>
+      response.headers.getSetCookie().some((cookie) => cookie.startsWith('dm_session=') && !cookie.startsWith('dm_session=;')),
+    );
+    const winner = locations.indexOf(`${baseUrl}/mentors`);
+
+    expect([...locations].sort()).toEqual([`${baseUrl}/mentors`, `${baseUrl}/sign-in?error=github_account_conflict`]);
+    expect(signedIn[winner]).toBe(true);
+    expect(signedIn[1 - winner]).toBe(false);
+    expect(await psql("select github_login from users where email = 'mock-link@devmentor.test'")).toBe(logins[winner]);
   });
 });

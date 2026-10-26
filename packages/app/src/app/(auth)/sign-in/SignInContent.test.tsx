@@ -129,4 +129,13 @@ describe("SignInContent (signed in)", () => {
 
     await expect(renderSignIn({ returnTo })).rejects.toThrow(`NEXT_REDIRECT ${target}`);
   });
+
+  it.each(["/sign-in", "/sign-in?returnTo=%2Fsign-in%3FreturnTo%3D%252Fadmin", "/register?returnTo=%2Fadmin"])(
+    "never sends the user back to an auth page (returnTo %s) → home in one hop",
+    async (returnTo) => {
+      mocks.getPageSession.mockResolvedValueOnce(user(["mentee"]));
+
+      await expect(renderSignIn({ returnTo })).rejects.toThrow(/^NEXT_REDIRECT \/mentors$/);
+    },
+  );
 });

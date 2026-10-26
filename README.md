@@ -78,7 +78,7 @@ npm run dev                     # http://localhost:3000
 
 ### Sign in locally (GitHub stub)
 
-Until a GitHub OAuth App is set up, sign in through a local GitHub stub (`scripts/lib/github-stub.mjs`, the same one the integration tests use). It skips GitHub's consent screen and turns the `login` hint into a persona `<login>@devmentor.test` with a verified email.
+Until a GitHub OAuth App is set up, sign in through a local GitHub stub (`scripts/lib/github-stub.mjs`, the same one the integration tests use). It skips GitHub's consent screen and turns the `login` hint into a persona `<login>@devmentor.test` with a verified email (`<base>--<suffix>` is another GitHub account sharing `<base>`'s email).
 
 1. Database: `docker compose up -d postgres`, then `npm run db:migrate`.
 2. `.env` (local only, never committed) — in addition to the defaults:

@@ -70,6 +70,24 @@ describe('fetchJson', () => {
     await expect(fetchJson(URL_WITH_SECRET)).rejects.toMatchObject({ status: 503 });
   });
 
+  it('keeps the upstream status when releasing the error body fails', async () => {
+    // An errored body stream (e.g. the timeout fired after the headers) rejects `cancel()` with its
+    // stored error; that must not replace the 503 with a raw error.
+    const body = new ReadableStream({
+      start(controller) {
+        controller.error(new DOMException('The operation was aborted due to timeout', 'TimeoutError'));
+      },
+    });
+    const { fetchJson, logger } = setup(async () => new Response(body, { status: 502 }));
+
+    await expect(fetchJson(URL_WITH_SECRET)).rejects.toBeInstanceOf(ServiceUnavailableError);
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ upstream: { method: 'GET', url: 'https://api.example.test/user/emails', status: 502 } }),
+      'Outbound request failed',
+    );
+    expect(loggedText(logger)).toContain('responded 502');
+  });
+
   it('maps a network failure to 503', async () => {
     const { fetchJson, logger } = setup(async () => {
       throw new TypeError('fetch failed');

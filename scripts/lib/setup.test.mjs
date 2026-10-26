@@ -202,6 +202,16 @@ describe('createEnv', () => {
     );
   });
 
+  it("fills the repository's own .env.example with a session secret (fresh install can sign in)", () => {
+    writeFileSync(join(root, '.env.example'), readFileSync(join(ROOT, '.env.example'), 'utf8'));
+
+    createEnv({ root });
+
+    const env = parseEnv(readFileSync(join(root, '.env'), 'utf8'));
+    expect(env.get('SESSION_SECRET')).toMatch(/^[0-9a-f]{64}$/);
+    expect(env.get('SESSION_SECRET_PREVIOUS')).toBe('');
+  });
+
   it('generates the secret with the default generator', () => {
     writeFileSync(join(root, '.env.example'), 'SESSION_SECRET=\n');
 

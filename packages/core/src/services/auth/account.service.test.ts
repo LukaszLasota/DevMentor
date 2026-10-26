@@ -54,6 +54,14 @@ function fakeEm(rows: User[]) {
       rows.push(user);
       return user;
     }),
+    // Conditional UPDATE: changes the rows matching every `where` field, returns the affected count.
+    nativeUpdate: vi.fn(async (_entity: unknown, where: Record<string, unknown>, data: Partial<User>) => {
+      const matches = rows.filter((row) => Object.entries(where).every(([key, value]) => row[key as keyof User] === value));
+      matches.forEach((row) => Object.assign(row, data));
+      return matches.length;
+    }),
+    // Rows are the managed entities themselves, so a refresh has nothing to reload.
+    refreshOrFail: vi.fn(async (user: User) => user),
     flush: vi.fn(async () => undefined),
     clear: vi.fn(),
   };
@@ -167,6 +175,51 @@ describe('AccountService.resolveGithubAccount', () => {
     expect(em.create).not.toHaveBeenCalled();
     expect(em.flush).toHaveBeenCalledTimes(1);
     expect(logger.info).toHaveBeenCalledWith({ userId: existing.id }, 'GitHub account linked by verified email');
+  });
+
+  it('rule 2: links with one conditional update, only while github_id is still null', async () => {
+    const existing = makeUser({ email: PROFILE.email, emailVerifiedAt: EARLIER });
+    const { service, em } = setup([existing]);
+
+    await service.resolveGithubAccount(PROFILE);
+
+    expect(em.nativeUpdate).toHaveBeenCalledWith(
+      User,
+      { id: existing.id, githubId: null },
+      { githubId: PROFILE.githubId, githubLogin: PROFILE.login, avatarUrl: PROFILE.avatarUrl, emailVerifiedAt: EARLIER },
+    );
+    expect(em.refreshOrFail).toHaveBeenCalledWith(existing);
+  });
+
+  it('concurrent link: another GitHub account linked the email after our read → conflict, nothing changed (rule 3)', async () => {
+    const existing = makeUser({ email: PROFILE.email, emailVerifiedAt: EARLIER });
+    const { service, em, logger, events } = setup([existing]);
+    em.nativeUpdate.mockImplementationOnce(async () => {
+      // A parallel callback for GitHub id 999 with the same verified email won the update.
+      Object.assign(existing, { githubId: 999, githubLogin: 'someone-else' });
+      return 0;
+    });
+
+    await expect(service.resolveGithubAccount(PROFILE)).rejects.toBeInstanceOf(GithubAccountConflictError);
+    expect(existing).toMatchObject({ githubId: 999, githubLogin: 'someone-else' });
+    expect(em.flush).not.toHaveBeenCalled();
+    expect(events.emit).not.toHaveBeenCalled();
+    expect(logger.info).not.toHaveBeenCalledWith({ userId: existing.id }, 'GitHub account linked by verified email');
+  });
+
+  it('concurrent link: the same GitHub account linked the email after our read → signs in (rule 1)', async () => {
+    const existing = makeUser({ email: PROFILE.email, emailVerifiedAt: EARLIER });
+    const { service, em, logger } = setup([existing]);
+    em.nativeUpdate.mockImplementationOnce(async () => {
+      Object.assign(existing, { githubId: PROFILE.githubId, githubLogin: 'old-login' });
+      return 0;
+    });
+
+    const user = await service.resolveGithubAccount(PROFILE);
+
+    expect(user).toBe(existing);
+    expect(user).toMatchObject({ githubId: PROFILE.githubId, githubLogin: PROFILE.login, avatarUrl: PROFILE.avatarUrl });
+    expect(logger.warn).not.toHaveBeenCalled();
   });
 
   it('rule 2: completes a pending registration (no password, unverified) and marks the email verified', async () => {
