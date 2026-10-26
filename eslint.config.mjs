@@ -68,6 +68,7 @@ const eslintConfig = defineConfig([
     "**/coverage/**",
     "**/storybook-static/**",
     "packages/ui/.storybook/public/**",
+    "lekcja-07/**",
   ]),
 ]);
 

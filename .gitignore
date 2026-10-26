@@ -55,3 +55,8 @@ coverage/
 
 # storybook
 **/storybook-static/
+
+# lesson 07: copies of discovery prototypes served by Storybook
+packages/ui/.storybook/public/prototypes/
+# lesson 07: clickable prototype sources (local course work)
+/prototypes/

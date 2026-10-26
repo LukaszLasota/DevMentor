@@ -172,6 +172,10 @@ Deliberate differences from the course:
 ## 📝 Review notes
 - All review findings applied. The Stripe client and env are in scope here; only the webhook inbox (phase 2) remains dependent on #29's future spec, since an inbox designed here would be a second one.
 
+## ❓ Questions from the synthetic walkthrough (2026-10-26)
+Hypotheses from a synthetic persona panel (`.ai/specs/research/walkthroughs/2026-10-26-mentor-onboarding-session-001/report.md`), `[SYNTHETIC]`: questions to check with real mentors, not requirements.
+- Do mentors postpone connecting Stripe until a first booking (R07 proposal, R14)? Check: Connect time relative to the first booking in the first batch.
+
 ## ❓ Open Questions
 - **Stripe topology and account configuration** — separate charges and transfers or destination charges, controller properties, required capabilities, negative-balance responsibility, platform country and currency (must match Q-P1). Owner: founder A with founder B. Blocks implementation (step 1 records the answer).
 - **Q04 — how a mentor is paid in 1.0 without Connect** (by hand under R16, or held). Owner: founder A with founder B. Blocks the first 1.0 payout, not this story.

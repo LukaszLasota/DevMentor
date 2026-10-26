@@ -140,6 +140,11 @@ All follow the course.
 ## 📝 Review notes
 All review findings of 2026-10-21 applied (D13 column, `hasBookableSlot`, time-zone example, DST, request-time clock, caps, missing profile → 404 (aligned with #23 and #24), `GREATEST`, named-constraint mapping and poisoned `em`, `isUniqueViolation` export and seconds rule, dependency on merged #23). A mentor without a profile gets 404 on every slot route, aligned with #23 and #24 (consistency pass 2026-10-21 replaced an earlier 403).
 
+## ❓ Questions from the synthetic walkthrough (2026-10-26)
+Hypotheses from a synthetic persona panel (`.ai/specs/research/walkthroughs/2026-10-26-mentor-onboarding-session-001/report.md`), `[SYNTHETIC]`: questions to check with real mentors, not requirements.
+- Would invited mentors publish a slot when they see the mentee's question only at session start (instant booking, D10, A06)? Check: usability task "publish one slot" with 3–5 invited mentors.
+- Does a single date + time per slot fit mentor availability (recurring evenings, replies between meetings, no weekends)? Check: mentors enter their real two-week availability in the slots screen.
+
 ## ❓ Open Questions
 None blocking. Non-blocking: how a mentor learns that a slot was booked — owned by the #29 spec (founder A).
 

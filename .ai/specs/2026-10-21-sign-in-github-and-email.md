@@ -2,6 +2,7 @@
 
 Status: approved
 Issue: #21 (E01-S01) · Epic: #16 · Source: `.ai/specs/product-brief.md` (R11, D12) · Primitives: `.ai/specs/2026-10-21-platform-primitives.md` · Follows the course reference spec `2026-09-04-accounts-and-roles.md` (lesson 05), adapted to this repository
+Prototypes: `prototypes/konta-i-role/` (clickable, Epic 01; local lesson-07 work, not in git) · `.ai/prototypes/discovery/mentor-onboarding/revision-001/` (grey, mentor onboarding) · Screen map: `lekcja-07/mapa-ekranow.md` (s01–s10, approved 2026-10-23; local)
 
 ## 📝 TLDR
 Every DevMentor role (mentee, mentor, operator) needs an account before anything else in the backlog works; today the app has no users, sessions or `auth.ts`. Proposed: a person signs in with GitHub, or registers with an email and sets a password from the link mailed to it, and gets a 24-hour session cookie that every later route checks live. Every new account holds the mentee role; the mentor role is added only by an accepted invitation (#22); operator authority comes only from the `OPERATOR_EMAILS` allowlist. Roles combine freely.
@@ -64,7 +65,7 @@ Why the password is set from the link: if registration accepted a password, some
 - `/sign-in`: "Continue with GitHub" as the primary button; below it the email/password form (`CrudForm`, `sign-in.schema`); link to `/register`. `?error=` codes map to plain messages.
 - `/register`: email field only; after submit, "Check your inbox to finish registration" with a resend action.
 - `/verify-email#token=`: the token travels in the URL fragment (never sent to servers or in `Referer`); the page asks for the new password, posts both, signs in; expired or used links show a resend action. `Referrer-Policy: no-referrer`.
-- Guards: every guarded layout and every guarded `page.tsx` calls `requirePageRole`; no session → `/sign-in?returnTo=<current>`; wrong role → `homeFor(roles)` (`operator → /admin`, `mentor → /mentor`, else `/`). Nothing of the user's renders before the check.
+- Guards: every guarded layout and every guarded `page.tsx` calls `requirePageRole`; no session → `/sign-in?returnTo=<current>`; wrong role → `homeFor(roles)` (`operator → /admin`, `mentor → /mentor`, else `/mentors`) with a short message (L03). Nothing of the user's renders before the check.
 - States: submitting (button disabled), field errors from `fieldErrors`, 429 message with retry time, GitHub cancelled.
 
 ## 📝 Edge Cases & Failure Scenarios
@@ -109,7 +110,7 @@ Why the password is set from the link: if registration accepted a password, some
 - Avatars are shown straight from GitHub's URL with a plain `<img>`.
 - A mentor keeps the mentee role (`{mentee, mentor}`) and can book other mentors.
 - A signed-in user opening `/sign-in` or `/register` is redirected to `safeReturnTo(returnTo, homeFor(roles))`.
-- Without `returnTo`, sign-in lands on `homeFor(roles)`; mentees land on `/` until the mentee home exists (#27).
+- Without `returnTo`, sign-in lands on `homeFor(roles)`; mentees land on `/mentors` (#27). Superseded 2026-10-23 by screen-map decision L01 (was: `/` until the mentee home exists).
 - Account deletion and data export (GDPR) are out of scope for #21; a known limitation for founder A before release, next to the brief's Q06 (terms of service).
 
 Adopted from the course reference spec on 2026-10-21:
@@ -123,6 +124,28 @@ Adopted from the course reference spec on 2026-10-21:
 Deliberate differences from the course:
 - (a) No `export const dynamic` on auth routes: removed under Next 16 `cacheComponents` and forbidden by `AGENTS.md`; request-time rendering comes from reading cookies and the database.
 - (b) Registration takes only the email, the password is set from the mailed link, and register always answers 202. The course's password at registration and 409 for a GitHub-tied email would leak account existence and let someone pre-register another person's email with a known password (pre-registration takeover). Consequence: no row ever has a password before verification, so a GitHub-verified email may complete a pending registration (rule 2), and register is rate limited per email too.
+
+## ✅ Acceptance criteria
+Moved from issue #21 and extended with the screen-map decisions of 2026-10-23 (L01–L14) and the prototype review comment of 2026-10-26. Screen ids from `lekcja-07/mapa-ekranow.md`.
+- (s01, s02) Given a visitor, when they choose "Continue with GitHub" and approve, then they are signed in and their account is created on the first sign-in.
+- (s03, s04) Given a visitor without GitHub, when they register with their email, open the mailed link and set a password, then they are signed in and can later sign in with that email and password (issue criterion 2, reworded to the spec's flow, L10).
+- (s01) Given a wrong email or password, when they sign in, then they see "Invalid email or password." and nothing reveals whether the account exists.
+- (s10) Given a signed-in user, when they sign out, then every device is signed out and protected pages refuse them until they sign in again.
+- (s05) Given a user who holds only `mentee`, when they sign in without `returnTo`, then they land on `/mentors` (L01).
+- (s04) Given a registration started from a page with `returnTo` (e.g. an invitation), when the password is set from the link, then the user lands on that page, otherwise on `homeFor(roles)` (L02).
+- (s01, s09) Given an expired session, when the user is sent to `/sign-in`, then it says "Your session ended. Sign in again."; given a signed-in user without the role, when they open a role page, then the page they land on says "This page is for mentors." (or operators) (L03).
+- (s05, s06, s07) Given a signed-in user, then every signed-in page shows their email (GitHub avatar when present) and "Sign out"; a user with `mentor` and `operator` sees "Mentor" and "Admin" links (L04, L09).
+- (s04) Given the set-password page, then it has one password field with "Show password" (L05).
+- (s03) Given the mail provider fails, when the user registers or resends, then they see "We could not send the email. Try again later, or continue with GitHub." (L06).
+- (s01) Given the sign-in page, then it says "Forgot your password? Use GitHub with the same email." (L12).
+- (s04) Given a session of another account, when a verification link is opened, then it shows "link not valid" and changes nothing (L13).
+- (s03) Given "Check your inbox", when the user chooses "Use a different email", then the form returns with the typed address ready to correct (prototype review comment, 2026-10-26).
+
+Not doing: no invitation list on `/admin` in 1.0; invitations stay in `npm run invite -- list` (L08, R16).
+
+## ❓ Questions from the synthetic walkthrough (2026-10-26)
+Hypotheses from a synthetic persona panel (`.ai/specs/research/walkthroughs/2026-10-26-mentor-onboarding-session-001/report.md`), `[SYNTHETIC]`: questions to check with real mentors, not requirements.
+- (s05, s06) Does the "mentee" label next to the email confuse invited mentors who never asked for it? Check: think-aloud on the account bar with 3–5 invited mentors.
 
 ## 📋 Phasing
 - Phase 1 — GitHub sign-in, the session layer and the operator guard (independently shippable: GitHub users can sign in and out; `/admin` is operator-only).
