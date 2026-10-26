@@ -73,8 +73,10 @@ export { ErrorMessage, type ErrorMessageProps } from "./backend/feedback/ErrorMe
 export { LoadingMessage, type LoadingMessageProps } from "./backend/feedback/LoadingMessage";
 
 // Product components (panel surfaces: /mentor, /sign-in, /mentor/payouts)
+export { AccountBar, type AccountBarProps, type AccountBarUser, type AccountRole } from "./components/auth/AccountBar";
 export { ROLE_NOTICES, RoleNotice, type RoleNoticeCode, type RoleNoticeProps } from "./components/auth/RoleNotice";
 export { SIGN_IN_ERRORS, SignInPanel, type SignInErrorCode, type SignInPanelProps } from "./components/auth/SignInPanel";
+export { SignOutButton, type SignOutButtonProps } from "./components/auth/SignOutButton";
 export { CopyShareLink } from "./components/mentors/CopyShareLink";
 export { ProfileActions, type ProfileActionsProps } from "./components/mentors/ProfileActions";
 export { ReadinessChecklist, type ReadinessChecklistProps, type ReadinessItem } from "./components/mentors/ReadinessChecklist";

@@ -1,0 +1,24 @@
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { AccountHeader } from "@/components/account/AccountHeader";
+import "@devmentor/ui/styles.css";
+
+export const metadata: Metadata = {
+  title: "DevMentor",
+};
+
+// Mentee pages (/mentors; favorites and sessions later): panel surface via @devmentor/ui. No layout
+// guard — the group has several paths and a layout cannot know which one is open, so every page
+// calls `requirePageSession(<its path>)`; the account bar renders only with a session.
+export default function MenteeRootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en" className="h-full antialiased">
+      <body className="min-h-full bg-background text-foreground">
+        <Suspense fallback={null}>
+          <AccountHeader />
+        </Suspense>
+        {children}
+      </body>
+    </html>
+  );
+}

@@ -3,6 +3,7 @@ import { getSessionUser, homeFor, withScope, type Role, type SessionUser } from 
 import { SESSION_COOKIE } from '@devmentor/core/http';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { cache } from 'react';
 
 // Page guards over the shared session check (`getSessionUser`), the same live check routes run.
 // Every guarded layout AND every guarded page.tsx calls one of them: a layout does not re-run on
@@ -26,12 +27,14 @@ interface PageSession {
   hadCookie: boolean;
 }
 
-async function readPageSession(): Promise<PageSession> {
+// Memoized per server request (React `cache`): the layout guard, the page guard and the account
+// bar of one request share a single session check instead of one database read each.
+const readPageSession = cache(async (): Promise<PageSession> => {
   const cookie = (await cookies()).get(SESSION_COOKIE)?.value || undefined;
   const user = await withScope((cradle) => getSessionUser(cookie, cradle));
 
   return { user, hadCookie: cookie !== undefined };
-}
+});
 
 /** The signed-in user, or `null`; never redirects (e.g. `/sign-in` sending a signed-in user home). */
 export async function getPageSession(): Promise<SessionUser | null> {

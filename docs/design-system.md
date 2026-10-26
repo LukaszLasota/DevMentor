@@ -31,6 +31,7 @@ Matter-of-fact, not generic. Dense where people scan (mentor and slot lists: thi
 | Table / DataTable | `@devmentor/ui` | Records to compare in panels | Public mentor list |
 | EmptyState / ErrorMessage / LoadingMessage / Skeleton | `@devmentor/ui` | Every data region | — |
 | ReadinessChecklist, ProfileActions, CopyShareLink, SlotsPanel, SignInPanel, PayoutStatusPanel | `@devmentor/ui` | E01 screens | Public pages |
+| AccountBar + SignOutButton (DS-01, closed 2026-10-26) | `@devmentor/ui` | Header of every signed-in page (`(mentee)`, `(mentor)`, `(admin)`): email, GitHub avatar, "Mentor"/"Admin" links per role, "Sign out" (L04, L09) | `(auth)` and public pages; per-page navigation |
 | MentorCard, MentorTagFilter, MentorListSkeleton, MentorPageView, MentorAvatar, SessionFacts, TagList, TextSessionNotice, LocalTime, InvitationPanel, buttonVariants | `@devmentor/ui/mentors` | Public pages | — |
 
 ## Semantic tokens (Tailwind classes)
