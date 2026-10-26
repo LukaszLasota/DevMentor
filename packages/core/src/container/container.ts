@@ -4,6 +4,7 @@ import { assertProductionEnv, getEnv } from '../config/env';
 import { EventBus } from '../events/events';
 import { createFetchJson } from '../http/outbound';
 import { logger } from '../logger';
+import { AccountService } from '../services/auth/account.service';
 import { GithubOAuthService } from '../services/auth/github-oauth.service';
 import { HealthService } from '../services/health/health.service';
 import { systemClock } from '../time/clock';
@@ -38,6 +39,7 @@ async function buildContainer(): Promise<AwilixContainer<Cradle>> {
     em: asFunction(({ orm }: Cradle) => orm.em.fork()).scoped(),
     healthService: asClass(HealthService).scoped(),
     githubOAuthService: asClass(GithubOAuthService).scoped(),
+    accountService: asClass(AccountService).scoped(),
   });
 
   return container;

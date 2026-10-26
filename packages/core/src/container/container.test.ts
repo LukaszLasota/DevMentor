@@ -100,6 +100,8 @@ describe('DI container', () => {
     expect(first.cradle.healthService).not.toBe(second.cradle.healthService);
     expect(first.cradle.githubOAuthService).toBe(first.cradle.githubOAuthService);
     expect(first.cradle.githubOAuthService).not.toBe(second.cradle.githubOAuthService);
+    expect(first.cradle.accountService).toBe(first.cradle.accountService);
+    expect(first.cradle.accountService).not.toBe(second.cradle.accountService);
   });
 
   it('withScope runs the callback with the scoped cradle and disposes the scope', async () => {
