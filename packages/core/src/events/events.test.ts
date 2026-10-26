@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Logger } from '../logger';
-import { EventBus } from './events';
+import { EventBus, type DomainEvents } from './events';
 
-const payload = { userId: 'u1', roles: ['mentee', 'operator'] };
+const payload: DomainEvents['auth.user.roles_changed'] = { userId: 'u1', roles: ['mentee', 'operator'] };
 
 function bus() {
   const logger = { error: vi.fn() };

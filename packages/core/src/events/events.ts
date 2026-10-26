@@ -1,3 +1,4 @@
+import type { Role } from '@devmentor/db';
 import type { Logger } from '../logger';
 
 /**
@@ -6,7 +7,7 @@ import type { Logger } from '../logger';
  */
 export interface DomainEvents {
   /** A user's stored roles changed (e.g. operator reconciliation, granted mentor role). */
-  'auth.user.roles_changed': { userId: string; roles: readonly string[] };
+  'auth.user.roles_changed': { userId: string; roles: readonly Role[] };
 }
 
 export type DomainEventName = keyof DomainEvents;
