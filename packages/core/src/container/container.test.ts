@@ -48,11 +48,21 @@ describe('DI container', () => {
 
   it('disables ORM debug outside development', async () => {
     vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('SESSION_SECRET', 'a'.repeat(64));
+    vi.stubEnv('APP_URL', 'https://devmentor.test');
     const { getContainer } = await loadContainer();
 
     await getContainer();
 
     expect(getOrm).toHaveBeenCalledWith(expect.objectContaining({ debug: false }));
+  });
+
+  it('refuses to start in production without SESSION_SECRET and APP_URL', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    const { getContainer } = await loadContainer();
+
+    await expect(getContainer()).rejects.toThrow('SESSION_SECRET, APP_URL must be set in production');
+    expect(getOrm).not.toHaveBeenCalled();
   });
 
   it('does not cache a failed build, so the next call retries', async () => {

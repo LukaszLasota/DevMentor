@@ -67,7 +67,7 @@ The same steps by hand:
 ```bash
 npm install
 docker compose up -d postgres   # or a native PostgreSQL — then adjust DATABASE_URL
-cp .env.example .env            # defaults match docker-compose.yml
+cp .env.example .env            # defaults match docker-compose.yml; set SESSION_SECRET=$(openssl rand -hex 32)
 npm run db:migrate              # applies the migrations committed in packages/db/src/migrations
 npm run dev                     # http://localhost:3000
 ```

@@ -1,6 +1,6 @@
 import { asClass, asFunction, asValue, createContainer, InjectionMode, type AwilixContainer } from 'awilix';
 import { getOrm } from '@devmentor/db';
-import { getEnv } from '../config/env';
+import { assertProductionEnv, getEnv } from '../config/env';
 import { logger } from '../logger';
 import { HealthService } from '../services/health/health.service';
 import type { Cradle } from './cradle';
@@ -11,6 +11,7 @@ const globalForContainer = globalThis as typeof globalThis & {
 
 async function buildContainer(): Promise<AwilixContainer<Cradle>> {
   const env = getEnv();
+  assertProductionEnv(env);
   const orm = await getOrm({
     clientUrl: env.DATABASE_URL,
     pool: { min: env.DATABASE_POOL_MIN, max: env.DATABASE_POOL_MAX },

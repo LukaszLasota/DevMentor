@@ -1,4 +1,5 @@
 import { execFile, spawn, type ChildProcess } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
@@ -72,16 +73,21 @@ export default async function setup(project: TestProject) {
   await execFileAsync('npm', ['run', 'db:migrate'], { cwd: repoRoot, env });
 
   const port = await freePort();
+  const baseUrl = `http://127.0.0.1:${port}`;
   const logs: string[] = [];
   const server = spawn(nextBin, ['start', '--port', String(port), '--hostname', '127.0.0.1'], {
     cwd: appDir,
-    env: { ...env, NODE_ENV: 'production' },
+    // Production refuses to serve without SESSION_SECRET and APP_URL; each run gets a throwaway secret.
+    env: {
+      ...env,
+      NODE_ENV: 'production',
+      SESSION_SECRET: randomBytes(32).toString('hex'),
+      APP_URL: baseUrl,
+    },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   server.stdout?.on('data', (chunk: Buffer) => logs.push(chunk.toString()));
   server.stderr?.on('data', (chunk: Buffer) => logs.push(chunk.toString()));
-
-  const baseUrl = `http://127.0.0.1:${port}`;
 
   try {
     await waitForHealthy(`${baseUrl}/api/health`, server, logs);

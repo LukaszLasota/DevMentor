@@ -1,8 +1,8 @@
 // `npm run setup` logic: an idempotent local installer for README "Getting started".
 // Node built-ins only — it has to run before `npm install`.
 import { spawnSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createHash, randomBytes } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { connect } from 'node:net';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -121,17 +121,28 @@ export function installDependencies({ root, run }) {
   return done('installed');
 }
 
-export function createEnv({ root }) {
+/** 32 random bytes as hex — the `SESSION_SECRET` format (`openssl rand -hex 32`). */
+export const generateSecret = () => randomBytes(32).toString('hex');
+
+const EMPTY_SECRET_LINE = /^SESSION_SECRET=[ \t]*$/m;
+
+export function createEnv({ root, generateSecret: secret = generateSecret }) {
   const envPath = join(root, '.env');
 
   if (!existsSync(envPath)) {
-    copyFileSync(join(root, '.env.example'), envPath);
+    // A fresh .env gets its own session secret instead of the empty placeholder.
+    const example = readFileSync(join(root, '.env.example'), 'utf8');
+    writeFileSync(envPath, example.replace(EMPTY_SECRET_LINE, () => `SESSION_SECRET=${secret()}`));
     return done('created from .env.example');
   }
 
   const current = readEnvFile(root, '.env');
   const missing = [...readEnvFile(root, '.env.example').keys()].filter((key) => !current.has(key));
   const warnings = missing.length > 0 ? [`.env is missing keys from .env.example: ${missing.join(', ')}`] : [];
+
+  if (current.get('SESSION_SECRET') === '') {
+    warnings.push('SESSION_SECRET in .env is empty — sign-in fails closed; set it to the output of `openssl rand -hex 32`');
+  }
 
   return skipped('.env already exists (never overwritten)', warnings);
 }

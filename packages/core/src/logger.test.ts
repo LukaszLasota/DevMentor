@@ -27,6 +27,34 @@ describe('logger', () => {
     expect(entry.headers).toEqual({ authorization: '[REDACTED]', cookie: '[REDACTED]' });
     expect(lines[0]).not.toMatch(/p1|t1|Bearer/);
   });
+
+  it('redacts OAuth codes, cookies and auth headers, also on a nested request', () => {
+    const { lines, logger } = capture();
+    logger.level = 'info';
+
+    logger.info(
+      {
+        code: 'oauth-code-1',
+        query: { code: 'oauth-code-2', state: 'kept' },
+        cookie: 'dm_session=c1',
+        authorization: 'Bearer a1',
+        headers: { 'set-cookie': 'dm_session=c2' },
+        req: { headers: { authorization: 'Bearer a2', cookie: 'dm_session=c3', 'set-cookie': 'c4' } },
+      },
+      'callback',
+    );
+
+    const entry = JSON.parse(lines[0]);
+    expect(entry).toMatchObject({
+      code: '[REDACTED]',
+      query: { code: '[REDACTED]', state: 'kept' },
+      cookie: '[REDACTED]',
+      authorization: '[REDACTED]',
+      headers: { 'set-cookie': '[REDACTED]' },
+      req: { headers: { authorization: '[REDACTED]', cookie: '[REDACTED]', 'set-cookie': '[REDACTED]' } },
+    });
+    expect(lines[0]).not.toMatch(/oauth-code|dm_session|Bearer|c4/);
+  });
 });
 
 describe('logger level', () => {
