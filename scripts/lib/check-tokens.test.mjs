@@ -41,6 +41,7 @@ describe('isScanned', () => {
     ['packages/ui/.storybook/main.ts', true],
     [TOKEN_FILE, false],
     ['packages/ui/stories/design-system/WhatToAvoid.mdx', false],
+    ['packages/ui/.storybook/public/prototypes/konta-i-role/assets/index.css', false],
     ['packages/ui/src/button.test.tsx', false],
     ['packages/ui/src/logo.svg', false],
   ])('%s → %s', (path, expected) => {
