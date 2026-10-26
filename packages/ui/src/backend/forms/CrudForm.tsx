@@ -129,9 +129,21 @@ export function CrudForm<S extends z.ZodObject>({
     setFocusRequest(first ? { name: first.name } : null);
   }
 
+  /**
+   * A field that already shows an error is re-checked while typing, so the error clears as soon as the value is
+   * valid. Clearing it only on blur moved the submit button under the pointer and swallowed the first click.
+   */
+  function changeText(name: string, value: string) {
+    const next = { ...values, [name]: value };
+    setValues(next);
+    if ((fieldErrors[name] ?? []).length > 0) {
+      validateField(name, next);
+    }
+  }
+
   /** Validates one field when the user leaves it; other fields keep their current errors. */
-  function validateField(name: string) {
-    const parsed = schema.safeParse(toSchemaInput(fields, values));
+  function validateField(name: string, current: Record<string, FieldValue> = values) {
+    const parsed = schema.safeParse(toSchemaInput(fields, current));
     const errors = parsed.success ? {} : toFieldErrors(parsed.error);
     setFieldErrors((current) => ({ ...current, [name]: errors[name] ?? [] }));
   }
@@ -265,7 +277,7 @@ export function CrudForm<S extends z.ZodObject>({
                     name={field.name}
                     value={String(value)}
                     placeholder={field.placeholder}
-                    onChange={(event) => setValue(field.name, event.target.value)}
+                    onChange={(event) => changeText(field.name, event.target.value)}
                     onBlur={() => validateField(field.name)}
                   />
                 ) : (
@@ -278,7 +290,7 @@ export function CrudForm<S extends z.ZodObject>({
                       value={String(value)}
                       placeholder={field.placeholder}
                       className={field.inputMode === "decimal" ? "font-mono tabular-nums" : undefined}
-                      onChange={(event) => setValue(field.name, event.target.value)}
+                      onChange={(event) => changeText(field.name, event.target.value)}
                       onBlur={() => validateField(field.name)}
                     />
                     {field.suffix ? <span className="text-body-small text-muted-foreground">{field.suffix}</span> : null}
