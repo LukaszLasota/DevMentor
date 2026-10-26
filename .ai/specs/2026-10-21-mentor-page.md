@@ -106,6 +106,10 @@ A draft has no slug and no public route. Invitation acceptance (#22) keeps creat
 - Given a published page, when the mentor unpublishes, then `/m/<slug>` and `/api/mentors/<slug>` return HTTP 404; when they republish, the original slug resolves again.
 - Given the public payload, then its keys equal exactly the public DTO allowlist (no email, GitHub login, invitation or publish deadline).
 
+## ❓ Questions from the synthetic walkthrough (2026-10-26)
+Hypotheses from a synthetic persona panel (`.ai/specs/research/walkthroughs/2026-10-26-mentor-onboarding-session-001/report.md`), `[SYNTHETIC]`: questions to check with real mentors, not requirements.
+- Does "Save and publish" straight onto the public stack-tag list, with no link-only option, keep some mentors from publishing (R08, D08)? Check: ask invited mentors, incl. cold contacts, before they publish.
+
 ## 📝 Risks & Impact Review
 `risk-high`: a schema migration and a new public route; `needs-qa`, second reviewer. Compatibility: additive columns and constraints on a table with only empty profiles (`up` and `down` exercised); new routes; new `@devmentor/ui/mentors` export entry, `multiselect` field type and `apiHandler` `headers` option (all additive per `BACKWARD_COMPATIBILITY.md`); no env changes (`APP_URL` exists). Security: the public projection is the main risk — allowlist plus key-equality test; owner identity only from the session; user-supplied URL limited to credential-free http(s) and rendered with `noopener nofollow ugc`; bio rendered as text; the avatar becomes public on publish, which the publish copy says, and loads with no referrer. Slugs are enumerable by design, so nothing non-public is reachable through one.
 

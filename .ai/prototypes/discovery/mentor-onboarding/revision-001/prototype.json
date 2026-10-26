@@ -1,0 +1,90 @@
+{
+  "format": "discovery-prototype-v1",
+  "skill": "om-mockup-prototype",
+  "slug": "mentor-onboarding",
+  "revision": 1,
+  "revisionPath": ".ai/prototypes/discovery/mentor-onboarding/revision-001",
+  "previousRevision": null,
+  "brief": ".ai/specs/product-brief.md",
+  "flow": "Mentor onboarding (1.0)",
+  "panelReport": null,
+  "verification": "passed",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "770f8095ee3a18df85666301a002f17853b2d583e041b894d7324503eda4d6ba"
+    },
+    {
+      "path": "evidence/01-invitation-signed-out.png",
+      "sha256": "a2f8d6bcf5f12b5004e285ed3af7f9a4af0de3fa42bbf43f8f671ea4784aeaf6"
+    },
+    {
+      "path": "evidence/02-github-unavailable.png",
+      "sha256": "46032f48a5d4effde5a56dc0bbe05789eeded17a211e7194ba46a78968afb3dd"
+    },
+    {
+      "path": "evidence/03-github-cancelled.png",
+      "sha256": "ad2945eb709e04120525911df31bb094aff98ca5257473f12eb0847fc869666e"
+    },
+    {
+      "path": "evidence/04-invitation-mismatch.png",
+      "sha256": "049c5d348e268920e2dd25b25c187057f419cc594b4c370038c5784f8dda0c03"
+    },
+    {
+      "path": "evidence/05-invitation-invalid.png",
+      "sha256": "461fb41fdd926c5529213801b79aa6b1aba866c2e79083c0515f44e895d0cb63"
+    },
+    {
+      "path": "evidence/06-mentor-home-start.png",
+      "sha256": "76d940ec9ee3ab4ebb19e7e647ff5573bd6aee43b9a37e5eee2e6b40637de2b0"
+    },
+    {
+      "path": "evidence/07-profile-errors.png",
+      "sha256": "9754c6914ce18ecfa19b02fa13e5e6dc2538fce489e7276bc4c6e5221eb9b5c3"
+    },
+    {
+      "path": "evidence/08-prices-error.png",
+      "sha256": "b348487e18f5aebdac5ab2be2da3658a8f60ec6c58e38bd399afb4861fe52d33"
+    },
+    {
+      "path": "evidence/09-slot-too-soon.png",
+      "sha256": "796f163ae49a824228e53956cdd7272c5c862aeef699f84ef1648586dbcfd779"
+    },
+    {
+      "path": "evidence/10-slots-published.png",
+      "sha256": "475c55c50f07c3ec32350ee23801af07f39eb929aa8aaf1af4be46cd07beb681"
+    },
+    {
+      "path": "evidence/11-share-preview.png",
+      "sha256": "999e56968690f13ffe2ba3764d722d9eeacf3c6355a1d72b3d6a656b5b77a228"
+    },
+    {
+      "path": "evidence/12-payouts-error.png",
+      "sha256": "50a68284523ff063a3905ce5aba9c1456d5954cad9bd6515cf6bb6d7e299244e"
+    },
+    {
+      "path": "evidence/13-mentor-home-done.png",
+      "sha256": "ea1fd412339b557c6be3d46941433d2a09d21b11f7c91d7ea6aa596b97d3e219"
+    },
+    {
+      "path": "evidence/14-not-found.png",
+      "sha256": "9a475cbba898cbc95938946dedc030153d0d5f988ee5f72124338476f6c2c8a2"
+    },
+    {
+      "path": "evidence/15-loading.png",
+      "sha256": "b265e2446ebe24953c382b3d2b05df82ed515ad5c355d869d76e55513243d35b"
+    },
+    {
+      "path": "evidence/16-narrow-320.png",
+      "sha256": "8f5d7bf0503e391c4a3868eb494a718299a3df0a5d5b0f7bb9fd8b72befd0648"
+    },
+    {
+      "path": "evidence/walk.sh",
+      "sha256": "50122ba7eea50d28c4da4d0993b5f4e13bbe00481c9813e869518ba703d25cb7"
+    },
+    {
+      "path": "index.html",
+      "sha256": "33818ff1ec3f0eb4b6702023256ab3996c40f299a595109403d2d471c78d956b"
+    }
+  ]
+}

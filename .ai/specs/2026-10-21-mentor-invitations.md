@@ -2,6 +2,7 @@
 
 Status: approved
 Issue: #22 (E01-S02) · Epic: #16 · Source: `.ai/specs/product-brief.md` (R13, R16, D13, D24) · Builds on: `.ai/specs/2026-10-21-sign-in-github-and-email.md`, `.ai/specs/2026-10-21-platform-primitives.md` · Follows the course reference spec `2026-09-08-invitations.md` (lesson 05), adapted to this repository
+Prototypes: `prototypes/konta-i-role/` (clickable, Epic 01; local lesson-07 work, not in git) · `.ai/prototypes/discovery/mentor-onboarding/revision-001/` (grey, mentor onboarding) · Screen map: `lekcja-07/mapa-ekranow.md` (s01–s10, approved 2026-10-23; local)
 
 ## 📝 TLDR
 DevMentor's supply is 50 hand-picked senior engineers invited in batches of 20 (R13, D13); today anyone who signs in is only a mentee and there is no way to become a mentor. Proposed: the operator creates an invitation with a terminal script, sends the printed single-use link by hand, and the invited engineer opens it, signs in with the matching verified email and accepts; their account gains `mentor` without losing any role it already held, the response re-issues their session cookie, and `/mentor` shows the one thing D13 measures: "Publish at least one bookable session by <date>".
@@ -92,6 +93,18 @@ Script: `npm run invite -- create --email <e> --tags <t,...> [--batch <b>] --ope
 - Given two creates for one email, then one unresolved invitation exists.
 - Given an email that belongs to a current mentor, then `create` is refused.
 - Given acceptance racing revoke or resend, then one wins and nothing is partially applied.
+
+Added from the screen map (2026-10-23):
+- (s08) Given an invitation accepted in another tab, when the page is used again, then it says "You are already a mentor." with a link to `/mentor` (L07).
+- (s08) Given a network error on "Accept invitation", then the error shows under the button with "Try again" and nothing changes (L07).
+- (s08) Sign in comes first, then "Accept invitation"; the order in issue #22 is corrected to match (L11).
+- Not doing: an invitation list on `/admin`; criterion I4 of the issue stays `npm run invite -- list` (L08).
+
+## ❓ Questions from the synthetic walkthrough (2026-10-26)
+Hypotheses from a synthetic persona panel (`.ai/specs/research/walkthroughs/2026-10-26-mentor-onboarding-session-001/report.md`), `[SYNTHETIC]`: questions to check with real mentors, not requirements.
+- (s08) The strict rule "invited email = GitHub verified email" reads as a dead end to every persona. Check: in the first batch, count invitations whose GitHub primary email differs and the re-invitations the operator made (R16 log).
+- (s06) Does "publish at least one bookable session by <date>" read as a quota on a favour? Check: ask decliners of the first batch what influenced them (R13, D13).
+- (s06) Do two booking-free weeks end participation? Check: days from publishing to first booking and slot renewals per invited mentor (A02, D13).
 
 ## 📝 Risks & Impact Review
 `risk-high`: the only self-service role grant in the product, and R13 forbids any other. Needs a second reviewer and `needs-qa`. Compatibility: two new tables (additive, `up` and `down`), a new event, a new `invite` npm script (listed in README), two new defaulted env vars.

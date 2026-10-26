@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mentor onboarding — discovery prototype</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; font-size: 16px; line-height: 1.5; color: #1a1a1a; background: #fafafa; }
+  a { color: #1a1a1a; }
+  :focus-visible { outline: 3px solid #000; outline-offset: 2px; }
+  h1:focus { outline: none; }
+  h1:focus-visible { outline: 3px solid #000; }
+  .proto-bar { background: #e6e6e6; border-bottom: 1px solid #bbb; padding: 8px 16px; font-size: 14px; }
+  .proto-bar p { margin: 0 0 4px; }
+  .proto-bar ul { display: flex; flex-wrap: wrap; gap: 4px 12px; list-style: none; margin: 0; padding: 0; }
+  .proto-bar a[aria-current="page"] { font-weight: 700; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 24px; max-width: 1040px; margin: 0 auto; padding: 16px; }
+  @media (max-width: 760px) { .layout { grid-template-columns: minmax(0, 1fr); } .test-state { order: 2; } }
+  .account { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 8px 12px; border: 1px solid #ccc; background: #fff; margin-bottom: 16px; font-size: 14px; }
+  .account .who { margin-right: auto; }
+  main section { background: #fff; border: 1px solid #ccc; padding: 24px; }
+  main h1 { font-size: 24px; margin: 0 0 16px; }
+  main h2 { font-size: 18px; margin: 24px 0 8px; }
+  .muted { color: #555; }
+  .mono { font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  button { font: inherit; padding: 8px 14px; border: 1px solid #555; background: #fff; color: #1a1a1a; border-radius: 4px; cursor: pointer; }
+  button.primary { background: #333; color: #fff; border-color: #333; font-weight: 600; }
+  button[disabled] { opacity: .6; cursor: progress; }
+  .field { margin-bottom: 16px; }
+  .field label, legend { display: block; font-weight: 600; margin-bottom: 4px; }
+  .hint { font-size: 14px; color: #555; margin: 0 0 4px; }
+  input[type="text"], input[type="url"], input[type="date"], input[type="time"], textarea { font: inherit; width: 100%; max-width: 420px; padding: 6px 8px; border: 1px solid #777; border-radius: 4px; background: #fff; }
+  textarea { min-height: 96px; max-width: 100%; }
+  fieldset { border: 0; padding: 0; margin: 0 0 16px; }
+  .check { display: flex; gap: 8px; align-items: center; margin: 4px 0; font-weight: 400; }
+  .error { color: #8a0000; font-weight: 600; margin: 4px 0 0; }
+  [aria-invalid="true"] { border: 2px solid #8a0000; }
+  .alert { border: 2px solid #333; padding: 8px 12px; margin-bottom: 16px; background: #f2f2f2; }
+  .alert p { margin: 0; }
+  .simulated { border: 2px dashed #777; padding: 8px 12px; margin-bottom: 16px; font-size: 14px; }
+  .checklist { list-style: none; padding: 0; margin: 0; border-top: 1px solid #ddd; }
+  .checklist li { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid #ddd; }
+  .checklist .state { font-size: 14px; font-weight: 700; min-width: 48px; }
+  .slots { list-style: none; padding: 0; margin: 0 0 16px; border-top: 1px solid #ddd; }
+  .slots li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ddd; }
+  .preview { border: 1px solid #999; padding: 16px; margin-top: 8px; }
+  .test-state { background: #f0f0f0; border: 1px dashed #888; padding: 12px; font-size: 14px; align-self: start; }
+  .test-state h2 { font-size: 16px; margin: 0 0 8px; }
+  .test-state fieldset { margin-bottom: 12px; }
+  .test-state legend { font-weight: 700; }
+  .test-state label { display: flex; gap: 6px; align-items: center; }
+  .status { min-height: 1.5em; margin: 0 0 8px; font-weight: 600; }
+</style>
+</head>
+<body>
+<header class="proto-bar">
+  <p><strong>Discovery prototype.</strong> Simulated data, neutral wireframe. Not the product design. “Now” is Tue 3 Nov 2026, 10:00 (Europe/Warsaw).</p>
+  <nav aria-label="Prototype screens">
+    <ul>
+      <li><a href="#invitation">Invitation</a></li>
+      <li><a href="#github">GitHub (simulated)</a></li>
+      <li><a href="#mentor">Mentor home</a></li>
+      <li><a href="#profile">Mentor page</a></li>
+      <li><a href="#prices">Prices</a></li>
+      <li><a href="#slots">Slots</a></li>
+      <li><a href="#share">Share link</a></li>
+      <li><a href="#payouts">Payouts</a></li>
+    </ul>
+  </nav>
+</header>
+
+<div class="layout">
+  <div>
+    <div class="account" id="account"></div>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+    <main>
+      <section id="invitation" data-screen aria-labelledby="invitation-h">
+        <h1 id="invitation-h" tabindex="-1">Mentor invitation</h1>
+        <div id="invitation-body"></div>
+      </section>
+
+      <section id="github" data-screen aria-labelledby="github-h" hidden>
+        <h1 id="github-h" tabindex="-1">Authorize DevMentor</h1>
+        <div id="github-body"></div>
+      </section>
+
+      <section id="mentor" data-screen aria-labelledby="mentor-h" hidden>
+        <h1 id="mentor-h" tabindex="-1">Your mentor page</h1>
+        <div id="mentor-body"></div>
+      </section>
+
+      <section id="profile" data-screen aria-labelledby="profile-h" hidden>
+        <h1 id="profile-h" tabindex="-1">Fill your page</h1>
+        <div id="profile-guard"></div>
+        <form id="profile-form" novalidate>
+          <div class="field">
+            <label for="work-url">Link to public work</label>
+            <p class="hint" id="work-url-hint">A pull request, repository, talk or post that shows what you have built.</p>
+            <input type="url" id="work-url" aria-describedby="work-url-hint work-url-err">
+            <p class="error" id="work-url-err" hidden></p>
+          </div>
+          <div class="field">
+            <label for="bio">What you have done</label>
+            <p class="hint" id="bio-hint">Plain description, 20–500 characters. No scores or ratings.</p>
+            <textarea id="bio" maxlength="500" aria-describedby="bio-hint bio-err"></textarea>
+            <p class="error" id="bio-err" hidden></p>
+          </div>
+          <fieldset id="tags" aria-describedby="tags-err">
+            <legend>Stack tags</legend>
+            <label class="check"><input type="checkbox" name="tag" value="TypeScript"> TypeScript</label>
+            <label class="check"><input type="checkbox" name="tag" value="React"> React</label>
+            <label class="check"><input type="checkbox" name="tag" value="Python"> Python</label>
+            <label class="check"><input type="checkbox" name="tag" value="AI agents"> AI agents</label>
+            <p class="error" id="tags-err" hidden></p>
+          </fieldset>
+          <div class="actions">
+            <a href="#mentor">Back to your mentor page</a>
+            <button type="submit" class="primary">Save and publish page</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="prices" data-screen aria-labelledby="prices-h" hidden>
+        <h1 id="prices-h" tabindex="-1">Set your prices</h1>
+        <div id="prices-guard"></div>
+        <form id="prices-form" novalidate>
+          <p class="hint" id="bounds-hint">Each price must be between $20.00 and $200.00, set by DevMentor. DevMentor keeps 20% of each session.</p>
+          <div class="field">
+            <label for="price25">Price for a 25-minute session (USD)</label>
+            <input type="text" inputmode="decimal" id="price25" aria-describedby="bounds-hint price25-err">
+            <p class="error" id="price25-err" hidden></p>
+          </div>
+          <div class="field">
+            <label for="price50">Price for a 50-minute session (USD)</label>
+            <input type="text" inputmode="decimal" id="price50" aria-describedby="bounds-hint price50-err">
+            <p class="error" id="price50-err" hidden></p>
+          </div>
+          <div class="actions">
+            <a href="#mentor">Back to your mentor page</a>
+            <button type="submit" class="primary">Save prices</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="slots" data-screen aria-labelledby="slots-h" hidden>
+        <h1 id="slots-h" tabindex="-1">Publish slots</h1>
+        <div id="slots-guard"></div>
+        <div id="slots-content">
+          <p class="muted">Times are in your time zone (Europe/Warsaw). Mentees can book a slot only when it starts at least two hours later.</p>
+          <h2 id="slot-list-h">Your slots</h2>
+          <div id="slot-list"></div>
+          <h2>Add a slot</h2>
+          <form id="slot-form" novalidate>
+            <div class="field">
+              <label for="slot-date">Date</label>
+              <input type="date" id="slot-date" aria-describedby="slot-err">
+            </div>
+            <div class="field">
+              <label for="slot-time">Start time</label>
+              <input type="time" id="slot-time" aria-describedby="slot-err">
+            </div>
+            <p class="error" id="slot-err" hidden></p>
+            <div class="actions">
+              <a href="#mentor">Back to your mentor page</a>
+              <button type="submit" class="primary">Publish slot</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section id="share" data-screen aria-labelledby="share-h" hidden>
+        <h1 id="share-h" tabindex="-1">Share your link</h1>
+        <div id="share-body"></div>
+      </section>
+
+      <section id="payouts" data-screen aria-labelledby="payouts-h" hidden>
+        <h1 id="payouts-h" tabindex="-1">Payouts</h1>
+        <div id="payouts-body"></div>
+      </section>
+
+      <section id="not-found" data-screen aria-labelledby="not-found-h" hidden>
+        <h1 id="not-found-h" tabindex="-1">Screen not found</h1>
+        <p>This screen is not part of the prototype.</p>
+        <p><a href="#invitation">Back to the start</a></p>
+      </section>
+    </main>
+  </div>
+
+  <aside class="test-state" aria-labelledby="ts-h">
+    <h2 id="ts-h">Test state (prototype control)</h2>
+    <fieldset>
+      <legend>Invitation link</legend>
+      <label><input type="radio" name="invite" value="valid" checked> Invitation valid</label>
+      <label><input type="radio" name="invite" value="invalid"> Invitation expired, revoked or used</label>
+    </fieldset>
+    <fieldset>
+      <legend>GitHub account email</legend>
+      <label><input type="radio" name="ghemail" value="match" checked> GitHub email marta@devmentor.test (invited)</label>
+      <label><input type="radio" name="ghemail" value="other"> GitHub email marta.k@personal.test (other)</label>
+    </fieldset>
+    <fieldset>
+      <legend>GitHub</legend>
+      <label><input type="radio" name="github" value="up" checked> GitHub available</label>
+      <label><input type="radio" name="github" value="down"> GitHub unavailable</label>
+    </fieldset>
+    <fieldset>
+      <legend>Stripe</legend>
+      <label><input type="radio" name="stripe" value="up" checked> Stripe available</label>
+      <label><input type="radio" name="stripe" value="down"> Stripe unavailable</label>
+    </fieldset>
+    <fieldset>
+      <legend>Network</legend>
+      <label><input type="checkbox" id="slow"> Slow (shows loading)</label>
+    </fieldset>
+    <button type="button" id="reset">Reset prototype</button>
+  </aside>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var HOUR = 3600 * 1000;
+  var NOW = Date.UTC(2026, 10, 3, 9, 0); // Tue 3 Nov 2026, 10:00 Europe/Warsaw (UTC+1)
+  var OFFSET_H = 1;
+  var INVITED = "marta@devmentor.test";
+  var OTHER = "marta.k@personal.test";
+  var INVITE_TAGS = ["TypeScript", "React"];
+  var MIN = 2000, MAX = 20000;
+  var SHARE_URL = "https://devmentor.example/m/marta-kowal";
+  var SCREENS = ["invitation", "github", "mentor", "profile", "prices", "slots", "share", "payouts"];
+  var DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  var MSG = {
+    githubDown: "GitHub sign-in is not available right now. Use your email and password, or try again later.",
+    githubCancelled: "You cancelled GitHub sign-in. Continue with GitHub again, or use your email."
+  };
+
+  function initial() {
+    return { signedIn: false, email: null, accepted: false, acceptedAt: null, alert: null,
+      profile: { url: "", bio: "", tags: [], published: false }, prices: null, slots: [],
+      nextSlot: 1, confirmRemove: null, copied: false, connect: "none", payoutError: false };
+  }
+  var S = initial();
+
+  function $(id) { return document.getElementById(id); }
+  function radio(name) { return document.querySelector('input[name="' + name + '"]:checked').value; }
+  function opts() {
+    return { invite: radio("invite"), email: radio("ghemail") === "match" ? INVITED : OTHER,
+      github: radio("github"), stripe: radio("stripe"), slow: $("slow").checked };
+  }
+  function el(tag, attrs) {
+    var n = document.createElement(tag);
+    attrs = attrs || {};
+    Object.keys(attrs).forEach(function (k) {
+      var v = attrs[k];
+      if (k === "text") n.textContent = v;
+      else if (k.indexOf("on") === 0) n.addEventListener(k.slice(2), v);
+      else n.setAttribute(k, v);
+    });
+    for (var i = 2; i < arguments.length; i++) {
+      var c = arguments[i];
+      if (c == null || c === false) continue;
+      n.append(typeof c === "string" ? document.createTextNode(c) : c);
+    }
+    return n;
+  }
+  function fill(id) {
+    var kids = Array.prototype.slice.call(arguments, 1).filter(Boolean);
+    $(id).replaceChildren.apply($(id), kids);
+  }
+  function announce(msg) { $("status").textContent = msg; }
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function local(ms) { return new Date(ms + OFFSET_H * HOUR); }
+  function fmtDate(ms) { var d = local(ms); return DAYS[d.getUTCDay()] + " " + d.getUTCDate() + " " + MONTHS[d.getUTCMonth()] + " " + d.getUTCFullYear(); }
+  function fmt(ms) { var d = local(ms); return fmtDate(ms) + ", " + pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes()); }
+  function money(c) { return "$" + (c / 100).toFixed(2); }
+  function isMentor() { return S.signedIn && S.email === INVITED && S.accepted; }
+  function bookableSlots() { return S.slots.filter(function (s) { return s.start - NOW >= 2 * HOUR; }); }
+  function bookable() { return S.profile.published && !!S.prices && bookableSlots().length > 0; }
+  function alertBox(text) { return el("div", { class: "alert", role: "alert" }, el("p", { text: text })); }
+
+  function busy(btn, label, done) {
+    if (!opts().slow) { done(); return; }
+    var old = btn.textContent;
+    btn.disabled = true; btn.setAttribute("aria-busy", "true"); btn.textContent = label;
+    announce(label);
+    setTimeout(function () { btn.disabled = false; btn.removeAttribute("aria-busy"); btn.textContent = old; done(); }, 800);
+  }
+  function go(id) { if (location.hash === "#" + id) route(true); else location.hash = id; }
+
+  function setErr(input, errId, msg) {
+    var e = $(errId);
+    e.textContent = msg || ""; e.hidden = !msg;
+    if (input) { if (msg) input.setAttribute("aria-invalid", "true"); else input.removeAttribute("aria-invalid"); }
+    return !msg;
+  }
+
+  // --- Account strip -------------------------------------------------------
+  function renderAccount() {
+    if (!S.signedIn) { fill("account", el("span", { class: "who", text: "Not signed in" })); return; }
+    var roles = isMentor() ? "mentee, mentor" : "mentee";
+    fill("account",
+      el("span", { class: "who" }, "Signed in as ", el("span", { class: "mono", text: S.email }), " (" + roles + ")"),
+      isMentor() ? el("a", { href: "#mentor", text: "Mentor" }) : null,
+      el("button", { type: "button", onclick: signOut, text: "Sign out" }));
+  }
+  function signOut() {
+    S.signedIn = false; S.email = null; S.alert = null;
+    announce("Signed out.");
+    go("invitation");
+  }
+
+  // --- Invitation ----------------------------------------------------------
+  function intro() {
+    return el("div", {},
+      el("p", {}, "Invitation for ", el("span", { class: "mono", text: INVITED })),
+      el("p", { text: "DevMentor invites you to answer developers' questions in paid 25- or 50-minute text sessions. We ask for one bookable session within two weeks of accepting." }),
+      el("p", { text: "Stack: " + INVITE_TAGS.join(", ") }));
+  }
+  function renderInvitation() {
+    var o = opts(), kids = [];
+    if (S.alert) kids.push(alertBox(S.alert));
+    if (isMentor()) {
+      kids.push(el("p", { text: "You are already a mentor." }), el("p", {}, el("a", { href: "#mentor", text: "Go to your mentor page" })));
+    } else if (o.invite === "invalid") {
+      kids.push(el("p", { text: "This invitation is not valid. Ask the DevMentor team for a new link." }));
+    } else if (!S.signedIn) {
+      kids.push(intro(), el("div", { class: "actions" },
+        el("button", { type: "button", class: "primary", text: "Sign in with GitHub", onclick: startGithub }),
+        el("button", { type: "button", text: "Use email instead", onclick: function () {
+          announce("Email sign-in is outside this prototype. It is covered by the Epic 01 prototype.");
+        } })));
+    } else if (S.email !== INVITED) {
+      kids.push(el("p", {}, "This invitation is for ", el("span", { class: "mono", text: INVITED }), ". You are signed in as ",
+        el("span", { class: "mono", text: S.email }), ". Sign out, then sign in with ", el("span", { class: "mono", text: INVITED }), " to accept."),
+        el("div", { class: "actions" }, el("button", { type: "button", text: "Sign out", onclick: signOut })));
+    } else {
+      var btn = el("button", { type: "button", class: "primary", text: "Accept invitation" });
+      btn.addEventListener("click", function () {
+        busy(btn, "Accepting…", function () {
+          S.accepted = true; S.acceptedAt = NOW; S.alert = null;
+          announce("Invitation accepted. You are now a mentor.");
+          go("mentor");
+        });
+      });
+      kids.push(intro(), el("p", {}, "The mentor role goes to ", el("span", { class: "mono", text: S.email }), ". You keep your mentee role."),
+        el("div", { class: "actions" }, btn));
+    }
+    fill.apply(null, ["invitation-body"].concat(kids));
+  }
+  function startGithub() {
+    if (opts().github === "down") { S.alert = MSG.githubDown; announce(MSG.githubDown); renderInvitation(); return; }
+    S.alert = null;
+    go("github");
+  }
+
+  // --- GitHub (simulated) --------------------------------------------------
+  function renderGithub() {
+    if (S.signedIn) {
+      fill("github-body", el("p", { text: "You are already signed in." }), el("p", {}, el("a", { href: "#invitation", text: "Back to your invitation" })));
+      return;
+    }
+    var o = opts();
+    var authorize = el("button", { type: "button", class: "primary", text: "Authorize DevMentor" });
+    authorize.addEventListener("click", function () {
+      busy(authorize, "Signing in…", function () {
+        S.signedIn = true; S.email = opts().email; S.alert = null;
+        announce("Signed in with GitHub as " + S.email + ".");
+        go("invitation");
+      });
+    });
+    fill("github-body",
+      el("div", { class: "simulated" }, el("p", { text: "Simulated GitHub screen. It is not part of DevMentor." })),
+      el("p", { text: "DevMentor wants to read your public profile and your verified email address." }),
+      el("p", {}, "GitHub account email: ", el("span", { class: "mono", text: o.email })),
+      el("div", { class: "actions" }, authorize,
+        el("button", { type: "button", text: "Cancel", onclick: function () {
+          S.alert = MSG.githubCancelled; announce(MSG.githubCancelled); go("invitation");
+        } })));
+  }
+
+  // --- Mentor guard --------------------------------------------------------
+  function guardBlock() {
+    if (!S.signedIn) return [el("p", { text: "Sign in to see this page." }), el("p", {}, el("a", { href: "#invitation", text: "Go to your invitation" }))];
+    if (!isMentor()) return [alertBox("This page is for mentors."), el("p", {}, el("a", { href: "#invitation", text: "Back to your invitation" }))];
+    return null;
+  }
+
+  // --- Mentor home ---------------------------------------------------------
+  function step(done, label, href, action) {
+    return el("li", {}, el("span", { class: "state", text: done ? "Done" : "To do" }), el("span", { text: label }),
+      el("a", { href: href, text: action }));
+  }
+  function renderMentor() {
+    var g = guardBlock(); if (g) { fill.apply(null, ["mentor-body"].concat(g)); return; }
+    var due = S.acceptedAt + 14 * 24 * HOUR;
+    fill("mentor-body",
+      el("p", {}, el("strong", { text: "Publish at least one bookable session by " + fmtDate(due) })),
+      el("p", { id: "bookable-state", text: bookable() ? "Status: bookable. Mentees can book you." : "Status: not bookable yet." }),
+      el("ol", { class: "checklist", "aria-label": "Steps" },
+        step(S.profile.published, "Fill your page: public work, description, stack tags", "#profile", S.profile.published ? "Edit page" : "Fill page"),
+        step(!!S.prices, "Set your 25- and 50-minute prices", "#prices", S.prices ? "Edit prices" : "Set prices"),
+        step(bookableSlots().length > 0, "Publish a slot at least two hours ahead", "#slots", "Manage slots"),
+        step(S.copied, "Share your link", "#share", "Share link")),
+      el("p", {}, "Payouts: " + (S.connect === "done" ? "connected (simulated). " : "not set up. Needed before your first payout. "),
+        el("a", { href: "#payouts", text: "Payouts" })));
+  }
+
+  // --- Profile -------------------------------------------------------------
+  function renderProfile() {
+    var g = guardBlock();
+    $("profile-form").hidden = !!g;
+    if (g) { fill.apply(null, ["profile-guard"].concat(g)); return; }
+    fill("profile-guard");
+    $("work-url").value = S.profile.url; $("bio").value = S.profile.bio;
+    document.querySelectorAll('input[name="tag"]').forEach(function (c) { c.checked = S.profile.tags.indexOf(c.value) >= 0; });
+    ["work-url-err", "bio-err", "tags-err"].forEach(function (id) { $(id).hidden = true; });
+    $("work-url").removeAttribute("aria-invalid"); $("bio").removeAttribute("aria-invalid");
+  }
+  $("profile-form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var url = $("work-url").value.trim(), bio = $("bio").value.trim();
+    var tags = Array.prototype.map.call(document.querySelectorAll('input[name="tag"]:checked'), function (c) { return c.value; });
+    var ok1 = setErr($("work-url"), "work-url-err", /^https:\/\/[^\s.]+\.[^\s]+$/.test(url) ? "" : "Enter a link that starts with https://, for example a pull request or a repository.");
+    var ok2 = setErr($("bio"), "bio-err", bio.length >= 20 ? "" : "Describe what you have done in at least 20 characters.");
+    var ok3 = setErr(null, "tags-err", tags.length ? "" : "Pick at least one stack tag.");
+    if (!(ok1 && ok2 && ok3)) {
+      announce("Check the highlighted fields.");
+      (!ok1 ? $("work-url") : !ok2 ? $("bio") : document.querySelector('input[name="tag"]')).focus();
+      return;
+    }
+    busy(ev.submitter || this.querySelector("button[type=submit]"), "Saving…", function () {
+      S.profile = { url: url, bio: bio, tags: tags, published: true };
+      announce("Page saved and published.");
+      go("mentor");
+    });
+  });
+
+  // --- Prices --------------------------------------------------------------
+  function parseCents(v) {
+    v = v.trim().replace(/^\$/, "");
+    if (!/^\d{1,5}(\.\d{1,2})?$/.test(v)) return null;
+    var parts = v.split(".");
+    return Number(parts[0]) * 100 + Number(((parts[1] || "") + "00").slice(0, 2));
+  }
+  function priceErr(v) {
+    var c = parseCents(v);
+    if (c === null) return "Enter an amount such as 40 or 40.00.";
+    if (c < MIN || c > MAX) return "Enter an amount between " + money(MIN) + " and " + money(MAX) + ".";
+    return "";
+  }
+  function renderPrices() {
+    var g = guardBlock();
+    $("prices-form").hidden = !!g;
+    if (g) { fill.apply(null, ["prices-guard"].concat(g)); return; }
+    fill("prices-guard");
+    $("price25").value = S.prices ? (S.prices.p25 / 100).toFixed(2) : "";
+    $("price50").value = S.prices ? (S.prices.p50 / 100).toFixed(2) : "";
+    setErr($("price25"), "price25-err", ""); setErr($("price50"), "price50-err", "");
+  }
+  $("prices-form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var a = $("price25").value, b = $("price50").value;
+    var ok1 = setErr($("price25"), "price25-err", priceErr(a));
+    var ok2 = setErr($("price50"), "price50-err", priceErr(b));
+    if (!(ok1 && ok2)) { announce("Check the highlighted fields."); (!ok1 ? $("price25") : $("price50")).focus(); return; }
+    busy(ev.submitter || this.querySelector("button[type=submit]"), "Saving…", function () {
+      S.prices = { p25: parseCents(a), p50: parseCents(b) };
+      announce("Prices saved: " + money(S.prices.p25) + " for 25 minutes, " + money(S.prices.p50) + " for 50 minutes.");
+      go("mentor");
+    });
+  });
+
+  // --- Slots ---------------------------------------------------------------
+  function renderSlotList() {
+    if (!S.slots.length) {
+      fill("slot-list", el("p", { text: "No slots yet. Add a time when you can answer a question." }));
+      return;
+    }
+    var list = el("ul", { class: "slots", "aria-labelledby": "slot-list-h" });
+    S.slots.slice().sort(function (x, y) { return x.start - y.start; }).forEach(function (s) {
+      var label = fmt(s.start);
+      if (S.confirmRemove === s.id) {
+        list.append(el("li", {}, el("span", { text: "Remove the slot on " + label + "? Mentees will no longer see it." }),
+          el("span", {},
+            el("button", { type: "button", text: "Keep it", onclick: function () { S.confirmRemove = null; renderSlotList(); } }), " ",
+            el("button", { type: "button", text: "Remove slot", onclick: function () {
+              S.slots = S.slots.filter(function (x) { return x.id !== s.id; }); S.confirmRemove = null;
+              announce("Slot on " + label + " removed."); renderSlotList(); $("slot-date").focus();
+            } }))));
+      } else {
+        list.append(el("li", {}, el("span", { text: label }),
+          el("button", { type: "button", "aria-label": "Remove slot on " + label, text: "Remove", onclick: function () {
+            S.confirmRemove = s.id; renderSlotList();
+          } })));
+      }
+    });
+    fill("slot-list", list);
+  }
+  function renderSlots() {
+    var g = guardBlock();
+    $("slots-content").hidden = !!g;
+    if (g) { fill.apply(null, ["slots-guard"].concat(g)); return; }
+    fill("slots-guard");
+    $("slot-date").value = ""; $("slot-time").value = "";
+    setErr(null, "slot-err", ""); $("slot-date").removeAttribute("aria-invalid"); $("slot-time").removeAttribute("aria-invalid");
+    renderSlotList();
+  }
+  $("slot-form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var d = $("slot-date").value, t = $("slot-time").value, msg = "", start = null;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || !/^\d{2}:\d{2}$/.test(t)) msg = "Enter a date and a start time.";
+    else {
+      var p = d.split("-").map(Number), q = t.split(":").map(Number);
+      start = Date.UTC(p[0], p[1] - 1, p[2], q[0] - OFFSET_H, q[1]);
+      if (start <= NOW) msg = "This time has already passed. Pick a later time.";
+      else if (start - NOW < 2 * HOUR) msg = "Mentees can book only two hours ahead. Pick " + fmt(NOW + 2 * HOUR) + " or later.";
+      else if (S.slots.some(function (s) { return s.start === start; })) msg = "You already published this time.";
+    }
+    setErr($("slot-date"), "slot-err", msg);
+    if (msg) { $("slot-time").setAttribute("aria-invalid", "true"); announce(msg); $("slot-date").focus(); return; }
+    $("slot-time").removeAttribute("aria-invalid");
+    busy(ev.submitter || this.querySelector("button[type=submit]"), "Publishing…", function () {
+      S.slots.push({ id: S.nextSlot++, start: start });
+      $("slot-date").value = ""; $("slot-time").value = "";
+      announce("Slot published: " + fmt(start) + ".");
+      renderSlotList();
+    });
+  });
+
+  // --- Share ---------------------------------------------------------------
+  function renderShare() {
+    var g = guardBlock(); if (g) { fill.apply(null, ["share-body"].concat(g)); return; }
+    if (!S.profile.published) {
+      fill("share-body", el("p", { text: "Publish your page first. Your link works once the page is published." }),
+        el("p", {}, el("a", { href: "#profile", text: "Fill your page" })));
+      return;
+    }
+    var open = bookableSlots();
+    fill("share-body",
+      el("p", {}, "Your link: ", el("span", { class: "mono", id: "share-url", text: SHARE_URL })),
+      el("div", { class: "actions" }, el("button", { type: "button", class: "primary", text: "Copy link", onclick: function () {
+        S.copied = true; announce("Link copied (simulated).");
+      } }), el("a", { href: "#mentor", text: "Back to your mentor page" })),
+      el("h2", { text: "How mentees see your page" }),
+      el("div", { class: "preview" },
+        el("h3", { text: "Marta Kowal" }),
+        el("p", {}, "Public work: ", el("span", { class: "mono", text: S.profile.url })),
+        el("p", { text: S.profile.bio }),
+        el("p", { text: "Stack: " + S.profile.tags.join(", ") }),
+        el("p", { text: "Sessions are text, 25 or 50 minutes." }),
+        bookable()
+          ? el("p", { text: "25 minutes: " + money(S.prices.p25) + " · 50 minutes: " + money(S.prices.p50) })
+          : el("p", {}, el("strong", { text: "Not bookable yet." })),
+        bookable()
+          ? el("ul", {}, open.map(function (s) { return el("li", { text: fmt(s.start) }); }).reduce(function (f, n) { f.append(n); return f; }, document.createDocumentFragment()))
+          : null));
+  }
+
+  // --- Payouts -------------------------------------------------------------
+  function renderPayouts() {
+    var g = guardBlock(); if (g) { fill.apply(null, ["payouts-body"].concat(g)); return; }
+    var kids = [];
+    if (S.payoutError) kids.push(alertBox("Stripe is not available right now. Try again later. Your page and slots stay published."));
+    kids.push(el("div", { class: "simulated" }, el("p", { text: "Stripe Connect is simulated in this prototype." })),
+      el("p", { text: "DevMentor pays you through Stripe Connect. Connect before your first payout; you can publish slots and be booked before that." }),
+      el("p", { id: "payout-state", text: S.connect === "done" ? "Status: connected (simulated)." : "Status: not set up." }));
+    if (S.connect !== "done") {
+      var btn = el("button", { type: "button", class: "primary", text: "Connect with Stripe" });
+      btn.addEventListener("click", function () {
+        busy(btn, "Connecting…", function () {
+          if (opts().stripe === "down") { S.payoutError = true; announce("Stripe is not available right now."); renderPayouts(); return; }
+          S.connect = "done"; S.payoutError = false; announce("Stripe connected (simulated)."); renderPayouts();
+        });
+      });
+      kids.push(el("div", { class: "actions" }, btn));
+    }
+    kids.push(el("p", {}, el("a", { href: "#mentor", text: "Back to your mentor page" })));
+    fill.apply(null, ["payouts-body"].concat(kids));
+  }
+
+  // --- Router --------------------------------------------------------------
+  var RENDER = { invitation: renderInvitation, github: renderGithub, mentor: renderMentor, profile: renderProfile,
+    prices: renderPrices, slots: renderSlots, share: renderShare, payouts: renderPayouts };
+  function route(focus) {
+    var id = (location.hash || "#invitation").slice(1);
+    var target = SCREENS.indexOf(id) >= 0 ? id : "not-found";
+    document.querySelectorAll("[data-screen]").forEach(function (s) { s.hidden = s.id !== target; });
+    document.querySelectorAll(".proto-bar a").forEach(function (a) {
+      if (a.getAttribute("href") === "#" + target) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+    });
+    renderAccount();
+    if (RENDER[target]) RENDER[target]();
+    if (focus) $(target + "-h").focus();
+  }
+  window.addEventListener("hashchange", function () { route(true); });
+  document.querySelectorAll(".test-state input").forEach(function (i) {
+    i.addEventListener("change", function () { route(false); });
+  });
+  $("reset").addEventListener("click", function () {
+    S = initial();
+    document.querySelectorAll(".test-state input[type=radio]").forEach(function (r) { r.checked = r.defaultChecked; });
+    $("slow").checked = false;
+    ["profile-form", "prices-form", "slot-form"].forEach(function (f) { $(f).reset(); });
+    go("invitation");
+    announce("Prototype reset.");
+  });
+  route(false);
+})();
+</script>
+</body>
+</html>

@@ -128,6 +128,11 @@ Deliberate differences from the course:
 - (f) Price env is the optional route-checked tier with no defaults, instead of the course's founder-approved defaults, so an unanswered Q-P1/Q-P2 cannot ship a value.
 - (g) One business ceiling (`maxCents`) instead of the course's 11-character cap plus integer-maximum guard.
 
+## ❓ Questions from the synthetic walkthrough (2026-10-26)
+Hypotheses from a synthetic persona panel (`.ai/specs/research/walkthroughs/2026-10-26-mentor-onboarding-session-001/report.md`), `[SYNTHETIC]`: questions to check with real mentors, not requirements.
+- Do the 20% fee on mentees brought through the mentor's own link and the missing take-home amount discourage sharing (R12, D15, A03)? Check: interview mentors with an own audience; record booking sources.
+- May the 50-minute price equal or undercut the 25-minute price per minute? (seen once in the panel)
+
 ## ❓ Open Questions
 - **Q-P1 Platform currency** (owner: founder A). Proposed: USD (beachhead English-speaking, D24; benchmarks priced in USD). Blocking before implementation.
 - **Q-P2 Initial 25- and 50-minute bounds** (owner: founder A with founder B). No value proposed; evidence is thin (Codementor $15–80 per 15 min; one interview "fifty euro?"). Blocking before implementation.
