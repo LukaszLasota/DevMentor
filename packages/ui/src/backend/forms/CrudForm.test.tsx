@@ -263,4 +263,27 @@ describe("CrudForm", () => {
     expect(screen.getByText("Write what you have done")).toBeTruthy();
     expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
   });
+
+  it("clears a field error while typing, before blur, so the first click on Save submits", async () => {
+    const { onSubmit, user } = setup();
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(screen.getByText("Title is required")).toBeTruthy();
+
+    // Regression (lesson 07 walk): the error used to clear only on blur, which moved Save away from the pointer.
+    await user.type(screen.getByLabelText("Title"), "Intro call");
+    expect(screen.queryByText("Title is required")).toBeNull();
+    expect(screen.getByLabelText("Title").getAttribute("aria-invalid")).toBeNull();
+
+    await user.type(screen.getByLabelText("Minutes"), "30");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not show an error while typing in a field that had none", async () => {
+    const { user } = setup();
+
+    await user.type(screen.getByLabelText("Minutes"), "-");
+    expect(screen.queryByText("Must be positive")).toBeNull();
+  });
 });

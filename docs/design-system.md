@@ -22,7 +22,7 @@ Matter-of-fact, not generic. Dense where people scan (mentor and slot lists: thi
 | Button (`intent` primary/neutral/destructive × `appearance` filled/outline/soft/text, `size` lg/md/sm/xs, `loading`) | `@devmentor/ui` | An action on this screen; one filled primary per screen | Navigation |
 | TextLink | `@devmentor/ui` | Navigation from text (always underlined) | Actions |
 | Field + Input / Textarea / Checkbox / Select | `@devmentor/ui` | Every form control, with a visible label | Placeholder as label |
-| CrudForm | `@devmentor/ui` | Every create/edit form (blur + submit validation, focus first error, Cancel before primary) | — |
+| CrudForm | `@devmentor/ui` | Every create/edit form (blur + submit validation; a shown error clears while typing once the value is valid; focus first error, Cancel before primary) | — |
 | Card | `@devmentor/ui` | One self-contained block | List rows, nested cards |
 | Badge (`tone` neutral/success/warning/danger) | `@devmentor/ui` | State of one object, icon + word | Ratings, facts, counts |
 | Alert (`tone`) | `@devmentor/ui` | Page-level message with next step | Field errors |
