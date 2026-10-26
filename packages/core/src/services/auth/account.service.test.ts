@@ -179,6 +179,21 @@ describe('AccountService.resolveGithubAccount', () => {
     expect(user).toMatchObject({ githubId: PROFILE.githubId, emailVerifiedAt: NOW, email: PROFILE.email });
   });
 
+  it('concurrent first sign-in: the winner commits between the github_id and email lookups → signs in, no conflict', async () => {
+    const winner = makeUser({ email: PROFILE.email, githubId: PROFILE.githubId, githubLogin: 'old-login', emailVerifiedAt: EARLIER });
+    const { service, em, logger } = setup([winner]);
+    // The github_id lookup ran before the winner's row was committed.
+    em.findOne.mockResolvedValueOnce(null);
+
+    const user = await service.resolveGithubAccount(PROFILE);
+
+    expect(user).toBe(winner);
+    expect(user).toMatchObject({ githubLogin: PROFILE.login, avatarUrl: PROFILE.avatarUrl, emailVerifiedAt: EARLIER });
+    expect(em.findOne).toHaveBeenCalledTimes(2);
+    expect(em.create).not.toHaveBeenCalled();
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
   it('rule 3: refuses an email linked to a different github_id and changes nothing', async () => {
     const other = makeUser({ email: PROFILE.email, githubId: 999, githubLogin: 'someone-else', emailVerifiedAt: EARLIER });
     const snapshot = { ...other };

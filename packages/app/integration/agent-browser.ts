@@ -42,9 +42,17 @@ export function createAgentBrowser(session: string) {
     open: (url: string) => run<{ title: string; url: string }>('open', url),
     waitForText: (text: string) => run('wait', '--text', text),
     waitForUrl: (pattern: string) => run('wait', '--url', pattern),
+    /** Waits until the page is hydrated and idle; clicks before that can hit a streaming layout. */
+    waitForIdle: () => run('wait', '--load', 'networkidle'),
     url: async () => (await run<{ url: string }>('get', 'url')).url,
     attr: async (selector: string, name: string) => (await run<{ value: string | null }>('get', 'attr', selector, name)).value,
     text: async (selector: string) => (await run<{ text: string }>('get', 'text', selector)).text,
+    click: (selector: string) => run('click', selector),
+    clickButton: (name: string) => run('find', 'role', 'button', 'click', '--name', name),
+    count: async (selector: string) => (await run<{ count: number }>('get', 'count', selector)).count,
+    /** Value of a cookie of the current page's browser context, `undefined` when it is not set. */
+    cookie: async (name: string) =>
+      (await run<{ cookies: { name: string; value: string }[] }>('cookies', 'get')).cookies.find((cookie) => cookie.name === name)?.value,
     close: () => run('close'),
   };
 }

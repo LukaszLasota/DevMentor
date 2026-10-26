@@ -11,6 +11,11 @@ updateInitialEnv(parsedEnv ?? {});
 const nextConfig: NextConfig = {
   experimental: {
     agentFeedback: true,
+    // MikroORM finds entity metadata by class, falling back to the class name. Route handlers and
+    // pages are separate server bundles, each with its own copy of the entity classes, while the ORM
+    // is one per process (globalThis): with minified names a page's `User` ("l") is unknown to the
+    // ORM that a route handler initialised ("Metadata for entity l not found"). Keep names intact.
+    serverMinification: false,
   },
   cacheComponents: true,
   partialPrefetching: true,

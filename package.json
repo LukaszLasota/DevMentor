@@ -20,7 +20,8 @@
     "validate": "npm run lint && npm run typecheck && npm run test:coverage && npm run build && npm run audit",
     "db:migrate": "npm run db -- migration:up",
     "test:coverage": "vitest run --coverage",
-    "test:integration": "npm run build && vitest run --config vitest.integration.config.mts"
+    "test:integration": "npm run build && vitest run --config vitest.integration.config.mts",
+    "github:stub": "node scripts/github-stub.mjs"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "^12.2.1",

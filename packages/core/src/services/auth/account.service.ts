@@ -137,16 +137,19 @@ export class AccountService {
     const byGithubId = await this.em.findOne(User, { githubId: profile.githubId });
 
     if (byGithubId !== null) {
-      byGithubId.githubLogin = profile.login;
-      byGithubId.avatarUrl = profile.avatarUrl;
-
-      return byGithubId;
+      return this.refreshGithubProfile(byGithubId, profile);
     }
 
     const byEmail = await this.em.findOne(User, { email });
 
     if (byEmail === null) {
       return null;
+    }
+
+    // Rule 1 again: a concurrent first sign-in of the same GitHub account committed its row between
+    // the two lookups (the integration race test hit this), so the email row already holds our id.
+    if (byEmail.githubId === profile.githubId) {
+      return this.refreshGithubProfile(byEmail, profile);
     }
 
     // Rule 3: the email belongs to another GitHub account → refuse, change nothing.
@@ -163,6 +166,14 @@ export class AccountService {
     this.logger.info({ userId: byEmail.id }, 'GitHub account linked by verified email');
 
     return byEmail;
+  }
+
+  /** Rule 1: the email stays as stored; login and avatar follow GitHub. */
+  private refreshGithubProfile(user: User, profile: GithubProfile): User {
+    user.githubLogin = profile.login;
+    user.avatarUrl = profile.avatarUrl;
+
+    return user;
   }
 
   /** Rule 4: a new mentee with the verified email, operator already reconciled. */

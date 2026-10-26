@@ -53,6 +53,21 @@ describe("SignInContent (signed out)", () => {
     expect(githubHref()).toBe("/api/auth/github?returnTo=%2Fmentor%2Fprofile%3Ftab%3Dbio");
   });
 
+  it("forwards a login hint with returnTo, and alone", async () => {
+    await renderSignIn({ returnTo: "/admin", login: "mock-operator" });
+    expect(githubHref()).toBe("/api/auth/github?returnTo=%2Fadmin&login=mock-operator");
+  });
+
+  it.each([
+    [{ login: "mock-operator" }, "/api/auth/github?login=mock-operator"],
+    [{ login: "" }, "/api/auth/github"],
+    [{ login: ["a", "b"] }, "/api/auth/github"],
+  ])("builds the GitHub link for %j", async (query, href) => {
+    await renderSignIn(query);
+
+    expect(githubHref()).toBe(href);
+  });
+
   it.each([
     ["an absolute URL", "https://evil.example/"],
     ["a protocol-relative URL", "//evil.example"],

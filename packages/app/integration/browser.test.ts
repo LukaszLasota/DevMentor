@@ -9,7 +9,7 @@ describe('pages in a real browser (agent-browser)', () => {
     await browser.close();
   });
 
-  // 1.10 replaces this with a sign-in as the CI operator (GitHub stub) and asserts the health panel.
+  // Signed-in /admin (operator, mentee refused) is covered in github-sign-in.test.ts.
   it('/admin sends a visitor without a session to /sign-in with returnTo', async () => {
     await browser.open(`${baseUrl}/admin`);
     await browser.waitForUrl('**/sign-in?returnTo=%2Fadmin');

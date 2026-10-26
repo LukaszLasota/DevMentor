@@ -74,7 +74,8 @@ jobs:
   integration:
     name: Integration tests (PostgreSQL + agent-browser)
     runs-on: ubuntu-latest
-    # Test values only. SESSION_SECRET and APP_URL are generated per run by integration/global-setup.ts.
+    # Test values only. integration/global-setup.ts also sets them for the app it starts, together with a per-run
+    # SESSION_SECRET, APP_URL and the GitHub stub URLs/credentials.
     env:
       OPERATOR_EMAILS: mock-operator@devmentor.test
       ALLOW_TEST_OVERRIDES: "1"

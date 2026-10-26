@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   getSessionUser: vi.fn(),
   withScope: vi.fn(),
   cradle: { name: 'cradle' },
+  connection: vi.fn(async () => undefined),
 }));
 
 vi.mock('@devmentor/core', async (importOriginal) => ({
@@ -21,6 +22,7 @@ vi.mock('next/headers', () => ({
     get: (name: string) => (name === 'dm_session' && mocks.cookieValue !== undefined ? { name, value: mocks.cookieValue } : undefined),
   })),
 }));
+vi.mock('next/server', () => ({ connection: mocks.connection }));
 vi.mock('next/navigation', () => ({
   // Like Next's redirect: throws, so nothing after it runs.
   redirect: vi.fn((url: string) => {
@@ -48,6 +50,19 @@ describe('getPageSession', () => {
     await expect(getPageSession()).resolves.toEqual(user(['mentee']));
     expect(mocks.withScope).toHaveBeenCalledTimes(1);
     expect(mocks.getSessionUser).toHaveBeenCalledWith('tok.en.value', mocks.cradle);
+  });
+
+  it('waits for the request (connection) before the live check, never in a prerender', async () => {
+    mocks.connection.mockClear().mockImplementationOnce(async () => {
+      expect(mocks.withScope).not.toHaveBeenCalled();
+    });
+    mocks.withScope.mockClear();
+    mocks.getSessionUser.mockResolvedValueOnce(null);
+
+    await getPageSession();
+
+    expect(mocks.connection).toHaveBeenCalledTimes(1);
+    expect(mocks.withScope).toHaveBeenCalledTimes(1);
   });
 
   it.each([

@@ -1,28 +1,5 @@
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import { afterEach, describe, expect, inject, it } from 'vitest';
-
-const execFileAsync = promisify(execFile);
-
-// The app may not import @devmentor/db, so the schema is exercised with psql inside the container
-// that `npm run db:migrate` migrated in global-setup.
-async function psql(sql: string): Promise<string> {
-  const { stdout } = await execFileAsync('docker', [
-    'exec',
-    inject('postgresContainerId'),
-    'psql',
-    '-U',
-    'devmentor',
-    '-d',
-    'devmentor',
-    '-v',
-    'ON_ERROR_STOP=1',
-    '-tAc',
-    sql,
-  ]);
-
-  return stdout.trim();
-}
+import { afterEach, describe, expect, it } from 'vitest';
+import { psql } from './psql';
 
 /** Resolves with psql's error output; fails the test when the statement succeeds. */
 async function psqlError(sql: string): Promise<string> {

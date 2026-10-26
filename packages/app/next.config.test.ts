@@ -44,4 +44,10 @@ describe('next.config', () => {
 
     expect(config.serverExternalPackages).toEqual(expect.arrayContaining(['@mikro-orm/postgresql', '@mikro-orm/sql']));
   });
+
+  it('keeps server class names unminified, so MikroORM resolves entities across server bundles', async () => {
+    const config = await loadConfig({});
+
+    expect(config.experimental?.serverMinification).toBe(false);
+  });
 });

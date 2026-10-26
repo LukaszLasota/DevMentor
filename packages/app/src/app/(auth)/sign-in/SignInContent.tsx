@@ -21,6 +21,26 @@ function errorCode(value: string | undefined): SignInErrorCode | undefined {
   return Object.hasOwn(SIGN_IN_ERRORS, value) ? (value as SignInErrorCode) : "unexpected";
 }
 
+/**
+ * GitHub start link with the safe `returnTo` and an optional `login` hint (GitHub prefills the
+ * account; the local GitHub stub picks a persona from it). The start route validates the hint.
+ */
+function githubStartHref(returnTo: string, login: string | undefined): string {
+  const params = new URLSearchParams();
+
+  if (returnTo) {
+    params.set("returnTo", returnTo);
+  }
+
+  if (login) {
+    params.set("login", login);
+  }
+
+  const query = params.toString();
+
+  return query ? `${GITHUB_START}?${query}` : GITHUB_START;
+}
+
 /** /sign-in body: a signed-in user goes on to `returnTo` (or home); everyone else gets the panel. */
 export async function SignInContent({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const query = await searchParams;
@@ -32,7 +52,7 @@ export async function SignInContent({ searchParams }: { searchParams: Promise<Se
     redirect(returnTo || homeFor(user.roles));
   }
 
-  const githubHref = returnTo ? `${GITHUB_START}?${new URLSearchParams({ returnTo }).toString()}` : GITHUB_START;
+  const githubHref = githubStartHref(returnTo, single(query.login));
 
   return (
     <SignInPanel

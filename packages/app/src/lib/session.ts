@@ -3,6 +3,7 @@ import { getSessionUser, homeFor, withScope, type Role, type SessionUser } from 
 import { SESSION_COOKIE } from '@devmentor/core/http';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { connection } from 'next/server';
 import { cache } from 'react';
 
 // Page guards over the shared session check (`getSessionUser`), the same live check routes run.
@@ -31,6 +32,10 @@ interface PageSession {
 // bar of one request share a single session check instead of one database read each.
 const readPageSession = cache(async (): Promise<PageSession> => {
   const cookie = (await cookies()).get(SESSION_COOKIE)?.value || undefined;
+  // The check is live (clock, database) and must never run in a prerender: with cacheComponents
+  // Next also renders cookie-reading routes ahead of navigation (App Shell), where `new Date()` in
+  // the token check fails ("unstable value `new Date()` while prerendering").
+  await connection();
   const user = await withScope((cradle) => getSessionUser(cookie, cradle));
 
   return { user, hadCookie: cookie !== undefined };
