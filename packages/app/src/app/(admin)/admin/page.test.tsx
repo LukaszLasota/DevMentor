@@ -1,15 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("./HealthPanel", () => ({ HealthPanel: () => <div>health panel</div> }));
+vi.mock("./AdminContent", () => ({ AdminContent: () => <div>admin content</div> }));
 
 describe("AdminPage", () => {
-  it("renders the heading and the health panel", async () => {
+  it("renders the request-time content inside its main region", async () => {
     const { default: AdminPage } = await import("./page");
 
-    render(<AdminPage />);
+    render(<AdminPage params={Promise.resolve({})} searchParams={Promise.resolve({})} />);
 
-    expect(screen.getByRole("heading", { name: "Admin" })).toBeTruthy();
-    expect(screen.getByText("health panel")).toBeTruthy();
+    expect(screen.getByRole("main").textContent).toBe("admin content");
   });
 });

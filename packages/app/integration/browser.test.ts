@@ -9,12 +9,22 @@ describe('pages in a real browser (agent-browser)', () => {
     await browser.close();
   });
 
-  it('/admin shows the database status fetched through apiCall', async () => {
-    const page = await browser.open(`${baseUrl}/admin`);
+  // 1.10 replaces this with a sign-in as the CI operator (GitHub stub) and asserts the health panel.
+  it('/admin sends a visitor without a session to /sign-in with returnTo', async () => {
+    await browser.open(`${baseUrl}/admin`);
+    await browser.waitForUrl('**/sign-in?returnTo=%2Fadmin');
 
-    expect(page.title).toBe('DevMentor Admin');
-    await browser.waitForText('up');
-    expect(await browser.text('main')).toContain('Database\tup');
+    expect(new URL(await browser.url()).search).toBe('?returnTo=%2Fadmin');
+    await browser.waitForText('Sign in to DevMentor');
+    expect(await browser.attr('a[href^="/api/auth/github"]', 'href')).toBe('/api/auth/github?returnTo=%2Fadmin');
+  });
+
+  it('/sign-in explains a GitHub error code', async () => {
+    const page = await browser.open(`${baseUrl}/sign-in?error=github_cancelled`);
+
+    expect(page.title).toBe('Sign in · DevMentor');
+    await browser.waitForText('You cancelled GitHub sign-in.');
+    expect(await browser.text('main')).toContain('Forgot your password? Use GitHub with the same email.');
   });
 
   it('/ renders the public home page', async () => {

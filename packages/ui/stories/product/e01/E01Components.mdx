@@ -18,7 +18,8 @@ Product components for epic E01 (specs #21–#26), built from the primitives and
 | `ProfileActions` | `/mentor/profile` | Publish with the consequence line; Unpublish confirmed (focus on Cancel) | Other publishable objects without their own copy; publishing from a list row | spec #23, R03.4 |
 | `CopyShareLink` | `/mentor/profile` | URL as text, Copy link, fallback selects text, result in `role="status"` | Before the first publish (no slug yet); links that change (it promises the link stays the same) | spec #23 |
 | `SlotsPanel` | `/mentor/slots` | Lead-time state as badge + word, Remove confirmed, "Show past", exact empty copy | Mentees choosing a time (`MentorPageView` open times); booked sessions (E03) | spec #25 |
-| `SignInPanel` | `/sign-in` | GitHub first and primary; email fallback; error codes in plain words | Register (email only, `CrudForm` + Alert); re-authentication inside a flow | spec #21 |
+| `SignInPanel` | `/sign-in` | GitHub first and primary; email fallback (optional until phase 2); error codes in plain words; "Your session ended" and the forgotten-password line (L03, L12) | Register (email only, `CrudForm` + Alert); re-authentication inside a flow | spec #21 |
+| `RoleNotice` | Role homes (`/mentors`, `/mentor`, `/admin`) | Reads `?notice=<role>_only`: "This page is for mentors." (or operators, mentees) after a role page sent the user home (L03) | Errors; anything but the `requirePageRole` redirect | spec #21 |
 | `InvitationPanel` | `/invitation/[token]` | Accept only for the invited account; one sentence when invalid | Any self-service "become a mentor" path (spec #22); signed-in panels | spec #22 |
 | `PayoutStatusPanel` | `/mentor/payouts` (1.1) | One state at a time, plain guidance, Refresh status | Release 1.0 screens other than the link on `/mentor`; showing raw Stripe fields; public pages (no payout status in public, spec #26) | spec #26 |
 

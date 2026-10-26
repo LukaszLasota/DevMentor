@@ -41,6 +41,9 @@ export function createAgentBrowser(session: string) {
     run,
     open: (url: string) => run<{ title: string; url: string }>('open', url),
     waitForText: (text: string) => run('wait', '--text', text),
+    waitForUrl: (pattern: string) => run('wait', '--url', pattern),
+    url: async () => (await run<{ url: string }>('get', 'url')).url,
+    attr: async (selector: string, name: string) => (await run<{ value: string | null }>('get', 'attr', selector, name)).value,
     text: async (selector: string) => (await run<{ text: string }>('get', 'text', selector)).text,
     close: () => run('close'),
   };

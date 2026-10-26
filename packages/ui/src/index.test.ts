@@ -89,6 +89,8 @@ describe("@devmentor/ui public entry", () => {
         "PayoutStatusPanel",
         "ProfileActions",
         "ReadinessChecklist",
+        "ROLE_NOTICES",
+        "RoleNotice",
         "SIGN_IN_ERRORS",
         "SignInPanel",
         "SlotsPanel",

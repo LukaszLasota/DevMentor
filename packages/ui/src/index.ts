@@ -73,6 +73,7 @@ export { ErrorMessage, type ErrorMessageProps } from "./backend/feedback/ErrorMe
 export { LoadingMessage, type LoadingMessageProps } from "./backend/feedback/LoadingMessage";
 
 // Product components (panel surfaces: /mentor, /sign-in, /mentor/payouts)
+export { ROLE_NOTICES, RoleNotice, type RoleNoticeCode, type RoleNoticeProps } from "./components/auth/RoleNotice";
 export { SIGN_IN_ERRORS, SignInPanel, type SignInErrorCode, type SignInPanelProps } from "./components/auth/SignInPanel";
 export { CopyShareLink } from "./components/mentors/CopyShareLink";
 export { ProfileActions, type ProfileActionsProps } from "./components/mentors/ProfileActions";

@@ -1,0 +1,44 @@
+import { homeFor } from "@devmentor/core";
+import { safeReturnTo } from "@devmentor/core/http";
+import { SIGN_IN_ERRORS, SignInPanel, type SignInErrorCode } from "@devmentor/ui";
+import { redirect } from "next/navigation";
+import { getPageSession, SESSION_ENDED_REASON } from "@/lib/session";
+
+type SearchParams = Record<string, string | string[] | undefined>;
+
+const GITHUB_START = "/api/auth/github";
+
+function single(value: string | string[] | undefined): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+/** Known `?error=` codes as they are; any other value still tells the user sign-in did not finish. */
+function errorCode(value: string | undefined): SignInErrorCode | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return Object.hasOwn(SIGN_IN_ERRORS, value) ? (value as SignInErrorCode) : "unexpected";
+}
+
+/** /sign-in body: a signed-in user goes on to `returnTo` (or home); everyone else gets the panel. */
+export async function SignInContent({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const query = await searchParams;
+  // "" = no safe returnTo: the GitHub callback then falls back to homeFor(roles).
+  const returnTo = safeReturnTo(single(query.returnTo), "");
+  const user = await getPageSession();
+
+  if (user !== null) {
+    redirect(returnTo || homeFor(user.roles));
+  }
+
+  const githubHref = returnTo ? `${GITHUB_START}?${new URLSearchParams({ returnTo }).toString()}` : GITHUB_START;
+
+  return (
+    <SignInPanel
+      githubHref={githubHref}
+      error={errorCode(single(query.error))}
+      sessionEnded={single(query.reason) === SESSION_ENDED_REASON}
+    />
+  );
+}

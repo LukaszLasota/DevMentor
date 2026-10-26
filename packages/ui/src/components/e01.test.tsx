@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ROLE_NOTICES, RoleNotice } from "./auth/RoleNotice";
 import { SIGN_IN_ERRORS, SignInPanel } from "./auth/SignInPanel";
 import { InvitationPanel } from "./invitations/InvitationPanel";
 import { CopyShareLink } from "./mentors/CopyShareLink";
@@ -115,12 +116,46 @@ describe("E01 product components", () => {
     expect(screen.getByRole("link", { name: "Continue with GitHub" }).getAttribute("href")).toBe("/api/auth/github");
     expect(screen.getByRole("alert").textContent).toBe(SIGN_IN_ERRORS.github_cancelled);
     expect(screen.getByText("Try again in 2 min.")).toBeTruthy();
+    expect(screen.getByText("Use GitHub, or your email and password.")).toBeTruthy();
+    expect(screen.getByRole("form", { name: "Email sign-in" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Create an account" })).toBeTruthy();
+    expect(screen.getByText("Forgot your password? Use GitHub with the same email.")).toBeTruthy();
   });
 
   it("SignInPanel without errors shows no alert", () => {
     render(<SignInPanel githubHref="/g" emailForm={null} registerLink={null} />);
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("SignInPanel without an email form offers GitHub only and still explains a forgotten password (L12)", () => {
+    render(<SignInPanel githubHref="/g" />);
+    expect(screen.getByText("Use your GitHub account.")).toBeTruthy();
+    expect(screen.queryByText("or with email")).toBeNull();
+    expect(screen.queryByText(/No account yet/)).toBeNull();
+    expect(screen.getByText("Forgot your password? Use GitHub with the same email.")).toBeTruthy();
+    expect(screen.getAllByRole("link").map((a) => a.textContent)).toEqual(["Continue with GitHub"]);
+  });
+
+  it("SignInPanel says the session ended (L03) and explains an interrupted GitHub sign-in", () => {
+    render(<SignInPanel githubHref="/g" sessionEnded error="github_state_invalid" />);
+    expect(screen.getByRole("status").textContent).toBe("Your session ended. Sign in again.");
+    expect(screen.getByRole("alert").textContent).toBe(SIGN_IN_ERRORS.github_state_invalid);
+  });
+
+  it.each(Object.entries(ROLE_NOTICES))("RoleNotice %s says %s", (notice, text) => {
+    render(<RoleNotice notice={notice} />);
+    expect(screen.getByRole("status").textContent).toBe(text);
+  });
+
+  it.each([
+    ["missing", undefined],
+    ["unknown", "admin_only"],
+    ["inherited key", "toString"],
+    ["repeated", ["mentor_only", "mentor_only"]],
+  ])("RoleNotice renders nothing when the notice is %s", (_case, notice) => {
+    const { container } = render(<RoleNotice notice={notice} />);
+    expect(container.innerHTML).toBe("");
   });
 
   it("InvitationPanel covers signed-out, match, mismatch and invalid", () => {

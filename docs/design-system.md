@@ -7,7 +7,7 @@ Matter-of-fact, not generic. Dense where people scan (mentor and slot lists: thi
 
 ## Surfaces (which entry to use)
 - Public pages (`(marketing)`: `/mentors`, `/m/[slug]`, `/invitation/[token]`, `/`): Tailwind only, import from `@devmentor/ui/mentors` only.
-- Signed-in pages — `(auth)`, `(mentor)`, `(student)` (mentee pages such as favorites or sessions), `(admin)`: panel surface, import from `@devmentor/ui`; they may also use the Tailwind-only components from `@devmentor/ui/mentors` (e.g. `TagList`, `MentorTagFilter` with `basePath`).
+- Signed-in pages — `(auth)`, `(mentor)`, `(mentee)` (mentee pages such as favorites or sessions), `(admin)`: panel surface, import from `@devmentor/ui`; they may also use the Tailwind-only components from `@devmentor/ui/mentors` (e.g. `TagList`, `MentorTagFilter` with `basePath`).
 - Interface language: English.
 
 ## Where things are
