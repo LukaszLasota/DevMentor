@@ -57,6 +57,21 @@ describe('logger', () => {
   });
 });
 
+describe('logger err.code', () => {
+  it('keeps the code of a logged error but still redacts its credentials and other codes', () => {
+    const { lines, logger } = capture();
+    logger.level = 'info';
+    const err = Object.assign(new Error('duplicate key'), { code: '23505', password: 'p2' });
+
+    logger.error({ err, code: 'oauth-code-1', query: { code: 'oauth-code-2' }, error: { code: 'oauth-code-3' } }, 'failed');
+
+    const entry = JSON.parse(lines[0]);
+    expect(entry.err).toMatchObject({ type: 'Error', message: 'duplicate key', code: '23505', password: '[REDACTED]' });
+    expect(entry).toMatchObject({ code: '[REDACTED]', query: { code: '[REDACTED]' }, error: { code: '[REDACTED]' } });
+    expect(lines[0]).not.toMatch(/oauth-code|p2/);
+  });
+});
+
 describe('logger level', () => {
   it('uses LOG_LEVEL when set and info otherwise', async () => {
     vi.stubEnv('LOG_LEVEL', 'warn');

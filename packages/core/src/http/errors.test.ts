@@ -6,6 +6,8 @@ import {
   NotFoundError,
   ServiceUnavailableError,
   UnauthorizedError,
+  isAppError,
+  isValidationError,
   ValidationError,
 } from './errors';
 
@@ -33,5 +35,55 @@ describe('error hierarchy', () => {
 
   it('defaults ValidationError field errors to an empty object', () => {
     expect(new ValidationError().fieldErrors).toEqual({});
+  });
+});
+
+describe('isAppError / isValidationError', () => {
+  const brand = Symbol.for('devmentor.app-error');
+
+  it('recognises every AppError and only a ValidationError as a validation error', () => {
+    expect(isAppError(new AppError(418, 'TEAPOT', 'Short and stout.'))).toBe(true);
+    expect(isAppError(new NotFoundError())).toBe(true);
+    expect(isValidationError(new ValidationError())).toBe(true);
+    expect(isValidationError(new NotFoundError())).toBe(false);
+  });
+
+  it('recognises a branded error from a class it does not know (another bundle)', () => {
+    class ForeignError extends Error {
+      readonly [brand] = true;
+      readonly status = 400;
+      readonly code = 'VALIDATION_ERROR';
+      readonly fieldErrors = { email: ['Invalid'] };
+    }
+    const foreign = new ForeignError('Bad email.');
+
+    expect(foreign).not.toBeInstanceOf(AppError);
+    expect(isAppError(foreign)).toBe(true);
+    expect(isValidationError(foreign)).toBe(true);
+  });
+
+  it.each([
+    ['null', null],
+    ['a string', 'NOT_FOUND'],
+    ['a plain Error', new Error('x')],
+    ['an unbranded look-alike', { status: 404, code: 'NOT_FOUND', message: 'x' }],
+    ['a brand set to something else', { [brand]: 'yes', status: 404, code: 'NOT_FOUND', message: 'x' }],
+    ['a non-numeric status', { [brand]: true, status: '404', code: 'NOT_FOUND', message: 'x' }],
+    ['a non-string code', { [brand]: true, status: 404, code: 404, message: 'x' }],
+    ['a missing message', { [brand]: true, status: 404, code: 'NOT_FOUND' }],
+  ])('rejects %s', (_label, value) => {
+    expect(isAppError(value)).toBe(false);
+    expect(isValidationError(value)).toBe(false);
+  });
+
+  it.each([
+    ['missing', undefined],
+    ['null', null],
+    ['not an object', 'email'],
+  ])('rejects a VALIDATION_ERROR whose fieldErrors are %s', (_label, fieldErrors) => {
+    const value = { [brand]: true, status: 400, code: 'VALIDATION_ERROR', message: 'x', fieldErrors };
+
+    expect(isAppError(value)).toBe(true);
+    expect(isValidationError(value)).toBe(false);
   });
 });

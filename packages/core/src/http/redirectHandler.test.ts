@@ -69,6 +69,22 @@ describe('redirectHandler', () => {
     expect(res.headers.get('location')).toBe('/sign-in?error=github_account_conflict');
   });
 
+  // Regression: `mock-unverified` sign-in under `next dev` landed on error=unexpected — the service
+  // threw an AppError subclass from another server bundle's copy of the errors module.
+  it('maps an AppError from another copy of the errors module to its code without logging', async () => {
+    const error = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
+    vi.resetModules();
+    const foreign = await import('./errors');
+    expect(foreign.AppError).not.toBe(AppError);
+
+    const res = await redirectHandler(async () => {
+      throw new foreign.AppError(403, 'GITHUB_EMAIL_UNVERIFIED', 'No verified primary email.');
+    }, OPTIONS)(request(), noParams);
+
+    expect(res.headers.get('location')).toBe('/sign-in?error=github_email_unverified');
+    expect(error).not.toHaveBeenCalled();
+  });
+
   it('applies errorCodes, keeps the errorRedirect query and sets errorCookies', async () => {
     const res = await redirectHandler(
       async () => {

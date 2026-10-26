@@ -4,7 +4,7 @@ import type { Cradle } from '../container/cradle';
 import { logger } from '../logger';
 import { apiHandler, withCookies } from './apiHandler';
 import { CSRF_HEADER, CSRF_HEADER_VALUE } from './envelope';
-import { NotFoundError, ValidationError } from './errors';
+import { AppError, NotFoundError, ValidationError } from './errors';
 
 const cradle = { marker: 'test-cradle' } as unknown as Cradle;
 
@@ -61,6 +61,26 @@ describe('apiHandler', () => {
       ok: false,
       error: { code: 'VALIDATION_ERROR', message: 'Invalid request.', fieldErrors: { email: ['Required'] } },
     });
+  });
+
+  // Regression: under `next dev` the container (and its services) came from another server bundle,
+  // so a service's AppError was not `instanceof` this module's AppError and became a 500.
+  it('maps AppErrors from another copy of the errors module (another server bundle)', async () => {
+    vi.resetModules();
+    const foreign = await import('./errors');
+    expect(foreign.AppError).not.toBe(AppError);
+
+    const notFound = await apiHandler(async () => {
+      throw new foreign.NotFoundError('No such booking.');
+    })(request(), noParams);
+    const invalid = await apiHandler(async () => {
+      throw new foreign.ValidationError('Invalid request.', { email: ['Required'] });
+    })(request(), noParams);
+
+    expect(notFound.status).toBe(404);
+    expect(await notFound.json()).toEqual({ ok: false, error: { code: 'NOT_FOUND', message: 'No such booking.' } });
+    expect(invalid.status).toBe(400);
+    expect((await invalid.json()).error.fieldErrors).toEqual({ email: ['Required'] });
   });
 
   it('maps a ZodError thrown by the handler to a 400 with field errors', async () => {

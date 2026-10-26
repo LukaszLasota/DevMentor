@@ -18,6 +18,24 @@ error page alone shows only a digest.
 - Fix: `experimental.serverMinification: false` in `next.config.ts` (names stay `User`). `next dev`
   never minifies, so dev cannot reproduce it.
 
+### 1b. Same root cause in `next dev`: `instanceof AppError` (found in the phase 1 manual test)
+
+- Symptom: GitHub persona `mock-unverified` under `next dev` → `/sign-in?error=unexpected`, log
+  "Unhandled redirect error" with a `GithubEmailUnverifiedError` (an `AppError` subclass).
+- Cause: the container (`globalThis`, one per process) was built by a page's bundle (`ssr/` chunk),
+  so `GithubOAuthService` threw that bundle's `AppError`; `redirectHandler` in the route bundle
+  checked `instanceof` against its own copy → not an `AppError` → unexpected. Not minification:
+  the classes are different objects with the same name, so `next dev` shows it too. The production
+  integration build happened not to split it.
+- Fix: `AppError` instances carry `Symbol.for('devmentor.app-error')`; `isAppError` /
+  `isValidationError` replace `instanceof`. Rule: any check on our own classes that can cross the
+  container boundary uses a registry-symbol brand or shape, never `instanceof`. Third-party code is
+  fine when it is external (`serverExternalPackages`: MikroORM) or identity-independent (zod 4's
+  `Symbol.hasInstance` checks `_zod.traits`) — verify, don't assume.
+- Regression test pattern: `vi.resetModules()` + `await import('./errors')` gives a foreign copy.
+- Hot reload does not fix a running `next dev`: the cached container keeps the old classes —
+  restart the dev server after changing anything the container holds.
+
 ## 2. Session check in the App Shell prerender (`cacheComponents`)
 
 - Symptom: `Route "/mentors": Next.js encountered the unstable value new Date() while prerendering`,

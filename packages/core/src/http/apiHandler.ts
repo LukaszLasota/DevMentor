@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { withScope } from '../container/container';
 import type { Cradle } from '../container/cradle';
 import { logger } from '../logger';
-import { AppError, ForbiddenError, ValidationError } from './errors';
+import { ForbiddenError, isAppError, isValidationError, ValidationError, type AppError } from './errors';
 import { CSRF_HEADER, CSRF_HEADER_VALUE, type ApiFailure, type ApiResult } from './envelope';
 import { toFieldErrors } from './parse';
 
@@ -68,9 +68,13 @@ function assertCsrfHeader(req: Request): void {
   }
 }
 
-/** `AppError` as is, `ZodError` as `ValidationError`; anything else is unexpected (`undefined`). */
+/**
+ * `AppError` as is, `ZodError` as `ValidationError`; anything else is unexpected (`undefined`).
+ * Both checks work across server bundles: `isAppError` checks a registry symbol, and zod 4's
+ * `instanceof` checks the error's `_zod.traits`, not the class identity.
+ */
 export function toAppError(error: unknown): AppError | undefined {
-  if (error instanceof AppError) {
+  if (isAppError(error)) {
     return error;
   }
 
@@ -90,7 +94,7 @@ function toErrorResponse(error: unknown, req: Request): Response {
       error: {
         code: appError.code,
         message: appError.message,
-        ...(appError instanceof ValidationError ? { fieldErrors: appError.fieldErrors } : {}),
+        ...(isValidationError(appError) ? { fieldErrors: appError.fieldErrors } : {}),
       },
     };
 

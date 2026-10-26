@@ -46,6 +46,8 @@ describe('public entries', () => {
         'SESSION_COOKIE',
         'completeGithubSignIn',
         'endSession',
+        'isAppError',
+        'isValidationError',
         'startGithubSignIn',
         'clearSessionCookie',
         'createFetchJson',
