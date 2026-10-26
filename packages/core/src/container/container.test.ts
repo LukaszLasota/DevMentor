@@ -98,6 +98,8 @@ describe('DI container', () => {
     expect(first.cradle.em).not.toBe(second.cradle.em);
     expect(orm.em.fork).toHaveBeenCalledTimes(2);
     expect(first.cradle.healthService).not.toBe(second.cradle.healthService);
+    expect(first.cradle.githubOAuthService).toBe(first.cradle.githubOAuthService);
+    expect(first.cradle.githubOAuthService).not.toBe(second.cradle.githubOAuthService);
   });
 
   it('withScope runs the callback with the scoped cradle and disposes the scope', async () => {

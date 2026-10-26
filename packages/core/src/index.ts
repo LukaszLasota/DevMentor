@@ -16,3 +16,10 @@ export {
 } from './security/session-token';
 export { EventBus, type DomainEventListener, type DomainEventName, type DomainEvents } from './events/events';
 export { HealthService, type HealthStatus } from './services/health/health.service';
+export {
+  GithubEmailUnverifiedError,
+  GithubOAuthService,
+  type AuthorizeUrlInput,
+  type ExchangeCodeInput,
+  type GithubProfile,
+} from './services/auth/github-oauth.service';

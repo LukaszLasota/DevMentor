@@ -9,6 +9,8 @@ describe('public entries', () => {
     expect(Object.keys(core).sort()).toEqual(
       [
         'EventBus',
+        'GithubEmailUnverifiedError',
+        'GithubOAuthService',
         'HealthService',
         'SESSION_TTL_SECONDS',
         'createRequestScope',
