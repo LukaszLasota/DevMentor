@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import type { Cradle } from '../container/cradle';
 import { logger } from '../logger';
-import { apiHandler } from './apiHandler';
+import { apiHandler, withCookies } from './apiHandler';
 import { CSRF_HEADER, CSRF_HEADER_VALUE } from './envelope';
 import { NotFoundError, ValidationError } from './errors';
 
@@ -117,5 +117,24 @@ describe('apiHandler', () => {
     const res = await apiHandler(handler)(request(), { params: Promise.resolve({ id: 'abc' }) });
 
     expect(await res.json()).toEqual({ ok: true, data: 'abc' });
+  });
+
+  it('sets each cookie from withCookies and keeps the envelope', async () => {
+    const res = await apiHandler(async () => withCookies({ user: 'u1' }, ['a=1; Path=/', 'b=2; Path=/']), {
+      successStatus: 201,
+    })(request('POST', { [CSRF_HEADER]: CSRF_HEADER_VALUE }), noParams);
+
+    expect(res.status).toBe(201);
+    expect(res.headers.getSetCookie()).toEqual(['a=1; Path=/', 'b=2; Path=/']);
+    expect(await res.json()).toEqual({ ok: true, data: { user: 'u1' } });
+  });
+
+  it('sets no cookie for plain results, including objects and null', async () => {
+    for (const data of [{ data: 'looks-like-a-wrapper' }, null]) {
+      const res = await apiHandler(async () => data)(request(), noParams);
+
+      expect(res.headers.getSetCookie()).toEqual([]);
+      expect(await res.json()).toEqual({ ok: true, data });
+    }
   });
 });

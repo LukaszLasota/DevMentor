@@ -10,6 +10,7 @@ Rules:
 ## Index
 
 <!-- Newest first. -->
+- 2026-10-26 — `AbortSignal.timeout()` runs on Node's internal timers, so `vi.useFakeTimers()` + `advanceTimersByTime` never fires it (the test hangs); spy on `AbortSignal.timeout` and return `AbortSignal.abort(new DOMException('', 'TimeoutError'))`, or use a tiny real `timeoutMs` (`packages/core/src/http/outbound.test.ts`).
 - 2026-10-26 — pino `redact.paths` silently ignores a dot path to a hyphenated key (`headers."set-cookie"`); use bracket notation `headers["set-cookie"]` and assert the redaction in a test.
 - 2026-10-26 — `CrudForm` (packages/ui): after a field error, the first click on the submit button is lost — the error under the field disappears on blur, the button moves up before mouseup. Found by an agent-browser walk of the lesson-07 prototype (s01: short password → Sign in → valid password → one click does nothing). Fixed: a field that shows an error is re-validated on change, so the error clears while typing, not on blur (regression test in `CrudForm.test.tsx`).
 - 2026-10-26 — An unanchored `.gitignore` entry such as `prototypes/` also hides `.ai/prototypes/` (skill output); anchor root-only folders as `/prototypes/` and check `git status` for vanished untracked paths after editing ignores.

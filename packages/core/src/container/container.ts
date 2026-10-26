@@ -1,8 +1,11 @@
 import { asClass, asFunction, asValue, createContainer, InjectionMode, type AwilixContainer } from 'awilix';
 import { getOrm } from '@devmentor/db';
 import { assertProductionEnv, getEnv } from '../config/env';
+import { EventBus } from '../events/events';
+import { createFetchJson } from '../http/outbound';
 import { logger } from '../logger';
 import { HealthService } from '../services/health/health.service';
+import { systemClock } from '../time/clock';
 import type { Cradle } from './cradle';
 
 const globalForContainer = globalThis as typeof globalThis & {
@@ -28,6 +31,9 @@ async function buildContainer(): Promise<AwilixContainer<Cradle>> {
     env: asValue(env),
     logger: asValue(logger),
     orm: asValue(orm),
+    clock: asValue(systemClock),
+    fetchJson: asFunction(({ logger }: Cradle) => createFetchJson({ logger })).singleton(),
+    events: asClass(EventBus).singleton(),
     em: asFunction(({ orm }: Cradle) => orm.em.fork()).scoped(),
     healthService: asClass(HealthService).scoped(),
   });

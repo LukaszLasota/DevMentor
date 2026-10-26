@@ -6,7 +6,7 @@ import { AppError, ForbiddenError, ValidationError } from './errors';
 import { CSRF_HEADER, CSRF_HEADER_VALUE, type ApiFailure, type ApiResult } from './envelope';
 import { toFieldErrors } from './parse';
 
-type RouteParams = Record<string, string | string[] | undefined>;
+export type RouteParams = Record<string, string | string[] | undefined>;
 
 export interface HandlerArgs<P extends RouteParams> {
   req: Request;
@@ -24,11 +24,42 @@ export interface ApiHandlerOptions {
   csrf?: boolean;
 }
 
+const RESPONSE_COOKIES = Symbol('responseCookies');
+
+/** Handler result that also sets cookies; build it with `withCookies`. */
+export interface WithCookies<T> {
+  readonly data: T;
+  readonly [RESPONSE_COOKIES]: readonly string[];
+}
+
+/**
+ * Lets a handler set cookies (`Set-Cookie` values, e.g. from `sessionCookie`) while `apiHandler`
+ * still sends the usual `{ ok: true, data }` envelope.
+ */
+export function withCookies<T>(data: T, cookies: readonly string[]): WithCookies<T> {
+  return { data, [RESPONSE_COOKIES]: cookies };
+}
+
+function isWithCookies(value: unknown): value is WithCookies<unknown> {
+  return typeof value === 'object' && value !== null && RESPONSE_COOKIES in value;
+}
+
+/** Response headers carrying one `Set-Cookie` per cookie. */
+export function cookieHeaders(cookies: readonly string[]): Headers {
+  const headers = new Headers();
+
+  for (const cookie of cookies) {
+    headers.append('set-cookie', cookie);
+  }
+
+  return headers;
+}
+
 const STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const INTERNAL_ERROR_MESSAGE = 'Internal server error.';
 
-function json<T>(body: ApiResult<T>, status: number): Response {
-  return Response.json(body, { status });
+function json<T>(body: ApiResult<T>, status: number, headers?: Headers): Response {
+  return Response.json(body, { status, headers });
 }
 
 function assertCsrfHeader(req: Request): void {
@@ -37,7 +68,8 @@ function assertCsrfHeader(req: Request): void {
   }
 }
 
-function toAppError(error: unknown): AppError | undefined {
+/** `AppError` as is, `ZodError` as `ValidationError`; anything else is unexpected (`undefined`). */
+export function toAppError(error: unknown): AppError | undefined {
   if (error instanceof AppError) {
     return error;
   }
@@ -88,9 +120,13 @@ export function apiHandler<T, P extends RouteParams = RouteParams>(
       }
 
       const params = await context.params;
-      const data = await withScope((cradle) => handler({ req, params, cradle }));
+      const result = await withScope((cradle) => handler({ req, params, cradle }));
 
-      return json({ ok: true, data }, successStatus);
+      if (isWithCookies(result)) {
+        return json({ ok: true, data: result.data }, successStatus, cookieHeaders(result[RESPONSE_COOKIES]));
+      }
+
+      return json({ ok: true, data: result }, successStatus);
     } catch (error) {
       return toErrorResponse(error, req);
     }

@@ -5,4 +5,14 @@ export { getContainer, createRequestScope, withScope } from './container/contain
 export type { Cradle } from './container/cradle';
 export { getEnv, parseEnv, type Env } from './config/env';
 export { logger, type Logger } from './logger';
+export { systemClock, type Clock } from './time/clock';
+export {
+  requireSessionSecrets,
+  signSession,
+  verifySession,
+  SESSION_TTL_SECONDS,
+  type SessionClaims,
+  type SessionSecrets,
+} from './security/session-token';
+export { EventBus, type DomainEventListener, type DomainEventName, type DomainEvents } from './events/events';
 export { HealthService, type HealthStatus } from './services/health/health.service';

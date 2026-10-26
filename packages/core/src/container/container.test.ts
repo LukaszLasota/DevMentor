@@ -46,6 +46,20 @@ describe('DI container', () => {
     expect(typeof container.cradle.logger.info).toBe('function');
   });
 
+  it('registers the clock, fetchJson and the event bus as singletons', async () => {
+    const { getContainer, createRequestScope } = await loadContainer();
+    const { systemClock } = await import('../time/clock');
+    const { EventBus } = await import('../events/events');
+    const container = await getContainer();
+    const scope = await createRequestScope();
+
+    expect(container.cradle.clock).toBe(systemClock);
+    expect(typeof container.cradle.fetchJson).toBe('function');
+    expect(scope.cradle.fetchJson).toBe(container.cradle.fetchJson);
+    expect(container.cradle.events).toBeInstanceOf(EventBus);
+    expect(scope.cradle.events).toBe(container.cradle.events);
+  });
+
   it('disables ORM debug outside development', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('SESSION_SECRET', 'a'.repeat(64));

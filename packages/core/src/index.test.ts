@@ -7,7 +7,21 @@ describe('public entries', () => {
     const core = await import('./index');
 
     expect(Object.keys(core).sort()).toEqual(
-      ['HealthService', 'createRequestScope', 'getContainer', 'getEnv', 'logger', 'parseEnv', 'withScope'].sort(),
+      [
+        'EventBus',
+        'HealthService',
+        'SESSION_TTL_SECONDS',
+        'createRequestScope',
+        'getContainer',
+        'getEnv',
+        'logger',
+        'parseEnv',
+        'requireSessionSecrets',
+        'signSession',
+        'systemClock',
+        'verifySession',
+        'withScope',
+      ].sort(),
     );
   });
 
@@ -20,6 +34,15 @@ describe('public entries', () => {
         'CSRF_HEADER',
         'CSRF_HEADER_VALUE',
         'ConflictError',
+        'DEFAULT_OUTBOUND_TIMEOUT_MS',
+        'SESSION_COOKIE',
+        'clearSessionCookie',
+        'createFetchJson',
+        'readSessionCookie',
+        'redirectHandler',
+        'safeReturnTo',
+        'sessionCookie',
+        'withCookies',
         'ForbiddenError',
         'NotFoundError',
         'ServiceUnavailableError',
