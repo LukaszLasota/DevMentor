@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { afterAll, describe, expect, inject, it } from 'vitest';
 import { psql } from './psql';
+import { redirectTarget } from './redirect';
 
 // Invitation routes and pages over HTTP against the production server (spec
 // 2026-10-21-mentor-invitations, step 6). The full browser flow (script → link → sign in → accept)
@@ -74,17 +75,6 @@ const accept = (token: string, session?: string) =>
   });
 const page = (path: string, session?: string) =>
   fetch(`${baseUrl}${path}`, { headers: session ? { cookie: `dm_session=${session}` } : {}, redirect: 'manual' });
-
-/**
- * Where a guarded page sends the request. The guards run inside <Suspense> after the static shell
- * has streamed (partial prerendering), so the redirect arrives as a meta refresh in a 200 body,
- * not as a 307 `Location`.
- */
-async function redirectTarget(res: Response): Promise<string | null> {
-  const html = await res.text();
-
-  return /http-equiv="refresh" content="\d+;url=([^"]+)"/.exec(html)?.[1]?.replaceAll('&amp;', '&') ?? null;
-}
 
 function expectNoStore(res: Response): void {
   expect(res.headers.get('cache-control')).toBe('no-store');
