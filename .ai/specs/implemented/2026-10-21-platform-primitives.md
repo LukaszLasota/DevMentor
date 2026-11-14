@@ -1,7 +1,7 @@
 # Platform primitives for the 1.0 backlog
 
-Status: approved
-Source: `.ai/specs/product-brief.md`, `.ai/specs/backlog.md` (#16–#32) · First consumer: `.ai/specs/2026-10-21-sign-in-github-and-email.md` (#21) · Follows the course reference spec `2026-09-04-platform-primitives.md` (lesson 05), adapted to this repository
+Status: implemented
+Source: `.ai/specs/product-brief.md`, `.ai/specs/backlog.md` (#16–#32) · First consumer: `.ai/specs/implemented/2026-10-21-sign-in-github-and-email.md` (#21) · Follows the course reference spec `2026-09-04-platform-primitives.md` (lesson 05), adapted to this repository
 
 ## 📝 TLDR
 Every 1.0 story after #21 needs to know who is signed in and what roles they hold, and none of the building blocks exist yet (`AGENTS.md` names `auth.ts` as arriving "with the auth concept"). Proposed: design and build each primitive only when the first story needs it, here for Epic 01's sign-in (#21); later stories extend this catalog in their own specs instead of reinventing it. This spec owns the contracts; feature specs own the build steps.
@@ -84,4 +84,4 @@ Deliberate differences from the course:
 No phases of its own. Each primitive is built in the feature spec's phase that first needs it (column "Built in").
 
 ## 📋 Implementation Plan
-Delivered through the steps of `.ai/specs/2026-10-21-sign-in-github-and-email.md` (its Implementation Plan is the single source of build order; the "Built in" column above only names the story). Each primitive ships with unit tests at 100% coverage in the step that adds it.
+Delivered through the steps of `.ai/specs/implemented/2026-10-21-sign-in-github-and-email.md` (its Implementation Plan is the single source of build order; the "Built in" column above only names the story). Each primitive ships with unit tests at 100% coverage in the step that adds it.

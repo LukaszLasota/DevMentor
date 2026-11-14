@@ -1,7 +1,7 @@
 # Sign in with GitHub, email and password as fallback
 
-Status: approved
-Issue: #21 (E01-S01) · Epic: #16 · Source: `.ai/specs/product-brief.md` (R11, D12) · Primitives: `.ai/specs/2026-10-21-platform-primitives.md` · Follows the course reference spec `2026-09-04-accounts-and-roles.md` (lesson 05), adapted to this repository
+Status: implemented
+Issue: #21 (E01-S01) · Epic: #16 · Source: `.ai/specs/product-brief.md` (R11, D12) · Primitives: `.ai/specs/implemented/2026-10-21-platform-primitives.md` · Follows the course reference spec `2026-09-04-accounts-and-roles.md` (lesson 05), adapted to this repository
 Prototypes: `prototypes/konta-i-role/` (clickable, Epic 01; local lesson-07 work, not in git) · `.ai/prototypes/discovery/mentor-onboarding/revision-001/` (grey, mentor onboarding) · Screen map: `lekcja-07/mapa-ekranow.md` (s01–s10, approved 2026-10-23; local)
 
 ## 📝 TLDR
@@ -87,6 +87,7 @@ Course parity with lesson 08 ("migrations and test data from the seed"). `npm ru
 - The GitHub id is the stub's own `githubIdFor(login)` (passed in by the entry script, not re-implemented).
 - Matched by email, in one transaction. Re-running changes nothing; a demo account changed since (password, link, verification, roles) is put back to its demo state and its sessions end (`session_version` + 1). Other rows are never touched; a demo GitHub id linked to another account stops the seed with nothing changed.
 - Refuses to run with `NODE_ENV=production` (no override): production must never get a known password.
+- Also refuses a `DATABASE_URL` whose host is not local (`localhost`, `127.0.0.1`, `::1`), because `NODE_ENV` defaults to development and alone would not stop a seed of a live database; `--allow-remote-database` opts in for a disposable database elsewhere (never overrides the production refusal). Added after the final Qodo review (2026-11-14).
 - No `mentor` until phase 3 ships `/mentor`; phase 3 adds a `mock-mentor` persona.
 
 ## 📝 Edge Cases & Failure Scenarios

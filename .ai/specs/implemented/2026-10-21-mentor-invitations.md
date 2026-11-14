@@ -1,7 +1,7 @@
 # Operator invites mentors; only invited people become mentors
 
-Status: approved
-Issue: #22 (E01-S02) · Epic: #16 · Source: `.ai/specs/product-brief.md` (R13, R16, D13, D24) · Builds on: `.ai/specs/2026-10-21-sign-in-github-and-email.md`, `.ai/specs/2026-10-21-platform-primitives.md` · Follows the course reference spec `2026-09-08-invitations.md` (lesson 05), adapted to this repository
+Status: implemented
+Issue: #22 (E01-S02) · Epic: #16 · Source: `.ai/specs/product-brief.md` (R13, R16, D13, D24) · Builds on: `.ai/specs/implemented/2026-10-21-sign-in-github-and-email.md`, `.ai/specs/implemented/2026-10-21-platform-primitives.md` · Follows the course reference spec `2026-09-08-invitations.md` (lesson 05), adapted to this repository
 Prototypes: `prototypes/konta-i-role/` (clickable, Epic 01; local lesson-07 work, not in git) · `.ai/prototypes/discovery/mentor-onboarding/revision-001/` (grey, mentor onboarding) · Screen map: `lekcja-07/mapa-ekranow.md` (s01–s10, approved 2026-10-23; local)
 
 ## 📝 TLDR
