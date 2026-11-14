@@ -9,10 +9,15 @@ afterEach(() => {
 });
 
 describe('npm run db:seed entry', () => {
-  it('runs the seed with the stub GitHub ids and exits with its code', async () => {
+  it('runs the seed with its arguments and the stub GitHub ids and exits with its code', async () => {
     await import('./seed.mts');
 
-    expect(runSeedCli).toHaveBeenCalledWith({ githubIdFor, stdout: console.log, stderr: console.error });
+    expect(runSeedCli).toHaveBeenCalledWith({
+      argv: process.argv.slice(2),
+      githubIdFor,
+      stdout: console.log,
+      stderr: console.error,
+    });
     expect(process.exitCode).toBe(1);
   });
 });

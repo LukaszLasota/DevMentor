@@ -108,7 +108,7 @@ Until a GitHub OAuth App is set up, sign in through a local GitHub stub (`script
 npm run db:seed        # development only; reads DATABASE_URL from .env
 ```
 
-Creates (or restores) demo accounts in the local database and prints them. Re-running changes nothing; a demo account you changed (password, GitHub link) is put back and its sessions end. Other accounts are never touched. It refuses to run with `NODE_ENV=production`, because the password is published here.
+Creates (or restores) demo accounts in the local database and prints them. Re-running changes nothing; a demo account you changed (password, GitHub link) is put back and its sessions end. Other accounts are never touched. It refuses to run with `NODE_ENV=production`, because the password is published here, and it refuses a `DATABASE_URL` whose host is not local (`localhost`, `127.0.0.1`, `::1` — the compose database and the integration testcontainers): `NODE_ENV` defaults to development, so it alone would not stop a seed of a live database. For a disposable database elsewhere, opt in with `npm run db:seed -- --allow-remote-database`.
 
 Password: `mock-password-not-a-secret`
 

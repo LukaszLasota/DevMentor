@@ -98,6 +98,28 @@ describe("VerifyEmailForm", () => {
     expect(body(fetchMock, 1)).toEqual({ path: "/api/auth/verify-email/resend", body: { email: "ola@devmentor.test", returnTo: "/mentors" } });
   });
 
+  it("shows the form again when a new link replaces the refused one in the same tab (hash-only navigation)", async () => {
+    const NEW_TOKEN = "NeW_456-abc";
+    const fetchMock = stubFetch(
+      { status: 400, body: { ok: false, error: { code: "VERIFICATION_LINK_INVALID", message: "This link is invalid or has expired." } } },
+      { status: 200, body: { ok: true, data: { user: {}, redirectTo: "/mentors" } } },
+    );
+    const user = open(`#token=${TOKEN}`);
+
+    await setPassword(user);
+    expect(await screen.findByText("This link does not work any more")).toBeTruthy();
+
+    await act(async () => {
+      window.location.hash = `#token=${NEW_TOKEN}`;
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
+
+    expect(screen.queryByText("This link does not work any more")).toBeNull();
+    await setPassword(user);
+    expect(body(fetchMock, 1).body).toEqual({ token: NEW_TOKEN, password: PASSWORD });
+    expect(mocks.replace).toHaveBeenCalledWith("/mentors");
+  });
+
   it.each(["", "#returnTo=%2Fmentors", "#token=not%20a%20token"])("shows the link-invalid view for the fragment %j", (hash) => {
     open(hash);
 

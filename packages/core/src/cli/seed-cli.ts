@@ -1,3 +1,4 @@
+import { parseArgs } from 'node:util';
 import { getOrm } from '@devmentor/db';
 import { getEnv } from '../config/env';
 import { PasswordHasher } from '../security/password';
@@ -7,7 +8,32 @@ import { DEMO_PASSWORD, seedDemoAccounts, type GithubIdFor, type SeedResult } fr
 export const SEED_REFUSED_IN_PRODUCTION =
   'db:seed refuses to run with NODE_ENV=production: the demo accounts have a published password.';
 
+export const ALLOW_REMOTE_DATABASE_FLAG = '--allow-remote-database';
+
+/** Hosts of the databases this repo seeds: compose and testcontainers both publish on the loopback. */
+const LOCAL_DATABASE_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+/** Why the seed refuses `DATABASE_URL` (host only, never the credentials). */
+export function seedRefusedRemoteDatabase(host: string): string {
+  return [
+    `db:seed refuses to run against the database host "${host}": the demo accounts have a published password,`,
+    `so it only seeds a local database (localhost, 127.0.0.1, ::1). NODE_ENV is not enough: it defaults to development.`,
+    `If this is a disposable database, run it again with ${ALLOW_REMOTE_DATABASE_FLAG} (npm run db:seed -- ${ALLOW_REMOTE_DATABASE_FLAG}).`,
+  ].join('\n');
+}
+
+/** The host of a `postgres://` URL, lower-cased; `''` when it has none (socket) or does not parse. */
+export function databaseHost(databaseUrl: string): string {
+  try {
+    return new URL(databaseUrl).hostname.toLowerCase();
+  } catch {
+    return '';
+  }
+}
+
 export interface SeedCliOptions {
+  /** Command-line arguments after the script name; only `--allow-remote-database` is accepted. */
+  argv?: readonly string[];
   githubIdFor: GithubIdFor;
   stdout: (line: string) => void;
   stderr: (line: string) => void;
@@ -46,15 +72,29 @@ export function formatSeedReport(results: readonly SeedResult[]): string {
 
 /**
  * `npm run db:seed`: creates or restores the demo accounts in the database of `DATABASE_URL`.
+ * Refuses `NODE_ENV=production`, and a non-local database host unless `--allow-remote-database`
+ * is passed: `NODE_ENV` defaults to development, so it alone would not stop a seed of a live database.
  * A one-shot process, so it builds only what the seeder needs instead of the request container
  * (no SQL debug log, no mailer) and closes the pool at the end. Returns the exit code.
  */
-export async function runSeedCli({ githubIdFor, stdout, stderr }: SeedCliOptions): Promise<number> {
+export async function runSeedCli({ argv = [], githubIdFor, stdout, stderr }: SeedCliOptions): Promise<number> {
   try {
+    const { values } = parseArgs({
+      args: [...argv],
+      options: { 'allow-remote-database': { type: 'boolean', default: false } },
+      strict: true,
+    });
     const env = getEnv();
 
     if (env.NODE_ENV === 'production') {
       stderr(SEED_REFUSED_IN_PRODUCTION);
+      return 1;
+    }
+
+    const host = databaseHost(env.DATABASE_URL);
+
+    if (!LOCAL_DATABASE_HOSTS.has(host) && !values['allow-remote-database']) {
+      stderr(seedRefusedRemoteDatabase(host));
       return 1;
     }
 

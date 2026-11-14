@@ -3,4 +3,9 @@
 import { runSeedCli } from '@devmentor/core/cli';
 import { githubIdFor } from './lib/github-stub.mjs';
 
-process.exitCode = await runSeedCli({ githubIdFor, stdout: console.log, stderr: console.error });
+process.exitCode = await runSeedCli({
+  argv: process.argv.slice(2),
+  githubIdFor,
+  stdout: console.log,
+  stderr: console.error,
+});

@@ -73,7 +73,9 @@ function LinkInvalid({ returnTo }: { returnTo: string | undefined }) {
 export function VerifyEmailForm() {
   const router = useRouter();
   const link = useLinkFragment();
-  const [invalid, setInvalid] = useState(false);
+  // The token the API refused, not a flag: a replacement link opened in the same tab only changes
+  // the fragment (no reload), and its new token must get the form back.
+  const [refusedToken, setRefusedToken] = useState<string | undefined>(undefined);
 
   return (
     <Card className="mx-auto w-full max-w-dialog">
@@ -86,10 +88,11 @@ export function VerifyEmailForm() {
       <CardContent className="flex flex-col gap-paragraph">
         {link === null ? (
           <LoadingMessage />
-        ) : invalid || link.token === undefined ? (
+        ) : link.token === undefined || link.token === refusedToken ? (
           <LinkInvalid returnTo={link.returnTo} />
         ) : (
           <CrudForm
+            key={link.token}
             schema={passwordSchema}
             fields={[
               {
@@ -110,7 +113,7 @@ export function VerifyEmailForm() {
               });
 
               if (!result.ok && result.error.code === VERIFICATION_LINK_INVALID) {
-                setInvalid(true);
+                setRefusedToken(link.token);
               }
 
               return result.ok ? result : withMessage(result, SET_PASSWORD_UNAVAILABLE);
