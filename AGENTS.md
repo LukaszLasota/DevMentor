@@ -27,7 +27,7 @@ Next.js-specific agent rules live in `packages/app/AGENTS.md` — that file is m
 
 - Only `db` imports `@mikro-orm/*`; others use the types `@devmentor/db` re-exports (`EntityManager`, `MikroORM`).
 - `core` and `db` never import `next`/`react`. `ui` never imports `core` — shared shapes (API envelope, CSRF header) are mirrored in `ui/src/backend/api/types.ts`; keep both in sync. A shared package for them is an Ask First change.
-- Import packages through their public entries (`@devmentor/core`, `@devmentor/core/http`, `@devmentor/ui`), never relative paths into another package. The `@devmentor/core` entries are server-only; client-safe code (shared Zod schemas) will get its own entry `@devmentor/core/validators` with the first schema.
+- Import packages through their public entries (`@devmentor/core`, `@devmentor/core/http`, `@devmentor/ui`), never relative paths into another package. The `@devmentor/core` and `@devmentor/core/http` entries are server-only; client-safe shared Zod schemas live in `@devmentor/core/validators` (`packages/core/src/validators/`), which client components in `app` may import — it imports only `zod` and its own files (ESLint + `validators/index.test.ts`). `ui` still never imports it: `CrudForm` takes the schema as a prop.
 
 ## Domain concept convention
 

@@ -20,7 +20,7 @@ Implementation plan and progress: [2026-10-20-engineering-standards-plan.md](202
 - **Paths:** `packages/app/src/app`, routes `src/app/api/<concept>/route.ts`. `(site)` is now `(marketing)`; `(admin)` remains for the shadcn panel.
 - **Error hierarchy** also has `ServiceUnavailableError` (503) for infrastructure checks.
 - **`makeCrudRoute`** takes the record id as `?id=<uuid>`; `CrudForm` takes an explicit `fields` config next to the schema (explicit over implicit).
-- **Client-safe imports:** `@devmentor/core` and `@devmentor/core/http` are server-only; shared validators will get a separate client-safe entry `@devmentor/core/validators`.
+- **Client-safe imports:** `@devmentor/core` and `@devmentor/core/http` are server-only; shared Zod schemas live in the client-safe entry `@devmentor/core/validators` (imports only `zod` and its own files).
 - **`npm audit`** runs through `scripts/audit.mjs`; advisories without a patched release are accepted only via `audit-allowlist.json` (reason + review date).
 - References to `.ai/specs/engineering-standards.md` mean this file.
 
