@@ -8,6 +8,11 @@ import type { Logger } from '../logger';
 export interface DomainEvents {
   /** A user's stored roles changed (e.g. operator reconciliation, granted mentor role). */
   'auth.user.roles_changed': { userId: string; roles: readonly Role[] };
+  /**
+   * A mentor invitation was accepted (the supply signal reporting will count). Emitted after the
+   * acceptance transaction commits, never inside it; `publishDueAt` is the invitation's publish-by date.
+   */
+  'invitations.invitation.accepted': { invitationId: string; userId: string; publishDueAt: Date };
 }
 
 export type DomainEventName = keyof DomainEvents;

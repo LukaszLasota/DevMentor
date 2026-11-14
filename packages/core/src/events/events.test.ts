@@ -60,4 +60,22 @@ describe('EventBus', () => {
       'Domain event listener failed',
     );
   });
+
+  it('keeps listeners of different events apart', async () => {
+    const { events } = bus();
+    const accepted: DomainEvents['invitations.invitation.accepted'] = {
+      invitationId: 'i1',
+      userId: 'u1',
+      publishDueAt: new Date('2026-12-01T10:00:00.000Z'),
+    };
+    const onAccepted = vi.fn();
+    const onRolesChanged = vi.fn();
+    events.on('invitations.invitation.accepted', onAccepted);
+    events.on('auth.user.roles_changed', onRolesChanged);
+
+    await events.emit('invitations.invitation.accepted', accepted);
+
+    expect(onAccepted).toHaveBeenCalledExactlyOnceWith(accepted);
+    expect(onRolesChanged).not.toHaveBeenCalled();
+  });
 });
