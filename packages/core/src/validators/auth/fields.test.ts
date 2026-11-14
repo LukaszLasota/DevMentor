@@ -4,11 +4,13 @@ import {
   EMAIL_MAX_LENGTH,
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
+  RETURN_TO_MAX_LENGTH,
   TOKEN_MAX_LENGTH,
   currentPasswordField,
   emailField,
   linkTokenField,
   newPasswordField,
+  returnToField,
 } from './fields';
 
 function messages(schema: z.ZodType, value: unknown): string[] {
@@ -98,5 +100,18 @@ describe('linkTokenField', () => {
       expect(messages(linkTokenField, value)).toEqual(['This link is invalid.']);
     }
     expect(linkTokenField.safeParse('a'.repeat(TOKEN_MAX_LENGTH)).success).toBe(true);
+  });
+});
+
+describe('returnToField', () => {
+  it('keeps a string up to the limit as is (the server checks it with safeReturnTo)', () => {
+    expect(returnToField.parse('/invitations/abc?x=1')).toBe('/invitations/abc?x=1');
+    expect(returnToField.parse('a'.repeat(RETURN_TO_MAX_LENGTH))).toHaveLength(RETURN_TO_MAX_LENGTH);
+  });
+
+  it('turns a missing, non-string or oversized value into undefined, never a field error', () => {
+    for (const value of [undefined, null, 42, 'a'.repeat(RETURN_TO_MAX_LENGTH + 1)]) {
+      expect(returnToField.safeParse(value)).toEqual({ success: true, data: undefined });
+    }
   });
 });

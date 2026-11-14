@@ -1,8 +1,11 @@
 import { z } from 'zod';
-import { emailField } from './fields';
+import { emailField, returnToField } from './fields';
 
-/** `POST /api/auth/register` `{ email }`; the password is set later from the mailed link. */
-export const registerSchema = z.object({ email: emailField });
+/**
+ * `POST /api/auth/register` `{ email, returnTo? }`; the password is set later from the mailed link,
+ * which carries `returnTo` (checked with `safeReturnTo`) so the user lands back where they started.
+ */
+export const registerSchema = z.object({ email: emailField, returnTo: returnToField });
 
 /** `POST /api/auth/verify-email/resend` takes the same body as registration. */
 export const resendVerificationSchema = registerSchema;

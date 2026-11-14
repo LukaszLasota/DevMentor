@@ -57,6 +57,10 @@ function setup({ user = makeUser(), sessionSecret = SECRET, previousSecret }: Se
     clock,
     events: events as unknown as Cradle['events'],
     logger: { info: vi.fn(), warn: vi.fn() } as unknown as Cradle['logger'],
+    // Not used by the session check.
+    mailSender: {} as Cradle['mailSender'],
+    passwordHasher: {} as Cradle['passwordHasher'],
+    rateLimiter: {} as Cradle['rateLimiter'],
   });
   const deps = { em: em as unknown as Cradle['em'], env, clock, accountService };
 

@@ -1,13 +1,32 @@
-import { UniqueConstraintViolationException, User, type Role } from '@devmentor/db';
+import {
+  EMAIL_VERIFICATION_TTL_MS,
+  EmailVerificationToken,
+  UniqueConstraintViolationException,
+  User,
+  type Role,
+} from '@devmentor/db';
 import { describe, expect, it, vi } from 'vitest';
 import { parseEnv } from '../../config/env';
 import type { Cradle } from '../../container/cradle';
+import { isAppError, ServiceUnavailableError, TooManyRequestsError } from '../../http/errors';
+import type { MailMessage } from '../../mail/mail-sender';
+import { hashPassword, PasswordHasher, verifyPassword } from '../../security/password';
+import {
+  REGISTER_RATE_LIMITS,
+  RESEND_RATE_LIMITS,
+  SIGN_IN_RATE_LIMITS,
+  rateLimitChecks,
+  type RateLimitCheck,
+} from '../../security/rate-limit';
+import { hashToken } from '../../security/token';
 import {
   AccountService,
   effectiveRoles,
   GithubAccountConflictError,
+  INVALID_CREDENTIALS_MESSAGE,
   normalizeEmail,
   normalizeRoles,
+  VerificationLinkInvalidError,
 } from './account.service';
 import type { GithubProfile } from './github-oauth.service';
 
@@ -40,46 +59,108 @@ function makeUser(overrides: Partial<User> = {}): User {
   });
 }
 
+type Row = Record<string, unknown>;
+
+/** Equal fields; `{ $gt: date }`; a string compared with a reference's `id` (`{ user: userId }`). */
+function matches(row: object, where: Record<string, unknown>): boolean {
+  return Object.entries(where).every(([key, expected]) => {
+    const actual = (row as Row)[key];
+
+    if (expected !== null && typeof expected === 'object' && '$gt' in expected) {
+      return actual instanceof Date && actual > (expected as { $gt: Date }).$gt;
+    }
+
+    if (typeof expected === 'string' && actual !== null && typeof actual === 'object' && 'id' in actual) {
+      return actual.id === expected;
+    }
+
+    return actual === expected;
+  });
+}
+
 /**
- * In-memory stand-in for the scoped `EntityManager`: `findOne` matches on equal fields, `create`
- * adds a row (like `persistOnCreate`), `flush` resolves unless a test makes it fail.
+ * In-memory stand-in for the scoped `EntityManager` over `users` and `email_verification_tokens`:
+ * `findOne` matches (see `matches`), `create` adds a row (like `persistOnCreate`), `nativeUpdate`
+ * changes the matching rows and returns the count, `transactional` runs the callback on the same
+ * fake and flushes, `flush` resolves unless a test makes it fail.
  */
-function fakeEm(rows: User[]) {
-  return {
-    findOne: vi.fn(async (_entity: unknown, where: Record<string, unknown>) =>
-      rows.find((row) => Object.entries(where).every(([key, value]) => row[key as keyof User] === value)) ?? null,
-    ),
-    create: vi.fn((_entity: unknown, data: Partial<User>) => {
-      const user = makeUser(data);
-      rows.push(user);
+function fakeEm(users: User[], tokens: EmailVerificationToken[]) {
+  const table = (entity: unknown): object[] => (entity === EmailVerificationToken ? tokens : users);
+  const em = {
+    findOne: vi.fn(async (entity: unknown, where: Record<string, unknown>) => table(entity).find((row) => matches(row, where)) ?? null),
+    findOneOrFail: vi.fn(async (entity: unknown, where: Record<string, unknown>) => {
+      const row = table(entity).find((candidate) => matches(candidate, where));
+      if (row === undefined) throw new Error('not found');
+      return row;
+    }),
+    create: vi.fn((entity: unknown, data: Row) => {
+      if (entity === EmailVerificationToken) {
+        nextId += 1;
+        const token = Object.assign(new EmailVerificationToken(), { id: `token-${nextId}`, usedAt: null, ...data });
+        tokens.push(token);
+        return token;
+      }
+
+      const user = makeUser(data as Partial<User>);
+      users.push(user);
       return user;
     }),
     // Conditional UPDATE: changes the rows matching every `where` field, returns the affected count.
-    nativeUpdate: vi.fn(async (_entity: unknown, where: Record<string, unknown>, data: Partial<User>) => {
-      const matches = rows.filter((row) => Object.entries(where).every(([key, value]) => row[key as keyof User] === value));
-      matches.forEach((row) => Object.assign(row, data));
-      return matches.length;
+    nativeUpdate: vi.fn(async (entity: unknown, where: Record<string, unknown>, data: Row) => {
+      const hits = table(entity).filter((row) => matches(row, where));
+      hits.forEach((row) => Object.assign(row, data));
+      return hits.length;
     }),
     // Rows are the managed entities themselves, so a refresh has nothing to reload.
     refreshOrFail: vi.fn(async (user: User) => user),
     flush: vi.fn(async () => undefined),
     clear: vi.fn(),
+    transactional: vi.fn(async <T>(callback: (inner: unknown) => Promise<T>): Promise<T> => {
+      const result = await callback(em);
+      await em.flush();
+      return result;
+    }),
   };
+
+  return em;
 }
 
-function setup(rows: User[] = [], operatorEmails = OPERATOR) {
-  const em = fakeEm(rows);
+/** Fast scrypt cost for unit tests. */
+const TEST_SCRYPT = { logN: 4, r: 8, p: 1 };
+const APP_URL = 'https://app.devmentor.test';
+
+interface SetupOptions {
+  operatorEmails?: string;
+  appUrl?: string | null;
+  tokens?: EmailVerificationToken[];
+  passwordHasher?: PasswordHasher;
+}
+
+function setup(rows: User[] = [], operatorEmails = OPERATOR, options: SetupOptions = {}) {
+  const tokens = options.tokens ?? [];
+  const em = fakeEm(rows, tokens);
   const events = { emit: vi.fn(async () => undefined) };
   const logger = { info: vi.fn(), warn: vi.fn() };
+  const mailSender = { send: vi.fn<(message: MailMessage) => Promise<void>>(async () => undefined) };
+  const rateLimiter = { consumeAll: vi.fn<(checks: readonly RateLimitCheck[]) => Promise<void>>(async () => undefined) };
+  const passwordHasher = options.passwordHasher ?? new PasswordHasher({ concurrency: 1, waitMs: 20, params: TEST_SCRYPT });
+  const appUrl = options.appUrl === undefined ? APP_URL : options.appUrl;
   const service = new AccountService({
     em: em as unknown as Cradle['em'],
-    env: parseEnv({ DATABASE_URL: 'postgres://u:p@localhost:5432/db', OPERATOR_EMAILS: operatorEmails }),
+    env: parseEnv({
+      DATABASE_URL: 'postgres://u:p@localhost:5432/db',
+      OPERATOR_EMAILS: operatorEmails,
+      ...(appUrl === null ? {} : { APP_URL: appUrl }),
+    }),
     clock: { now: () => NOW },
     events: events as unknown as Cradle['events'],
     logger: logger as unknown as Cradle['logger'],
+    mailSender,
+    passwordHasher,
+    rateLimiter: rateLimiter as unknown as Cradle['rateLimiter'],
   });
 
-  return { service, em, events, logger, rows };
+  return { service, em, events, logger, rows, tokens, mailSender, rateLimiter, passwordHasher };
 }
 
 function uniqueViolation(): UniqueConstraintViolationException {
@@ -417,5 +498,515 @@ describe('AccountService.signOut', () => {
 
     await expect(service.signOut('missing')).resolves.toBeUndefined();
     expect(em.flush).not.toHaveBeenCalled();
+  });
+});
+
+const PASSWORD = 'correct horse battery';
+const IP = '203.0.113.7';
+
+/** The raw token and the fragment parameters of the link in a sent mail. */
+function linkIn(message: MailMessage): { url: URL; token: string; returnTo: string | null } {
+  const match = /https:\/\/\S+/.exec(message.text);
+  expect(match).not.toBeNull();
+  const url = new URL(match![0]);
+  const fragment = new URLSearchParams(url.hash.slice(1));
+
+  return { url, token: fragment.get('token') ?? '', returnTo: fragment.get('returnTo') };
+}
+
+function makeToken(user: User, overrides: Partial<EmailVerificationToken> & { raw?: string } = {}): EmailVerificationToken {
+  const { raw = 'raw-token', ...rest } = overrides;
+  nextId += 1;
+
+  return Object.assign(new EmailVerificationToken(), {
+    id: `token-${nextId}`,
+    user,
+    tokenHash: hashToken(raw),
+    expiresAt: new Date(NOW.getTime() + EMAIL_VERIFICATION_TTL_MS),
+    usedAt: null,
+    ...rest,
+  });
+}
+
+function pendingUser(overrides: Partial<User> = {}): User {
+  return makeUser({ email: 'new@devmentor.test', passwordHash: null, emailVerifiedAt: null, ...overrides });
+}
+
+describe('AccountService.startRegistration', () => {
+  it('new email: consumes the register limits, creates an unverified mentee without a password and mails a link', async () => {
+    const { service, rows, tokens, em, rateLimiter, mailSender, logger } = setup();
+
+    await service.startRegistration({ email: ' New@DevMentor.TEST ' }, { ip: IP });
+
+    expect(rateLimiter.consumeAll).toHaveBeenCalledWith(
+      rateLimitChecks(REGISTER_RATE_LIMITS, { email: 'new@devmentor.test', ip: IP }),
+    );
+    expect(rows).toHaveLength(1);
+    const [user] = rows;
+    expect(user).toMatchObject({ email: 'new@devmentor.test', roles: ['mentee'], emailVerifiedAt: null });
+    expect(user.passwordHash).toBeUndefined();
+    expect(em.flush).toHaveBeenCalledTimes(1);
+    expect(tokens).toHaveLength(1);
+    expect(tokens[0]).toMatchObject({ user, usedAt: null, expiresAt: new Date(NOW.getTime() + EMAIL_VERIFICATION_TTL_MS) });
+
+    expect(mailSender.send).toHaveBeenCalledTimes(1);
+    const [message] = mailSender.send.mock.calls[0];
+    expect(message).toMatchObject({ to: 'new@devmentor.test', subject: 'Finish your DevMentor registration' });
+    const link = linkIn(message);
+    expect(`${link.url.origin}${link.url.pathname}`).toBe(`${APP_URL}/verify-email`);
+    expect(link.url.search).toBe('');
+    expect(link.returnTo).toBeNull();
+    // Only the hash is stored; the raw token exists only in the mail.
+    expect(tokens[0].tokenHash).toBe(hashToken(link.token));
+    expect(tokens[0].tokenHash).not.toBe(link.token);
+    expect(logger.info).toHaveBeenCalledWith({ userId: user.id }, 'Registration started');
+  });
+
+  it('never grants operator at registration (the email is not verified yet)', async () => {
+    const { service, rows } = setup();
+
+    await service.startRegistration({ email: OPERATOR }, { ip: null });
+
+    expect(rows[0].roles).toEqual(['mentee']);
+  });
+
+  it('carries a safe returnTo inside the link fragment (L02)', async () => {
+    const { service, mailSender } = setup();
+
+    await service.startRegistration({ email: 'new@devmentor.test', returnTo: '/invitations/abc?from=mail' }, { ip: null });
+
+    const link = linkIn(mailSender.send.mock.calls[0][0]);
+    expect(link.returnTo).toBe('/invitations/abc?from=mail');
+    expect(link.url.search).toBe('');
+  });
+
+  it.each(['//evil.test/x', 'https://evil.test', '/sign-in', '/api/auth/me'])('drops an unsafe returnTo %s from the link', async (returnTo) => {
+    const { service, mailSender } = setup();
+
+    await service.startRegistration({ email: 'new@devmentor.test', returnTo }, { ip: null });
+
+    expect(linkIn(mailSender.send.mock.calls[0][0]).returnTo).toBeNull();
+  });
+
+  it.each([
+    ['a GitHub-only account', { githubId: 77, emailVerifiedAt: EARLIER }],
+    ['a verified account with a password', { passwordHash: '$scrypt$x', emailVerifiedAt: EARLIER }],
+    ['a pending registration', { passwordHash: null, emailVerifiedAt: null }],
+  ])('existing email (%s): sends "someone tried to register" and changes nothing', async (_kind, fields) => {
+    const existing = makeUser({ email: 'taken@devmentor.test', ...fields });
+    const snapshot = { ...existing };
+    const { service, rows, tokens, em, mailSender } = setup([existing]);
+
+    await expect(service.startRegistration({ email: 'Taken@devmentor.test' }, { ip: IP })).resolves.toBeUndefined();
+
+    expect(rows).toEqual([existing]);
+    expect({ ...existing }).toEqual(snapshot);
+    expect(tokens).toEqual([]);
+    expect(em.create).not.toHaveBeenCalled();
+    expect(em.flush).not.toHaveBeenCalled();
+    expect(mailSender.send).toHaveBeenCalledTimes(1);
+    const [message] = mailSender.send.mock.calls[0];
+    expect(message).toMatchObject({ to: 'taken@devmentor.test', subject: 'Someone tried to register with your email' });
+    expect(message.text).toContain(`${APP_URL}/sign-in`);
+    expect(message.text).toContain(`${APP_URL}/register`);
+    expect(message.text).not.toContain('#token=');
+  });
+
+  it('a second registration of the same email creates nothing more and mails the owner instead', async () => {
+    const { service, rows, tokens, mailSender } = setup();
+
+    await service.startRegistration({ email: 'new@devmentor.test' }, { ip: null });
+    await service.startRegistration({ email: 'new@devmentor.test' }, { ip: null });
+
+    expect(rows).toHaveLength(1);
+    expect(tokens).toHaveLength(1);
+    expect(mailSender.send.mock.calls.map(([message]) => message.subject)).toEqual([
+      'Finish your DevMentor registration',
+      'Someone tried to register with your email',
+    ]);
+  });
+
+  it('a parallel registration of the same email that commits first → the owner mail, no link', async () => {
+    const { service, em, mailSender } = setup();
+    em.flush.mockRejectedValueOnce(uniqueViolation());
+
+    await service.startRegistration({ email: 'new@devmentor.test' }, { ip: null });
+
+    expect(em.clear).toHaveBeenCalledTimes(1);
+    expect(mailSender.send).toHaveBeenCalledTimes(1);
+    expect(mailSender.send.mock.calls[0][0].subject).toBe('Someone tried to register with your email');
+  });
+
+  it('propagates other write errors without sending mail', async () => {
+    const { service, em, mailSender } = setup();
+    em.flush.mockRejectedValueOnce(new Error('connection lost'));
+
+    await expect(service.startRegistration({ email: 'new@devmentor.test' }, { ip: null })).rejects.toThrow('connection lost');
+    expect(em.clear).not.toHaveBeenCalled();
+    expect(mailSender.send).not.toHaveBeenCalled();
+  });
+
+  it('mail failure: the 503 propagates and the committed pending account stays (resend completes it)', async () => {
+    const { service, rows, tokens, mailSender } = setup();
+    mailSender.send.mockRejectedValueOnce(new ServiceUnavailableError('Mail delivery is unavailable.'));
+
+    const error = await service.startRegistration({ email: 'new@devmentor.test' }, { ip: null }).catch((caught: unknown) => caught);
+
+    expect(isAppError(error) && error.status).toBe(503);
+    expect(rows).toHaveLength(1);
+    expect(tokens).toHaveLength(1);
+  });
+
+  it('rate limited: the 429 propagates before any lookup, write or mail', async () => {
+    const { service, em, rateLimiter, mailSender } = setup();
+    rateLimiter.consumeAll.mockRejectedValueOnce(new TooManyRequestsError(120));
+
+    await expect(service.startRegistration({ email: 'new@devmentor.test' }, { ip: IP })).rejects.toMatchObject({
+      status: 429,
+      retryAfterSeconds: 120,
+    });
+    expect(em.findOne).not.toHaveBeenCalled();
+    expect(em.create).not.toHaveBeenCalled();
+    expect(mailSender.send).not.toHaveBeenCalled();
+  });
+
+  it('without APP_URL: 503, nothing written or sent', async () => {
+    const { service, em, mailSender, logger } = setup([], OPERATOR, { appUrl: null });
+
+    await expect(service.startRegistration({ email: 'new@devmentor.test' }, { ip: null })).rejects.toMatchObject({
+      status: 503,
+      code: 'SERVICE_UNAVAILABLE',
+    });
+    expect(em.create).not.toHaveBeenCalled();
+    expect(mailSender.send).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('APP_URL'));
+  });
+});
+
+describe('AccountService.resendVerification', () => {
+  it('pending account: consumes the resend limit, retires older unused links and mails a new one', async () => {
+    const user = pendingUser();
+    const older = makeToken(user, { raw: 'older' });
+    const used = makeToken(user, { raw: 'used', usedAt: EARLIER, expiresAt: new Date(NOW.getTime() + 1000) });
+    const other = makeToken(makeUser({ email: 'other@devmentor.test' }), { raw: 'other' });
+    const { service, tokens, rateLimiter, mailSender, em } = setup([user], OPERATOR, { tokens: [older, used, other] });
+
+    await service.resendVerification({ email: 'NEW@devmentor.test', returnTo: '/invitations/x' }, { ip: IP });
+
+    expect(rateLimiter.consumeAll).toHaveBeenCalledWith(rateLimitChecks(RESEND_RATE_LIMITS, { email: 'new@devmentor.test', ip: IP }));
+    expect(older.expiresAt).toEqual(NOW);
+    expect(used.expiresAt).toEqual(new Date(NOW.getTime() + 1000));
+    expect(other.expiresAt).toEqual(new Date(NOW.getTime() + EMAIL_VERIFICATION_TTL_MS));
+    expect(tokens).toHaveLength(4);
+    expect(em.flush).toHaveBeenCalledTimes(1);
+
+    const [message] = mailSender.send.mock.calls[0];
+    expect(message).toMatchObject({ to: 'new@devmentor.test', subject: 'Finish your DevMentor registration' });
+    const link = linkIn(message);
+    expect(tokens[3]).toMatchObject({ user, tokenHash: hashToken(link.token), usedAt: null });
+    expect(link.returnTo).toBe('/invitations/x');
+  });
+
+  it('a retired link no longer sets the password; the new one does', async () => {
+    const user = pendingUser();
+    const { service, mailSender } = setup([user], OPERATOR, { tokens: [makeToken(user, { raw: 'older' })] });
+
+    await service.resendVerification({ email: user.email }, { ip: null });
+
+    await expect(service.setPasswordFromLink({ token: 'older', password: PASSWORD }, null)).rejects.toBeInstanceOf(
+      VerificationLinkInvalidError,
+    );
+    const { token } = linkIn(mailSender.send.mock.calls[0][0]);
+    await expect(service.setPasswordFromLink({ token, password: PASSWORD }, null)).resolves.toMatchObject({ user });
+  });
+
+  it('a GitHub-only account (no password yet) also gets a link, as the spec words it', async () => {
+    const user = makeUser({ email: 'gh@devmentor.test', githubId: 9, emailVerifiedAt: EARLIER });
+    const { service, mailSender } = setup([user]);
+
+    await service.resendVerification({ email: user.email }, { ip: null });
+
+    expect(mailSender.send).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['an unknown email', []],
+    ['an account with a password', [makeUser({ email: 'new@devmentor.test', passwordHash: '$scrypt$x' })]],
+  ])('%s: resolves the same way, nothing written or sent', async (_kind, users) => {
+    const { service, em, mailSender } = setup(users as User[]);
+
+    await expect(service.resendVerification({ email: 'new@devmentor.test' }, { ip: null })).resolves.toBeUndefined();
+    expect(em.nativeUpdate).not.toHaveBeenCalled();
+    expect(em.create).not.toHaveBeenCalled();
+    expect(mailSender.send).not.toHaveBeenCalled();
+  });
+
+  it('mail failure: the 503 propagates', async () => {
+    const { service, mailSender } = setup([pendingUser()]);
+    mailSender.send.mockRejectedValueOnce(new ServiceUnavailableError());
+
+    await expect(service.resendVerification({ email: 'new@devmentor.test' }, { ip: null })).rejects.toMatchObject({ status: 503 });
+  });
+
+  it('rate limited: the 429 propagates before any lookup', async () => {
+    const { service, em, rateLimiter } = setup([pendingUser()]);
+    rateLimiter.consumeAll.mockRejectedValueOnce(new TooManyRequestsError(60));
+
+    await expect(service.resendVerification({ email: 'new@devmentor.test' }, { ip: null })).rejects.toMatchObject({ status: 429 });
+    expect(em.findOne).not.toHaveBeenCalled();
+  });
+
+  it('without APP_URL: 503 before any lookup', async () => {
+    const { service, em } = setup([pendingUser()], OPERATOR, { appUrl: null });
+
+    await expect(service.resendVerification({ email: 'new@devmentor.test' }, { ip: null })).rejects.toMatchObject({ status: 503 });
+    expect(em.findOne).not.toHaveBeenCalled();
+  });
+});
+
+describe('AccountService.setPasswordFromLink', () => {
+  it('sets the password, verifies the email, bumps session_version and consumes the token in one transaction', async () => {
+    const user = pendingUser({ sessionVersion: 2 });
+    const token = makeToken(user, { raw: 'link-1' });
+    const { service, em, events, logger } = setup([user], OPERATOR, { tokens: [token] });
+
+    const result = await service.setPasswordFromLink({ token: 'link-1', password: PASSWORD }, null);
+
+    expect(result).toEqual({ user, redirectTo: '/mentors' });
+    expect(user).toMatchObject({ emailVerifiedAt: NOW, sessionVersion: 3, roles: ['mentee'] });
+    expect(await verifyPassword(PASSWORD, user.passwordHash!)).toBe(true);
+    expect(token.usedAt).toEqual(NOW);
+    expect(em.transactional).toHaveBeenCalledTimes(1);
+    expect(em.nativeUpdate).toHaveBeenCalledWith(
+      EmailVerificationToken,
+      { tokenHash: hashToken('link-1'), usedAt: null, expiresAt: { $gt: NOW } },
+      { usedAt: NOW },
+    );
+    expect(events.emit).not.toHaveBeenCalled();
+    expect(logger.info).toHaveBeenCalledWith({ userId: user.id }, 'Password set from verification link');
+  });
+
+  it('keeps an earlier verification date (e.g. GitHub linked the pending account meanwhile)', async () => {
+    const user = pendingUser({ githubId: 5, emailVerifiedAt: EARLIER });
+    const { service } = setup([user], OPERATOR, { tokens: [makeToken(user)] });
+
+    await service.setPasswordFromLink({ token: 'raw-token', password: PASSWORD }, null);
+
+    expect(user.emailVerifiedAt).toBe(EARLIER);
+  });
+
+  it('redirects to the carried returnTo when it is safe, else to homeFor(roles)', async () => {
+    const first = pendingUser();
+    const second = pendingUser({ email: 'two@devmentor.test' });
+    const { service } = setup([first, second], OPERATOR, {
+      tokens: [makeToken(first, { raw: 'a' }), makeToken(second, { raw: 'b' })],
+    });
+
+    await expect(service.setPasswordFromLink({ token: 'a', password: PASSWORD, returnTo: '/invitations/x' }, null)).resolves.toMatchObject({
+      redirectTo: '/invitations/x',
+    });
+    await expect(service.setPasswordFromLink({ token: 'b', password: PASSWORD, returnTo: '//evil.test' }, null)).resolves.toMatchObject({
+      redirectTo: '/mentors',
+    });
+  });
+
+  it('an allowlisted email becomes operator once verified: roles_changed after the commit, lands on /admin', async () => {
+    const user = pendingUser({ email: OPERATOR });
+    const { service, em, events } = setup([user], OPERATOR, { tokens: [makeToken(user)] });
+    const order: string[] = [];
+    em.flush.mockImplementation(async () => {
+      order.push('flush');
+    });
+    events.emit.mockImplementation(async () => {
+      order.push('emit');
+    });
+
+    const result = await service.setPasswordFromLink({ token: 'raw-token', password: PASSWORD }, null);
+
+    expect(result.redirectTo).toBe('/admin');
+    expect(user.roles).toEqual(['mentee', 'operator']);
+    expect(order).toEqual(['flush', 'emit']);
+    expect(events.emit).toHaveBeenCalledWith('auth.user.roles_changed', { userId: user.id, roles: ['mentee', 'operator'] });
+  });
+
+  it('accepts a session of the same account', async () => {
+    const user = pendingUser();
+    const { service } = setup([user], OPERATOR, { tokens: [makeToken(user)] });
+
+    await expect(service.setPasswordFromLink({ token: 'raw-token', password: PASSWORD }, user.id)).resolves.toMatchObject({ user });
+  });
+
+  it.each([
+    ['unknown', () => [], 'raw-token'],
+    ['already used', (user: User) => [makeToken(user, { usedAt: EARLIER })], 'raw-token'],
+    ['expired', (user: User) => [makeToken(user, { expiresAt: new Date(NOW.getTime() - 1) })], 'raw-token'],
+    ['retired by a resend (expires now)', (user: User) => [makeToken(user, { expiresAt: NOW })], 'raw-token'],
+  ])('%s link: 400 VERIFICATION_LINK_INVALID, no hashing, nothing changed', async (_kind, tokensFor, raw) => {
+    const user = pendingUser();
+    const snapshot = { ...user };
+    const { service, em, passwordHasher } = setup([user], OPERATOR, { tokens: tokensFor(user) });
+    const withSlot = vi.spyOn(passwordHasher, 'withSlot');
+
+    const result = service.setPasswordFromLink({ token: raw, password: PASSWORD }, null);
+
+    await expect(result).rejects.toBeInstanceOf(VerificationLinkInvalidError);
+    await expect(result).rejects.toMatchObject({ status: 400, code: 'VERIFICATION_LINK_INVALID' });
+    expect(withSlot).not.toHaveBeenCalled();
+    expect(em.nativeUpdate).not.toHaveBeenCalled();
+    expect({ ...user }).toEqual(snapshot);
+  });
+
+  it('reuse: the second use of a link is refused and changes nothing', async () => {
+    const user = pendingUser();
+    const { service } = setup([user], OPERATOR, { tokens: [makeToken(user)] });
+    await service.setPasswordFromLink({ token: 'raw-token', password: PASSWORD }, null);
+    const after = { ...user };
+
+    await expect(service.setPasswordFromLink({ token: 'raw-token', password: 'another password!' }, null)).rejects.toBeInstanceOf(
+      VerificationLinkInvalidError,
+    );
+    expect({ ...user }).toEqual(after);
+  });
+
+  it('L13: a session of another account refuses the link before anything changes', async () => {
+    const user = pendingUser();
+    const token = makeToken(user);
+    const { service, em, passwordHasher, logger } = setup([user], OPERATOR, { tokens: [token] });
+    const withSlot = vi.spyOn(passwordHasher, 'withSlot');
+
+    await expect(service.setPasswordFromLink({ token: 'raw-token', password: PASSWORD }, 'someone-else')).rejects.toMatchObject({
+      code: 'VERIFICATION_LINK_INVALID',
+    });
+    expect(withSlot).not.toHaveBeenCalled();
+    expect(em.nativeUpdate).not.toHaveBeenCalled();
+    expect(token.usedAt).toBeNull();
+    expect(user.passwordHash).toBeNull();
+    expect(logger.warn).toHaveBeenCalledWith({ userId: 'someone-else' }, expect.stringContaining('another account'));
+  });
+
+  it('a parallel use that consumed the token after our check: 400 and the user is left alone', async () => {
+    const user = pendingUser({ sessionVersion: 1 });
+    const token = makeToken(user);
+    const { service, em } = setup([user], OPERATOR, { tokens: [token] });
+    em.nativeUpdate.mockImplementationOnce(async () => {
+      token.usedAt = NOW;
+      return 0;
+    });
+
+    await expect(service.setPasswordFromLink({ token: 'raw-token', password: PASSWORD }, null)).rejects.toBeInstanceOf(
+      VerificationLinkInvalidError,
+    );
+    expect(em.findOneOrFail).not.toHaveBeenCalled();
+    expect(user).toMatchObject({ passwordHash: null, sessionVersion: 1, emailVerifiedAt: null });
+  });
+
+  it('a saturated hashing gate answers 503 and leaves the link usable', async () => {
+    const user = pendingUser();
+    const token = makeToken(user);
+    const { service, em, passwordHasher } = setup([user], OPERATOR, { tokens: [token] });
+    let release!: () => void;
+    const held = passwordHasher.withSlot(() => new Promise<void>((resolve) => (release = resolve)));
+
+    await expect(service.setPasswordFromLink({ token: 'raw-token', password: PASSWORD }, null)).rejects.toMatchObject({
+      status: 503,
+      code: 'SERVICE_UNAVAILABLE',
+    });
+    expect(em.nativeUpdate).not.toHaveBeenCalled();
+    expect(token.usedAt).toBeNull();
+
+    release();
+    await held;
+    await expect(service.setPasswordFromLink({ token: 'raw-token', password: PASSWORD }, null)).resolves.toMatchObject({ user });
+  });
+});
+
+describe('AccountService.verifyPassword', () => {
+  async function withPassword(overrides: Partial<User> = {}): Promise<User> {
+    return makeUser({ email: 'ada@devmentor.test', emailVerifiedAt: EARLIER, passwordHash: await hashPassword(PASSWORD, TEST_SCRYPT), ...overrides });
+  }
+
+  it('returns the user for the right password after consuming the sign-in limits', async () => {
+    const user = await withPassword();
+    const { service, rateLimiter } = setup([user]);
+
+    await expect(service.verifyPassword({ email: ' Ada@DevMentor.test', password: PASSWORD }, { ip: IP })).resolves.toBe(user);
+    expect(rateLimiter.consumeAll).toHaveBeenCalledWith(rateLimitChecks(SIGN_IN_RATE_LIMITS, { email: 'ada@devmentor.test', ip: IP }));
+  });
+
+  it('reconciles operator on success', async () => {
+    const user = await withPassword({ email: OPERATOR });
+    const { service, events } = setup([user]);
+
+    await service.verifyPassword({ email: OPERATOR, password: PASSWORD }, { ip: null });
+
+    expect(user.roles).toEqual(['mentee', 'operator']);
+    expect(events.emit).toHaveBeenCalledWith('auth.user.roles_changed', { userId: user.id, roles: ['mentee', 'operator'] });
+  });
+
+  it('a wrong password → 401 "Invalid email or password."', async () => {
+    const { service } = setup([await withPassword()]);
+
+    await expect(service.verifyPassword({ email: 'ada@devmentor.test', password: 'wrong password' }, { ip: null })).rejects.toMatchObject({
+      status: 401,
+      code: 'UNAUTHORIZED',
+      message: INVALID_CREDENTIALS_MESSAGE,
+    });
+  });
+
+  it.each([
+    ['an unknown email', []],
+    ['an account without a password (GitHub-only or pending)', [makeUser({ email: 'ada@devmentor.test', githubId: 3 })]],
+  ])('%s → the same 401 through the dummy-hash path', async (_kind, users) => {
+    const verify = vi.fn(async () => false);
+    const passwordHasher = {
+      withSlot: <T>(fn: (hashing: { hash: () => Promise<string>; verify: typeof verify }) => Promise<T>) =>
+        fn({ hash: async () => 'never', verify }),
+    } as unknown as PasswordHasher;
+    const { service } = setup(users as User[], OPERATOR, { passwordHasher });
+
+    await expect(service.verifyPassword({ email: 'ada@devmentor.test', password: PASSWORD }, { ip: null })).rejects.toMatchObject({
+      status: 401,
+      message: INVALID_CREDENTIALS_MESSAGE,
+    });
+    expect(verify).toHaveBeenCalledWith(PASSWORD, null);
+  });
+
+  it('rate limited: the 429 propagates before any lookup or hashing', async () => {
+    const { service, em, rateLimiter } = setup([await withPassword()]);
+    rateLimiter.consumeAll.mockRejectedValueOnce(new TooManyRequestsError(300));
+
+    await expect(service.verifyPassword({ email: 'ada@devmentor.test', password: PASSWORD }, { ip: IP })).rejects.toMatchObject({
+      status: 429,
+      retryAfterSeconds: 300,
+    });
+    expect(em.findOne).not.toHaveBeenCalled();
+  });
+
+  it('a saturated hashing gate answers 503 without consuming the limits', async () => {
+    const { service, rateLimiter, passwordHasher } = setup([await withPassword()]);
+    let release!: () => void;
+    const held = passwordHasher.withSlot(() => new Promise<void>((resolve) => (release = resolve)));
+
+    await expect(service.verifyPassword({ email: 'ada@devmentor.test', password: PASSWORD }, { ip: null })).rejects.toMatchObject({
+      status: 503,
+    });
+    expect(rateLimiter.consumeAll).not.toHaveBeenCalled();
+
+    release();
+    await held;
+  });
+});
+
+describe('AccountService: GitHub sign-in on a registration started by email (rule 2)', () => {
+  it('completes the pending account: linked, verified, the unused link still sets a password later', async () => {
+    const { service, rows, mailSender } = setup();
+    await service.startRegistration({ email: PROFILE.email }, { ip: null });
+    const { token } = linkIn(mailSender.send.mock.calls[0][0]);
+
+    const user = await service.resolveGithubAccount(PROFILE);
+
+    expect(rows).toEqual([user]);
+    expect(user).toMatchObject({ githubId: PROFILE.githubId, emailVerifiedAt: NOW });
+    await expect(service.setPasswordFromLink({ token, password: PASSWORD }, user.id)).resolves.toMatchObject({ user });
   });
 });

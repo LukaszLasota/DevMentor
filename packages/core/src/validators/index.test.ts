@@ -27,6 +27,7 @@ describe('@devmentor/core/validators', () => {
         'EMAIL_MAX_LENGTH',
         'PASSWORD_MAX_LENGTH',
         'PASSWORD_MIN_LENGTH',
+        'RETURN_TO_MAX_LENGTH',
         'TOKEN_MAX_LENGTH',
         'registerSchema',
         'resendVerificationSchema',

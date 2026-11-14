@@ -25,6 +25,13 @@ describe('registerSchema', () => {
     expect(fieldErrors(registerSchema, {})).toEqual({ email: ['Enter your email.'] });
   });
 
+  it('carries an optional returnTo', () => {
+    expect(registerSchema.parse({ email: 'a@example.com', returnTo: '/invitations/x' })).toEqual({
+      email: 'a@example.com',
+      returnTo: '/invitations/x',
+    });
+  });
+
   it('is reused for resend', () => {
     expect(resendVerificationSchema).toBe(registerSchema);
   });
@@ -51,6 +58,12 @@ describe('setPasswordSchema', () => {
     expect(setPasswordSchema.parse({ token: 'abc_DEF-123', password: ' twelve chars ' })).toEqual({
       token: 'abc_DEF-123',
       password: ' twelve chars ',
+    });
+  });
+
+  it('carries the optional returnTo from the link', () => {
+    expect(setPasswordSchema.parse({ token: 't', password: 'p'.repeat(12), returnTo: '/mentors' })).toMatchObject({
+      returnTo: '/mentors',
     });
   });
 

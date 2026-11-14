@@ -7,6 +7,8 @@ export const PASSWORD_MIN_LENGTH = 12;
 export const PASSWORD_MAX_LENGTH = 128;
 /** `randomToken()` yields 43 characters; the bound only stops oversized input. */
 export const TOKEN_MAX_LENGTH = 256;
+/** Upper bound for a carried `returnTo` path; longer values are dropped, not reported. */
+export const RETURN_TO_MAX_LENGTH = 2048;
 
 // One check, so a bad token yields exactly one message.
 const LINK_TOKEN = new RegExp(`^[A-Za-z0-9_-]{1,${TOKEN_MAX_LENGTH}}$`);
@@ -39,3 +41,9 @@ export const currentPasswordField = z
 export const linkTokenField = z
   .string({ error: 'This link is invalid.' })
   .regex(LINK_TOKEN, 'This link is invalid.');
+
+/**
+ * Optional page to land on after the flow (L02). Never a field error: a missing, non-string or
+ * oversized value parses to `undefined`; the server still checks the path with `safeReturnTo`.
+ */
+export const returnToField = z.string().max(RETURN_TO_MAX_LENGTH).optional().catch(undefined);

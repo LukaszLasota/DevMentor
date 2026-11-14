@@ -1,6 +1,25 @@
-import { DEFAULT_ROLES, ROLES, UniqueConstraintViolationException, User, type Role } from '@devmentor/db';
+import {
+  DEFAULT_ROLES,
+  EMAIL_VERIFICATION_TTL_MS,
+  EmailVerificationToken,
+  ROLES,
+  UniqueConstraintViolationException,
+  User,
+  type Role,
+} from '@devmentor/db';
+import { homeFor } from '../../auth/home';
 import type { Cradle } from '../../container/cradle';
-import { AppError } from '../../http/errors';
+import { AppError, ServiceUnavailableError, UnauthorizedError } from '../../http/errors';
+import { safeReturnTo } from '../../http/return-to';
+import {
+  guardPasswordAttempt,
+  rateLimitChecks,
+  REGISTER_RATE_LIMITS,
+  RESEND_RATE_LIMITS,
+  SIGN_IN_RATE_LIMITS,
+} from '../../security/rate-limit';
+import { hashToken, randomToken } from '../../security/token';
+import { alreadyRegisteredMail, registrationMail, verificationLink } from './account-mails';
 import type { GithubProfile } from './github-oauth.service';
 
 /**
@@ -12,6 +31,51 @@ export class GithubAccountConflictError extends AppError {
   constructor(message = 'This email is already linked to a different GitHub account.', options?: ErrorOptions) {
     super(409, 'GITHUB_ACCOUNT_CONFLICT', message, options);
   }
+}
+
+/**
+ * A verification link that is unknown, used, expired, superseded by a newer one, or opened while
+ * another account is signed in (L13). Nothing is changed; the page offers a new link.
+ */
+export class VerificationLinkInvalidError extends AppError {
+  constructor(message = 'This link is invalid or has expired.', options?: ErrorOptions) {
+    super(400, 'VERIFICATION_LINK_INVALID', message, options);
+  }
+}
+
+/** The one message for every failed password sign-in, so it never reveals whether an account exists. */
+export const INVALID_CREDENTIALS_MESSAGE = 'Invalid email or password.';
+
+/** Request facts the rate limits count by; `ip` is `clientIp(...)` (null when not derivable). */
+export interface AttemptContext {
+  ip: string | null;
+}
+
+export interface StartRegistrationInput {
+  email: string;
+  /** Page to land on after the password is set (L02); dropped unless `safeReturnTo` accepts it. */
+  returnTo?: string;
+}
+
+export type ResendVerificationInput = StartRegistrationInput;
+
+export interface SetPasswordFromLinkInput {
+  token: string;
+  password: string;
+  /** The `returnTo` the link's fragment carried. */
+  returnTo?: string;
+}
+
+export interface SetPasswordFromLinkResult {
+  /** Verified, with the password set and `session_version` bumped: issue a fresh `dm_session`. */
+  user: User;
+  /** `safeReturnTo(returnTo, homeFor(roles))`. */
+  redirectTo: string;
+}
+
+export interface VerifyPasswordInput {
+  email: string;
+  password: string;
 }
 
 /** Lower-cases and trims an email; matching uses nothing else (no alias or dot stripping). */
@@ -43,13 +107,24 @@ export function effectiveRoles(
   return normalizeRoles(isOperator ? [...others, 'operator'] : others);
 }
 
+/** The `returnTo` a link may carry: a safe path, else none (the page then uses `homeFor`). */
+function safeLinkReturnTo(returnTo: string | undefined): string | undefined {
+  return safeReturnTo(returnTo, '') || undefined;
+}
+
 function sameRoles(a: readonly Role[], b: readonly Role[]): boolean {
   return a.length === b.length && a.every((role, index) => role === b[index]);
 }
 
+type AccountServiceDeps = Pick<
+  Cradle,
+  'em' | 'env' | 'clock' | 'events' | 'logger' | 'mailSender' | 'passwordHasher' | 'rateLimiter'
+>;
+
 /**
- * Accounts: GitHub account resolution (sign-in spec rules 1–4), operator reconciliation and
- * sign-out. `users.email` is set once at creation and never rewritten.
+ * Accounts: GitHub account resolution (sign-in spec rules 1–4), email registration with the
+ * password set from the mailed link, password sign-in, operator reconciliation and sign-out.
+ * `users.email` is set once at creation and never rewritten.
  */
 export class AccountService {
   private readonly em: Cradle['em'];
@@ -57,13 +132,171 @@ export class AccountService {
   private readonly clock: Cradle['clock'];
   private readonly events: Cradle['events'];
   private readonly logger: Cradle['logger'];
+  private readonly mailSender: Cradle['mailSender'];
+  private readonly passwordHasher: Cradle['passwordHasher'];
+  private readonly rateLimiter: Cradle['rateLimiter'];
 
-  constructor({ em, env, clock, events, logger }: Pick<Cradle, 'em' | 'env' | 'clock' | 'events' | 'logger'>) {
+  constructor({ em, env, clock, events, logger, mailSender, passwordHasher, rateLimiter }: AccountServiceDeps) {
     this.em = em;
     this.env = env;
     this.clock = clock;
     this.events = events;
     this.logger = logger;
+    this.mailSender = mailSender;
+    this.passwordHasher = passwordHasher;
+    this.rateLimiter = rateLimiter;
+  }
+
+  /**
+   * `POST /api/auth/register`: resolves the same way for every email (the route answers 202), so
+   * nothing reveals whether an account exists. A new email gets an unverified mentee without a
+   * password plus a link to set one; an existing email (any kind) gets the "someone tried to
+   * register" mail and nothing changes. The user and its token are inserted in one flush (one
+   * transaction) and the mail goes out after the commit: a mail failure (503) leaves the pending
+   * account, and resend or GitHub (rule 2) completes it.
+   */
+  async startRegistration({ email: rawEmail, returnTo }: StartRegistrationInput, { ip }: AttemptContext): Promise<void> {
+    const email = normalizeEmail(rawEmail);
+    await this.rateLimiter.consumeAll(rateLimitChecks(REGISTER_RATE_LIMITS, { email, ip }));
+    const appUrl = this.requireAppUrl();
+
+    if ((await this.em.findOne(User, { email })) !== null) {
+      await this.mailSender.send(alreadyRegisteredMail(email, appUrl));
+      return;
+    }
+
+    const user = this.em.create(User, {
+      email,
+      roles: effectiveRoles(DEFAULT_ROLES, email, false, this.env.OPERATOR_EMAILS),
+    });
+    const token = this.createVerificationToken(user);
+
+    try {
+      await this.em.flush();
+    } catch (error) {
+      if (!(error instanceof UniqueConstraintViolationException)) {
+        throw error;
+      }
+
+      // A parallel registration (or GitHub sign-in) of the same email committed first.
+      this.em.clear();
+      await this.mailSender.send(alreadyRegisteredMail(email, appUrl));
+      return;
+    }
+
+    this.logger.info({ userId: user.id }, 'Registration started');
+    await this.mailSender.send(registrationMail(email, verificationLink(appUrl, token, safeLinkReturnTo(returnTo))));
+  }
+
+  /**
+   * `POST /api/auth/verify-email/resend`: a new link only for an existing account without a
+   * password; every other email resolves the same way with nothing sent. Older unused links of the
+   * user stop working (their `expires_at` moves to now), so only the newest mail is live.
+   */
+  async resendVerification({ email: rawEmail, returnTo }: ResendVerificationInput, { ip }: AttemptContext): Promise<void> {
+    const email = normalizeEmail(rawEmail);
+    await this.rateLimiter.consumeAll(rateLimitChecks(RESEND_RATE_LIMITS, { email, ip }));
+    const appUrl = this.requireAppUrl();
+    const user = await this.em.findOne(User, { email });
+
+    if (user === null || user.passwordHash != null) {
+      return;
+    }
+
+    const now = this.clock.now();
+    await this.em.nativeUpdate(
+      EmailVerificationToken,
+      { user: user.id, usedAt: null, expiresAt: { $gt: now } },
+      { expiresAt: now },
+    );
+    const token = this.createVerificationToken(user);
+    await this.em.flush();
+
+    this.logger.info({ userId: user.id }, 'Verification link resent');
+    await this.mailSender.send(registrationMail(email, verificationLink(appUrl, token, safeLinkReturnTo(returnTo))));
+  }
+
+  /**
+   * `POST /api/auth/verify-email`: sets the password, verifies the email and bumps
+   * `session_version`. Order: the link is checked first (cheap, and L13: a session of another
+   * account refuses before anything changes), then a hashing slot (a saturated gate answers 503
+   * and the link stays usable), then the token is consumed by one conditional UPDATE in the same
+   * transaction as the user change — of two parallel uses exactly one succeeds.
+   */
+  async setPasswordFromLink(
+    { token, password, returnTo }: SetPasswordFromLinkInput,
+    currentUserId: string | null,
+  ): Promise<SetPasswordFromLinkResult> {
+    const tokenHash = hashToken(token);
+    const link = await this.em.findOne(EmailVerificationToken, { tokenHash });
+
+    if (link === null || link.usedAt != null || link.expiresAt <= this.clock.now()) {
+      throw new VerificationLinkInvalidError();
+    }
+
+    const userId = link.user.id;
+
+    if (currentUserId !== null && currentUserId !== userId) {
+      this.logger.warn({ userId: currentUserId }, 'Verification link refused: another account is signed in');
+      throw new VerificationLinkInvalidError();
+    }
+
+    const passwordHash = await this.passwordHasher.withSlot(({ hash }) => hash(password));
+    let rolesChanged = false;
+    const user = await this.em.transactional(async (em) => {
+      const now = this.clock.now();
+      const consumed = await em.nativeUpdate(
+        EmailVerificationToken,
+        { tokenHash, usedAt: null, expiresAt: { $gt: now } },
+        { usedAt: now },
+      );
+
+      if (consumed !== 1) {
+        throw new VerificationLinkInvalidError();
+      }
+
+      const target = await em.findOneOrFail(User, { id: userId });
+      target.passwordHash = passwordHash;
+      target.emailVerifiedAt ??= now;
+      target.sessionVersion += 1;
+      rolesChanged = this.applyEffectiveRoles(target);
+
+      return target;
+    });
+
+    this.logger.info({ userId }, 'Password set from verification link');
+
+    if (rolesChanged) {
+      await this.emitRolesChanged(user);
+    }
+
+    return { user, redirectTo: safeReturnTo(returnTo, homeFor(user.roles)) };
+  }
+
+  /**
+   * `POST /api/auth/sign-in`: hashing slot → sign-in rate limits → scrypt (`guardPasswordAttempt`).
+   * An unknown email and an account without a password run the same scrypt work against a dummy
+   * hash, and every failure is the same 401, so neither the answer nor its timing reveals which.
+   */
+  async verifyPassword({ email: rawEmail, password }: VerifyPasswordInput, { ip }: AttemptContext): Promise<User> {
+    const email = normalizeEmail(rawEmail);
+    const checks = rateLimitChecks(SIGN_IN_RATE_LIMITS, { email, ip });
+    const user = await guardPasswordAttempt(
+      { passwordHasher: this.passwordHasher, rateLimiter: this.rateLimiter },
+      checks,
+      async ({ verify }) => {
+        const found = await this.em.findOne(User, { email });
+        const matches = await verify(password, found?.passwordHash ?? null);
+
+        return matches ? found : null;
+      },
+    );
+
+    if (user === null) {
+      throw new UnauthorizedError(INVALID_CREDENTIALS_MESSAGE);
+    }
+
+    return this.reconcileOperator(user);
   }
 
   /**
@@ -207,6 +440,28 @@ export class AccountService {
     this.logger.info({ userId: user.id }, 'Account created from GitHub');
 
     return user;
+  }
+
+  /** A new single-use token for `user` (persisted with the next flush); returns the raw value for the mail. */
+  private createVerificationToken(user: User): string {
+    const token = randomToken();
+    this.em.create(EmailVerificationToken, {
+      user,
+      tokenHash: hashToken(token),
+      expiresAt: new Date(this.clock.now().getTime() + EMAIL_VERIFICATION_TTL_MS),
+    });
+
+    return token;
+  }
+
+  /** Links in mails need `APP_URL`; without it nothing is written and the route answers 503. */
+  private requireAppUrl(): string {
+    if (this.env.APP_URL === undefined) {
+      this.logger.warn('APP_URL is not set: verification links cannot be built');
+      throw new ServiceUnavailableError('Email registration is unavailable.');
+    }
+
+    return this.env.APP_URL;
   }
 
   /** Sets the effective roles on `user`; `true` when the stored set changed. */
