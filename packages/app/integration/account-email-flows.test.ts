@@ -40,6 +40,15 @@ function tokenFrom(message: MailMessage): string {
   return new URLSearchParams(link.hash.slice(1)).get('token')!;
 }
 
+/** Links of the user that `setPasswordFromLink` could still consume by the token row alone. */
+async function liveLinks(userId: string): Promise<number> {
+  return Number(
+    await psql(
+      `select count(*) from email_verification_tokens where user_id = '${userId}' and used_at is null and expires_at > now()`,
+    ),
+  );
+}
+
 async function seedPendingUser(email: string): Promise<{ userId: string; token: string }> {
   const userId = randomUUID();
   const token = randomBytes(32).toString('base64url');
@@ -98,5 +107,61 @@ describe('AccountService email flows against PostgreSQL', () => {
     await expect(
       core.withScope(({ accountService }) => accountService.verifyPassword({ email, password: 'wrong password' }, { ip: null })),
     ).rejects.toMatchObject({ status: 401, message: 'Invalid email or password.' });
+  });
+
+  // Phase 2 review: resend used to expire older links and insert the new one without serializing
+  // per user, so two parallel resends could both expire before either inserted (two live links).
+  it('parallel resends leave exactly one live link', async () => {
+    for (let round = 0; round < 5; round += 1) {
+      const email = `resend-race-${round}@email-flows.test`;
+      const { userId } = await seedPendingUser(email);
+
+      await Promise.all(
+        [0, 1].map(() => core.withScope(({ accountService }) => accountService.resendVerification({ email }, { ip: null }))),
+      );
+
+      expect(await liveLinks(userId)).toBe(1);
+    }
+  });
+
+  // Phase 2 review: a resend that passed its "no password yet" check before set-password committed
+  // inserted a fresh link afterwards — a live link for an account that already has a password,
+  // which set-password would then accept and overwrite the password with.
+  it('resend racing set-password: once the password is set no link works', async () => {
+    const hasher = container.cradle.passwordHasher;
+    const withSlot = hasher.withSlot.bind(hasher);
+
+    for (let round = 0; round < 5; round += 1) {
+      sent.length = 0;
+      const email = `set-race-${round}@email-flows.test`;
+      const { userId, token } = await seedPendingUser(email);
+      let resend: Promise<void> | undefined;
+      // Start the resend the moment hashing ends, i.e. while set-password runs its transaction.
+      const spy = vi.spyOn(hasher, 'withSlot').mockImplementationOnce(async (task) => {
+        const hash = await withSlot(task);
+        resend = core.withScope(({ accountService }) => accountService.resendVerification({ email }, { ip: null }));
+        return hash;
+      });
+
+      const setPassword = await Promise.allSettled([
+        core.withScope(({ accountService }) => accountService.setPasswordFromLink({ token, password: PASSWORD }, null)),
+      ]);
+      await resend;
+      spy.mockRestore();
+
+      const passwordSet = (await psql(`select password_hash is not null from users where id = '${userId}'`)) === 't';
+      expect(passwordSet).toBe(setPassword[0].status === 'fulfilled');
+      expect(await liveLinks(userId)).toBe(passwordSet ? 0 : 1);
+
+      if (passwordSet) {
+        for (const message of sent) {
+          await expect(
+            core.withScope(({ accountService }) =>
+              accountService.setPasswordFromLink({ token: tokenFrom(message), password: 'attacker password' }, null),
+            ),
+          ).rejects.toMatchObject({ code: 'VERIFICATION_LINK_INVALID' });
+        }
+      }
+    }
   });
 });

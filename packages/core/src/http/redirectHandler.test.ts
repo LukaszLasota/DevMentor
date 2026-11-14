@@ -101,6 +101,29 @@ describe('redirectHandler', () => {
     expect(res.headers.getSetCookie()).toEqual(['dm_oauth=; Max-Age=0']);
   });
 
+  // Regression (phase 2 review): a failed GitHub sign-in dropped the page the user asked for.
+  it('carries the returnTo the handler kept into the error redirect', async () => {
+    const res = await redirectHandler(async ({ keepReturnToOnError }) => {
+      keepReturnToOnError('/mentors/abc?tab=1');
+      throw new ServiceUnavailableError();
+    }, OPTIONS)(request(), noParams);
+
+    expect(res.headers.get('location')).toBe('/sign-in?error=service_unavailable&returnTo=%2Fmentors%2Fabc%3Ftab%3D1');
+  });
+
+  it.each([undefined, '', '//evil.example', 'https://evil.example/', '/api/auth/me'])(
+    'drops a kept returnTo that safeReturnTo refuses (%s)',
+    async (returnTo) => {
+      const res = await redirectHandler(async ({ keepReturnToOnError }) => {
+        keepReturnToOnError('/mentors');
+        keepReturnToOnError(returnTo);
+        throw new Error('boom');
+      }, OPTIONS)(request(), noParams);
+
+      expect(res.headers.get('location')).toBe('/sign-in?error=unexpected');
+    },
+  );
+
   it('maps a ZodError to validation_error without logging', async () => {
     const logSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
 

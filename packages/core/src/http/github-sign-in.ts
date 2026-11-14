@@ -3,16 +3,18 @@ import { homeFor } from '../auth/home';
 import { createPkceVerifier, pkceChallenge } from '../security/pkce';
 import { requireSessionSecrets, signSession } from '../security/session-token';
 import { hashToken, randomToken } from '../security/token';
-import type { HandlerArgs, RouteParams } from './apiHandler';
+import type { RouteParams } from './apiHandler';
 import { AppError, ServiceUnavailableError } from './errors';
 import { clearOAuthStateCookie, oauthStateCookie, readOAuthState, signOAuthState } from './oauth-state-cookie';
-import type { ExternalRedirect, InternalRedirect, RedirectHandlerOptions } from './redirectHandler';
+import type { ExternalRedirect, InternalRedirect, RedirectHandlerArgs, RedirectHandlerOptions } from './redirectHandler';
 import { safeReturnTo } from './return-to';
 import { sessionCookie } from './session-cookie';
 
 // GitHub sign-in (start + callback) as `redirectHandler` handlers; the app's route files only wire
 // them: `export const GET = redirectHandler(startGithubSignIn, GITHUB_SIGN_IN_REDIRECT)`.
-// Every failure lands on `/sign-in?error=<code>` and clears `dm_oauth`. Codes the page maps:
+// Every failure lands on `/sign-in?error=<code>` and clears `dm_oauth`; the requested `returnTo`
+// is carried along once it is known and trusted (the start route's query, or a callback whose
+// state matched `dm_oauth`), so a retry continues there. Codes the page maps:
 // `github_unavailable`, `github_cancelled`, `github_state_invalid`, `github_email_unverified`,
 // `github_account_conflict`, `unexpected`.
 
@@ -57,9 +59,13 @@ function sameState(a: string, b: string): boolean {
 export async function startGithubSignIn({
   req,
   cradle: { env, clock, githubOAuthService },
-}: HandlerArgs<RouteParams>): Promise<ExternalRedirect> {
-  const secrets = requireSessionSecrets(env);
+  keepReturnToOnError,
+}: RedirectHandlerArgs<RouteParams>): Promise<ExternalRedirect> {
   const query = new URL(req.url).searchParams;
+  // Unsafe or absent → no returnTo; the callback then sends the user home.
+  const returnTo = safeReturnTo(query.get('returnTo'), '') || undefined;
+  keepReturnToOnError(returnTo);
+  const secrets = requireSessionSecrets(env);
   const state = randomToken();
   const verifier = createPkceVerifier();
   const externalLocation = githubOAuthService.buildAuthorizeUrl({
@@ -67,8 +73,6 @@ export async function startGithubSignIn({
     codeChallenge: pkceChallenge(verifier),
     login: query.get('login') ?? undefined,
   });
-  // Unsafe or absent → no returnTo; the callback then sends the user home.
-  const returnTo = safeReturnTo(query.get('returnTo'), '') || undefined;
   const token = await signOAuthState({ state, verifier, returnTo }, secrets.current, clock);
 
   return { externalLocation, cookies: [oauthStateCookie(token)] };
@@ -82,19 +86,26 @@ export async function startGithubSignIn({
 export async function completeGithubSignIn({
   req,
   cradle: { env, clock, logger, githubOAuthService, accountService },
-}: HandlerArgs<RouteParams>): Promise<InternalRedirect> {
+  keepReturnToOnError,
+}: RedirectHandlerArgs<RouteParams>): Promise<InternalRedirect> {
   const query = new URL(req.url).searchParams;
   const githubError = query.get('error');
+  const secrets = requireSessionSecrets(env);
+  const oauthState = await readOAuthState(req, secrets, clock);
+  const state = query.get('state');
+  const stateValid = oauthState !== null && state !== null && sameState(state, oauthState.state);
 
+  // Only a state that matched the signed cookie makes its returnTo trustworthy for a retry.
+  if (stateValid) {
+    keepReturnToOnError(oauthState.returnTo);
+  }
+
+  // GitHub sends `state` back with a cancel; a cancel without a valid one is still a cancel.
   if (githubError === GITHUB_ACCESS_DENIED) {
     throw new GithubSignInCancelledError();
   }
 
-  const secrets = requireSessionSecrets(env);
-  const oauthState = await readOAuthState(req, secrets, clock);
-  const state = query.get('state');
-
-  if (oauthState === null || state === null || !sameState(state, oauthState.state)) {
+  if (!stateValid) {
     throw new GithubStateInvalidError();
   }
 

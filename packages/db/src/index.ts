@@ -11,3 +11,5 @@ export type { DbOptions } from './config';
 export type { EntityManager, MikroORM } from '@mikro-orm/postgresql';
 // Value re-export: services catch it to handle a lost insert race (`instanceof`).
 export { UniqueConstraintViolationException } from '@mikro-orm/postgresql';
+// Value re-export: services lock a row for a check-then-write (`lockMode: LockMode.PESSIMISTIC_WRITE`).
+export { LockMode } from '@mikro-orm/postgresql';

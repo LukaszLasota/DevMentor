@@ -316,6 +316,68 @@ describe('GET /api/auth/github/callback (completeGithubSignIn)', () => {
   });
 });
 
+describe('GitHub sign-in failures keep the requested page (phase 2 review)', () => {
+  it('start: missing configuration keeps the safe returnTo of the query', async () => {
+    setup({ env: { GITHUB_CLIENT_ID: undefined } });
+
+    const res = await start(startRequest('?returnTo=%2Fmentors%2Fabc&login=octo'), noParams);
+
+    expect(res.headers.get('location')).toBe('/sign-in?error=github_unavailable&returnTo=%2Fmentors%2Fabc');
+  });
+
+  it('start: an unsafe returnTo is not carried', async () => {
+    setup({ env: { SESSION_SECRET: undefined } });
+
+    const res = await start(startRequest('?returnTo=%2F%2Fevil.example'), noParams);
+
+    expect(res.headers.get('location')).toBe('/sign-in?error=github_unavailable');
+  });
+
+  it('callback: a cancel with a valid state keeps the stored returnTo', async () => {
+    setup();
+
+    const res = await callback(
+      await callbackRequest('?error=access_denied&state=the-state', { ...OAUTH_STATE, returnTo: '/mentors/abc' }),
+      noParams,
+    );
+
+    expect(res.headers.get('location')).toBe('/sign-in?error=github_cancelled&returnTo=%2Fmentors%2Fabc');
+  });
+
+  it('callback: a cancel with a state that does not match carries no returnTo', async () => {
+    setup();
+
+    const res = await callback(
+      await callbackRequest('?error=access_denied&state=other', { ...OAUTH_STATE, returnTo: '/mentors/abc' }),
+      noParams,
+    );
+
+    expect(res.headers.get('location')).toBe('/sign-in?error=github_cancelled');
+  });
+
+  it('callback: a GitHub outage after a valid state keeps the stored returnTo', async () => {
+    setup({ fetch: async () => ({ error: 'bad_verification_code' }) });
+
+    const res = await callback(
+      await callbackRequest('?code=c&state=the-state', { ...OAUTH_STATE, returnTo: '/mentors/abc' }),
+      noParams,
+    );
+
+    expect(res.headers.get('location')).toBe('/sign-in?error=github_unavailable&returnTo=%2Fmentors%2Fabc');
+  });
+
+  it('callback: an invalid state carries no returnTo (nothing trusted to read it from)', async () => {
+    setup();
+
+    const res = await callback(
+      await callbackRequest('?code=c&state=other', { ...OAUTH_STATE, returnTo: '/mentors/abc' }),
+      noParams,
+    );
+
+    expect(res.headers.get('location')).toBe('/sign-in?error=github_state_invalid');
+  });
+});
+
 describe('GitHub sign-in errors', () => {
   it('carry the codes the sign-in page maps', () => {
     expect(new GithubSignInCancelledError()).toMatchObject({ status: 400, code: 'GITHUB_CANCELLED' });

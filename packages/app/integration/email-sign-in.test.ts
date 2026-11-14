@@ -102,7 +102,7 @@ describe('email registration and password sign-in over HTTP', () => {
     expect((await me(sessionFrom(signedIn))).status).toBe(200);
   });
 
-  it('a new link ends the older session (bumped session_version) and refuses another account signed in', async () => {
+  it('refuses a link of another account signed in (L13) and a link for an account that already has a password', async () => {
     const email = uniqueEmail('relink');
     await post('/api/auth/register', { email });
     const first = sessionFrom(await post('/api/auth/verify-email', { token: await issueLink(email), password: PASSWORD }));
@@ -120,15 +120,18 @@ describe('email registration and password sign-in over HTTP', () => {
     expect((await foreign.json()).error.code).toBe('VERIFICATION_LINK_INVALID');
     expect(await psql(`select password_hash is null from users where email = '${other}'`)).toBe('t');
 
-    // Setting the password again from a fresh link of the same account: new cookie, old one refused.
-    const second = await post(
+    // A link only sets the first password (reset is out of scope): one that exists for an account
+    // with a password (phase 2 review: a resend racing set-password) is refused, nothing changes.
+    const hashBefore = await psql(`select password_hash || ':' || session_version from users where email = '${email}'`);
+    const again = await post(
       '/api/auth/verify-email',
       { token: await issueLink(email), password: `${PASSWORD} 2` },
       { ...CSRF, cookie: `dm_session=${first}` },
     );
-    expect(second.status).toBe(200);
-    expect((await me(sessionFrom(second))).status).toBe(200);
-    expect((await me(first)).status).toBe(401);
+    expect(again.status).toBe(400);
+    expect((await again.json()).error.code).toBe('VERIFICATION_LINK_INVALID');
+    expect(await psql(`select password_hash || ':' || session_version from users where email = '${email}'`)).toBe(hashBefore);
+    expect((await me(first)).status).toBe(200);
   });
 
   it('refuses an unknown or expired link with 400', async () => {

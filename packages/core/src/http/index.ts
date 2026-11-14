@@ -8,6 +8,7 @@ export {
   redirectHandler,
   type ExternalRedirect,
   type InternalRedirect,
+  type RedirectHandlerArgs,
   type RedirectHandlerOptions,
   type RedirectResult,
 } from './redirectHandler';

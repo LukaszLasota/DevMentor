@@ -1,6 +1,7 @@
 import {
   EMAIL_VERIFICATION_TTL_MS,
   EmailVerificationToken,
+  LockMode,
   UniqueConstraintViolationException,
   User,
   type Role,
@@ -707,6 +708,50 @@ describe('AccountService.resendVerification', () => {
     expect(link.returnTo).toBe('/invitations/x');
   });
 
+  // Phase 2 review: the check, the retirement and the insert run in one transaction on the locked
+  // user row, so parallel resends and a parallel set-password serialize (integration:
+  // account-email-flows.test.ts).
+  it('reads the user FOR UPDATE inside the transaction that retires and inserts', async () => {
+    const user = pendingUser();
+    const { service, em } = setup([user]);
+    const order: string[] = [];
+    em.transactional.mockImplementationOnce(async (callback) => {
+      order.push('begin');
+      const result = await callback(em);
+      order.push('commit');
+      return result;
+    });
+    em.findOne.mockImplementationOnce(async (_entity, where) => {
+      order.push('lock user');
+      return user.email === where.email ? user : null;
+    });
+    em.nativeUpdate.mockImplementationOnce(async () => {
+      order.push('retire');
+      return 0;
+    });
+    em.create.mockImplementationOnce((entity, data) => {
+      order.push('insert');
+      return Object.assign(new EmailVerificationToken(), { id: 'token-x', usedAt: null, ...data });
+    });
+
+    await service.resendVerification({ email: user.email }, { ip: null });
+
+    expect(em.findOne).toHaveBeenCalledWith(User, { email: user.email }, { lockMode: LockMode.PESSIMISTIC_WRITE, refresh: true });
+    expect(order).toEqual(['begin', 'lock user', 'retire', 'insert', 'commit']);
+  });
+
+  it('a password committed before the lock: nothing retired, inserted or sent', async () => {
+    const user = pendingUser();
+    const { service, em, mailSender } = setup([user]);
+    em.findOne.mockImplementationOnce(async () => Object.assign(user, { passwordHash: '$scrypt$set-meanwhile' }));
+
+    await service.resendVerification({ email: user.email }, { ip: null });
+
+    expect(em.nativeUpdate).not.toHaveBeenCalled();
+    expect(em.create).not.toHaveBeenCalled();
+    expect(mailSender.send).not.toHaveBeenCalled();
+  });
+
   it('a retired link no longer sets the password; the new one does', async () => {
     const user = pendingUser();
     const { service, mailSender } = setup([user], OPERATOR, { tokens: [makeToken(user, { raw: 'older' })] });
@@ -896,8 +941,37 @@ describe('AccountService.setPasswordFromLink', () => {
     await expect(service.setPasswordFromLink({ token: 'raw-token', password: PASSWORD }, null)).rejects.toBeInstanceOf(
       VerificationLinkInvalidError,
     );
-    expect(em.findOneOrFail).not.toHaveBeenCalled();
+    expect(em.nativeUpdate).toHaveBeenCalledTimes(1);
     expect(user).toMatchObject({ passwordHash: null, sessionVersion: 1, emailVerifiedAt: null });
+  });
+
+  // Phase 2 review: a link only sets the first password; one consumed after a password exists
+  // (e.g. a resend that raced set-password) must not overwrite it.
+  it('an account that already has a password: 400, the link stays unused and the password unchanged', async () => {
+    const user = pendingUser({ passwordHash: '$scrypt$existing', sessionVersion: 4 });
+    const token = makeToken(user);
+    const { service, em, logger } = setup([user], OPERATOR, { tokens: [token] });
+
+    await expect(service.setPasswordFromLink({ token: 'raw-token', password: PASSWORD }, null)).rejects.toBeInstanceOf(
+      VerificationLinkInvalidError,
+    );
+    expect(em.findOneOrFail).toHaveBeenCalledWith(User, { id: user.id }, { lockMode: LockMode.PESSIMISTIC_WRITE, refresh: true });
+    expect(em.nativeUpdate).not.toHaveBeenCalled();
+    expect(token.usedAt).toBeNull();
+    expect(user).toMatchObject({ passwordHash: '$scrypt$existing', sessionVersion: 4 });
+    expect(logger.warn).toHaveBeenCalledWith({ userId: user.id }, expect.stringContaining('already has a password'));
+  });
+
+  it('retires the other live links of the user in the same transaction', async () => {
+    const user = pendingUser();
+    const other = makeToken(user, { raw: 'other' });
+    const foreign = makeToken(makeUser({ email: 'x@devmentor.test' }), { raw: 'foreign' });
+    const { service } = setup([user], OPERATOR, { tokens: [makeToken(user), other, foreign] });
+
+    await service.setPasswordFromLink({ token: 'raw-token', password: PASSWORD }, null);
+
+    expect(other).toMatchObject({ usedAt: null, expiresAt: NOW });
+    expect(foreign.expiresAt).toEqual(new Date(NOW.getTime() + EMAIL_VERIFICATION_TTL_MS));
   });
 
   it('a saturated hashing gate answers 503 and leaves the link usable', async () => {

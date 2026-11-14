@@ -20,6 +20,16 @@ export interface ExternalRedirect {
 
 export type RedirectResult = InternalRedirect | ExternalRedirect;
 
+export interface RedirectHandlerArgs<P extends RouteParams> extends HandlerArgs<P> {
+  /**
+   * Remembers the page the user asked for, so a failure after this call lands on
+   * `errorRedirect?error=<code>&returnTo=<path>` and a retry continues there. Pass only a value the
+   * handler trusts (its own query or a verified cookie); it still goes through `safeReturnTo`, and
+   * a refused or `undefined` value carries nothing. The last call wins.
+   */
+  keepReturnToOnError: (returnTo: string | undefined) => void;
+}
+
 export interface RedirectHandlerOptions {
   /** Page that receives failures as `?error=<code>`, e.g. `/sign-in`. */
   errorRedirect: string;
@@ -48,9 +58,13 @@ function redirect(location: string, cookies: readonly string[] = []): Response {
   return new Response(null, { status: HTTP_FOUND, headers });
 }
 
-function errorLocation(errorRedirect: string, code: string): string {
+function errorLocation(errorRedirect: string, code: string, returnTo: string): string {
   const url = new URL(errorRedirect, PARSE_BASE);
   url.searchParams.set('error', code);
+
+  if (returnTo) {
+    url.searchParams.set('returnTo', returnTo);
+  }
 
   return `${url.pathname}${url.search}`;
 }
@@ -58,16 +72,23 @@ function errorLocation(errorRedirect: string, code: string): string {
 /**
  * Wraps a route that a browser navigates to (top-level GET, e.g. OAuth start and callback):
  * request scope like `apiHandler`, but no JSON envelope and no CSRF header. The handler returns
- * where to go and which cookies to set; every failure becomes a 302 to `errorRedirect?error=<code>`.
+ * where to go and which cookies to set; every failure becomes a 302 to `errorRedirect?error=<code>`
+ * (plus `&returnTo=` when the handler called `keepReturnToOnError`).
  */
 export function redirectHandler<P extends RouteParams = RouteParams>(
-  handler: (args: HandlerArgs<P>) => Promise<RedirectResult>,
+  handler: (args: RedirectHandlerArgs<P>) => Promise<RedirectResult>,
   { errorRedirect, errorCodes = {}, errorCookies = [] }: RedirectHandlerOptions,
 ): (req: Request, context: { params: Promise<P> }) => Promise<Response> {
   return async (req, context) => {
+    // "" = nothing safe to carry into the error redirect.
+    let errorReturnTo = '';
+    const keepReturnToOnError = (returnTo: string | undefined) => {
+      errorReturnTo = safeReturnTo(returnTo, '');
+    };
+
     try {
       const params = await context.params;
-      const result = await withScope((cradle) => handler({ req, params, cradle }));
+      const result = await withScope((cradle) => handler({ req, params, cradle, keepReturnToOnError }));
 
       if ('externalLocation' in result) {
         return redirect(result.externalLocation.href, result.cookies);
@@ -83,7 +104,7 @@ export function redirectHandler<P extends RouteParams = RouteParams>(
 
       const code = appError ? (errorCodes[appError.code] ?? appError.code.toLowerCase()) : UNEXPECTED_ERROR_CODE;
 
-      return redirect(errorLocation(errorRedirect, code), errorCookies);
+      return redirect(errorLocation(errorRedirect, code, errorReturnTo), errorCookies);
     }
   };
 }

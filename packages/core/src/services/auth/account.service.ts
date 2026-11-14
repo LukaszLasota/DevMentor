@@ -2,6 +2,7 @@ import {
   DEFAULT_ROLES,
   EMAIL_VERIFICATION_TTL_MS,
   EmailVerificationToken,
+  LockMode,
   ROLES,
   UniqueConstraintViolationException,
   User,
@@ -112,6 +113,15 @@ function safeLinkReturnTo(returnTo: string | undefined): string | undefined {
   return safeReturnTo(returnTo, '') || undefined;
 }
 
+/**
+ * `findOne` options that read the row with `SELECT … FOR UPDATE` inside a transaction (`refresh`:
+ * the identity map must not answer with a copy loaded before the lock). A function, not a module
+ * constant, so importing this module never touches `@devmentor/db` values.
+ */
+function lockForUpdate() {
+  return { lockMode: LockMode.PESSIMISTIC_WRITE, refresh: true } as const;
+}
+
 function sameRoles(a: readonly Role[], b: readonly Role[]): boolean {
   return a.length === b.length && a.every((role, index) => role === b[index]);
 }
@@ -169,7 +179,7 @@ export class AccountService {
       email,
       roles: effectiveRoles(DEFAULT_ROLES, email, false, this.env.OPERATOR_EMAILS),
     });
-    const token = this.createVerificationToken(user);
+    const token = this.createVerificationToken(this.em, user);
 
     try {
       await this.em.flush();
@@ -191,37 +201,43 @@ export class AccountService {
   /**
    * `POST /api/auth/verify-email/resend`: a new link only for an existing account without a
    * password; every other email resolves the same way with nothing sent. Older unused links of the
-   * user stop working (their `expires_at` moves to now), so only the newest mail is live.
+   * user stop working (their `expires_at` moves to now), so only the newest mail is live. The
+   * password check, the retirement and the insert run in one transaction holding the user row
+   * locked (`FOR UPDATE`, the lock `setPasswordFromLink` takes too): parallel resends run one after
+   * another, and a resend after a committed password sees it and sends nothing.
    */
   async resendVerification({ email: rawEmail, returnTo }: ResendVerificationInput, { ip }: AttemptContext): Promise<void> {
     const email = normalizeEmail(rawEmail);
     await this.rateLimiter.consumeAll(rateLimitChecks(RESEND_RATE_LIMITS, { email, ip }));
     const appUrl = this.requireAppUrl();
-    const user = await this.em.findOne(User, { email });
+    const resent = await this.em.transactional(async (em) => {
+      const user = await em.findOne(User, { email }, lockForUpdate());
 
-    if (user === null || user.passwordHash != null) {
+      if (user === null || user.passwordHash != null) {
+        return null;
+      }
+
+      await this.retireLiveLinks(em, user.id, this.clock.now());
+
+      return { userId: user.id, token: this.createVerificationToken(em, user) };
+    });
+
+    if (resent === null) {
       return;
     }
 
-    const now = this.clock.now();
-    await this.em.nativeUpdate(
-      EmailVerificationToken,
-      { user: user.id, usedAt: null, expiresAt: { $gt: now } },
-      { expiresAt: now },
-    );
-    const token = this.createVerificationToken(user);
-    await this.em.flush();
-
-    this.logger.info({ userId: user.id }, 'Verification link resent');
-    await this.mailSender.send(registrationMail(email, verificationLink(appUrl, token, safeLinkReturnTo(returnTo))));
+    this.logger.info({ userId: resent.userId }, 'Verification link resent');
+    await this.mailSender.send(registrationMail(email, verificationLink(appUrl, resent.token, safeLinkReturnTo(returnTo))));
   }
 
   /**
    * `POST /api/auth/verify-email`: sets the password, verifies the email and bumps
    * `session_version`. Order: the link is checked first (cheap, and L13: a session of another
    * account refuses before anything changes), then a hashing slot (a saturated gate answers 503
-   * and the link stays usable), then the token is consumed by one conditional UPDATE in the same
-   * transaction as the user change — of two parallel uses exactly one succeeds.
+   * and the link stays usable), then one transaction locks the user row (`FOR UPDATE`, serialized
+   * with `resendVerification`), refuses an account that already has a password (a link only sets
+   * the first password; reset is out of scope), consumes the token by one conditional UPDATE — of
+   * two parallel uses exactly one succeeds — and retires the user's other live links.
    */
   async setPasswordFromLink(
     { token, password, returnTo }: SetPasswordFromLinkInput,
@@ -245,6 +261,13 @@ export class AccountService {
     let rolesChanged = false;
     const user = await this.em.transactional(async (em) => {
       const now = this.clock.now();
+      const target = await em.findOneOrFail(User, { id: userId }, lockForUpdate());
+
+      if (target.passwordHash != null) {
+        this.logger.warn({ userId }, 'Verification link refused: the account already has a password');
+        throw new VerificationLinkInvalidError();
+      }
+
       const consumed = await em.nativeUpdate(
         EmailVerificationToken,
         { tokenHash, usedAt: null, expiresAt: { $gt: now } },
@@ -255,7 +278,7 @@ export class AccountService {
         throw new VerificationLinkInvalidError();
       }
 
-      const target = await em.findOneOrFail(User, { id: userId });
+      await this.retireLiveLinks(em, userId, now);
       target.passwordHash = passwordHash;
       target.emailVerifiedAt ??= now;
       target.sessionVersion += 1;
@@ -442,16 +465,21 @@ export class AccountService {
     return user;
   }
 
-  /** A new single-use token for `user` (persisted with the next flush); returns the raw value for the mail. */
-  private createVerificationToken(user: User): string {
+  /** A new single-use token for `user` (persisted with the next flush of `em`); returns the raw value for the mail. */
+  private createVerificationToken(em: Cradle['em'], user: User): string {
     const token = randomToken();
-    this.em.create(EmailVerificationToken, {
+    em.create(EmailVerificationToken, {
       user,
       tokenHash: hashToken(token),
       expiresAt: new Date(this.clock.now().getTime() + EMAIL_VERIFICATION_TTL_MS),
     });
 
     return token;
+  }
+
+  /** Unused, unexpired links of the user stop working now (`expires_at` moves to `now`). */
+  private async retireLiveLinks(em: Cradle['em'], userId: string, now: Date): Promise<void> {
+    await em.nativeUpdate(EmailVerificationToken, { user: userId, usedAt: null, expiresAt: { $gt: now } }, { expiresAt: now });
   }
 
   /** Links in mails need `APP_URL`; without it nothing is written and the route answers 503. */
