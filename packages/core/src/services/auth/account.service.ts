@@ -126,6 +126,22 @@ function sameRoles(a: readonly Role[], b: readonly Role[]): boolean {
   return a.length === b.length && a.every((role, index) => role === b[index]);
 }
 
+/** Roles granted by an action; `operator` comes only from `OPERATOR_EMAILS` (reconciliation would undo a grant). */
+export type GrantableRole = Exclude<Role, 'operator'>;
+
+/** Outcome of `grantRole`. */
+export interface RoleGrant {
+  /** `true` when the user did not hold the role before; `session_version` was bumped. */
+  changed: boolean;
+  /** The normalized stored roles after the grant. */
+  roles: Role[];
+  /**
+   * Emits `auth.user.roles_changed` when `changed` (no-op otherwise). Call it after the caller's
+   * transaction commits, never inside it.
+   */
+  afterCommit(): Promise<void>;
+}
+
 type AccountServiceDeps = Pick<
   Cradle,
   'em' | 'env' | 'clock' | 'events' | 'logger' | 'mailSender' | 'passwordHasher' | 'rateLimiter'
@@ -355,6 +371,42 @@ export class AccountService {
     }
 
     return user;
+  }
+
+  /**
+   * Adds `role` to `user`, an entity the caller has already locked (`FOR UPDATE`) in its own
+   * transaction on `em`. Set-based and idempotent: every held role is kept (`mentee`, `operator`),
+   * duplicates are normalized. Only a real change of the set bumps `session_version` (the caller
+   * re-issues its session cookie) and is reported by `afterCommit`. Flushes on `em` when anything
+   * was written, so the write fails inside the caller's transaction, not at its commit.
+   */
+  async grantRole(em: Cradle['em'], user: User, role: GrantableRole): Promise<RoleGrant> {
+    // A new role always rewrites the stored set; a held one only when duplicates are normalized.
+    const changed = !user.roles.includes(role);
+    const roles = normalizeRoles([...user.roles, role]);
+
+    if (!sameRoles(user.roles, roles)) {
+      user.roles = roles;
+
+      if (changed) {
+        user.sessionVersion += 1;
+      }
+
+      await em.flush();
+    }
+
+    const snapshot = [...roles];
+
+    return {
+      changed,
+      roles: snapshot,
+      afterCommit: async () => {
+        if (changed) {
+          this.logger.info({ userId: user.id, role, roles: snapshot }, 'User role granted');
+          await this.events.emit('auth.user.roles_changed', { userId: user.id, roles: [...snapshot] });
+        }
+      },
+    };
   }
 
   /** Global sign-out: bumps `session_version`, so every token of the user stops verifying. */

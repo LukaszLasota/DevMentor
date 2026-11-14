@@ -6,7 +6,7 @@ import {
   User,
   type Role,
 } from '@devmentor/db';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { parseEnv } from '../../config/env';
 import type { Cradle } from '../../container/cradle';
 import { isAppError, ServiceUnavailableError, TooManyRequestsError } from '../../http/errors';
@@ -25,6 +25,7 @@ import {
   effectiveRoles,
   GithubAccountConflictError,
   INVALID_CREDENTIALS_MESSAGE,
+  type GrantableRole,
   normalizeEmail,
   normalizeRoles,
   VerificationLinkInvalidError,
@@ -480,6 +481,127 @@ describe('AccountService.reconcileOperator', () => {
 
     expect(user.roles).toEqual(['mentee']);
     expect(em.flush).not.toHaveBeenCalled();
+  });
+});
+
+describe('AccountService.grantRole', () => {
+  /** The caller's transactional `em` (the user row is already locked there); not the service's own. */
+  function transactionEm() {
+    return { flush: vi.fn(async () => undefined) };
+  }
+
+  it('adds the role, keeps mentee and operator, bumps session_version and flushes on the given em', async () => {
+    const user = makeUser({ email: OPERATOR, roles: ['mentee', 'operator'], emailVerifiedAt: EARLIER, sessionVersion: 4 });
+    const { service, em, events } = setup([user]);
+    const tx = transactionEm();
+
+    const grant = await service.grantRole(tx as unknown as Cradle['em'], user, 'mentor');
+
+    expect(grant).toMatchObject({ changed: true, roles: ['mentee', 'mentor', 'operator'] });
+    expect(user.roles).toEqual(['mentee', 'mentor', 'operator']);
+    expect(user.sessionVersion).toBe(5);
+    expect(tx.flush).toHaveBeenCalledTimes(1);
+    expect(em.flush).not.toHaveBeenCalled();
+    expect(events.emit).not.toHaveBeenCalled();
+  });
+
+  it('emits auth.user.roles_changed only from afterCommit', async () => {
+    const user = makeUser({ roles: ['mentee'] });
+    const { service, events, logger } = setup([user]);
+
+    const grant = await service.grantRole(transactionEm() as unknown as Cradle['em'], user, 'mentor');
+    expect(events.emit).not.toHaveBeenCalled();
+
+    await grant.afterCommit();
+
+    expect(events.emit).toHaveBeenCalledExactlyOnceWith('auth.user.roles_changed', {
+      userId: user.id,
+      roles: ['mentee', 'mentor'],
+    });
+    expect(logger.info).toHaveBeenCalledWith(
+      { userId: user.id, role: 'mentor', roles: ['mentee', 'mentor'] },
+      'User role granted',
+    );
+  });
+
+  it('is idempotent: a held role writes nothing, keeps session_version and emits nothing', async () => {
+    const user = makeUser({ roles: ['mentee', 'mentor'], sessionVersion: 2 });
+    const { service, events } = setup([user]);
+    const tx = transactionEm();
+
+    const first = await service.grantRole(tx as unknown as Cradle['em'], user, 'mentor');
+    const second = await service.grantRole(tx as unknown as Cradle['em'], user, 'mentor');
+    await first.afterCommit();
+    await second.afterCommit();
+
+    expect(first).toMatchObject({ changed: false, roles: ['mentee', 'mentor'] });
+    expect(second).toMatchObject({ changed: false, roles: ['mentee', 'mentor'] });
+    expect(user.sessionVersion).toBe(2);
+    expect(tx.flush).not.toHaveBeenCalled();
+    expect(events.emit).not.toHaveBeenCalled();
+  });
+
+  it('granting twice changes the set once', async () => {
+    const user = makeUser({ roles: ['mentee'], sessionVersion: 0 });
+    const { service } = setup([user]);
+    const tx = transactionEm();
+
+    const first = await service.grantRole(tx as unknown as Cradle['em'], user, 'mentor');
+    const second = await service.grantRole(tx as unknown as Cradle['em'], user, 'mentor');
+
+    expect([first.changed, second.changed]).toEqual([true, false]);
+    expect(user.sessionVersion).toBe(1);
+    expect(tx.flush).toHaveBeenCalledTimes(1);
+  });
+
+  it('normalizes duplicate stored roles without bumping session_version when the set is unchanged', async () => {
+    const user = makeUser({ roles: ['mentor', 'mentee', 'mentor'] as Role[], sessionVersion: 7 });
+    const { service, events } = setup([user]);
+    const tx = transactionEm();
+
+    const grant = await service.grantRole(tx as unknown as Cradle['em'], user, 'mentor');
+    await grant.afterCommit();
+
+    expect(grant).toMatchObject({ changed: false, roles: ['mentee', 'mentor'] });
+    expect(user.roles).toEqual(['mentee', 'mentor']);
+    expect(user.sessionVersion).toBe(7);
+    expect(tx.flush).toHaveBeenCalledTimes(1);
+    expect(events.emit).not.toHaveBeenCalled();
+  });
+
+  it('normalizes duplicates while adding a new role, bumping once', async () => {
+    const user = makeUser({ roles: ['mentee', 'mentee'] as Role[], sessionVersion: 1 });
+    const { service } = setup([user]);
+
+    const grant = await service.grantRole(transactionEm() as unknown as Cradle['em'], user, 'mentor');
+
+    expect(grant).toMatchObject({ changed: true, roles: ['mentee', 'mentor'] });
+    expect(user.sessionVersion).toBe(2);
+  });
+
+  it('returns a snapshot of the roles that later changes do not alter', async () => {
+    const user = makeUser({ roles: ['mentee'] });
+    const { service, events } = setup([user]);
+
+    const grant = await service.grantRole(transactionEm() as unknown as Cradle['em'], user, 'mentor');
+    user.roles = ['mentee'];
+    await grant.afterCommit();
+
+    expect(grant.roles).toEqual(['mentee', 'mentor']);
+    expect(events.emit).toHaveBeenCalledWith('auth.user.roles_changed', { userId: user.id, roles: ['mentee', 'mentor'] });
+  });
+
+  it('cannot grant operator (the allowlist is its only source)', () => {
+    expectTypeOf<GrantableRole>().toEqualTypeOf<'mentee' | 'mentor'>();
+  });
+
+  it('propagates a failed flush (the caller rolls back) and emits nothing', async () => {
+    const user = makeUser({ roles: ['mentee'] });
+    const { service, events } = setup([user]);
+    const tx = { flush: vi.fn(async () => Promise.reject(new Error('serialization failure'))) };
+
+    await expect(service.grantRole(tx as unknown as Cradle['em'], user, 'mentor')).rejects.toThrow('serialization failure');
+    expect(events.emit).not.toHaveBeenCalled();
   });
 });
 
