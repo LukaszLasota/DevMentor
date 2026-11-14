@@ -176,6 +176,9 @@
   --dm-dialog-width: 32rem;
   --dm-dialog-width-confirm: 26rem;
   --dm-menu-min-width: 12rem;
+
+  /* Component token: app shell sidebar (2026-11-14: fits "Mentor workspace" at label size with padding) */
+  --dm-sidebar-width: 14rem;
 }
 
 @media (prefers-reduced-motion: reduce) {

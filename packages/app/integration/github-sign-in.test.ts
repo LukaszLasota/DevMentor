@@ -49,8 +49,11 @@ describe('GitHub sign-in through the stub (agent-browser)', () => {
     await browser.waitForText('mock-mentee@devmentor.test');
 
     expect(new URL(await browser.url()).pathname).toBe('/mentors');
-    expect(await browser.count('nav[aria-label="Your areas"] a')).toBe(0);
+    // App shell sidebar (spec #21 "App shell", L04): a mentee sees "Mentors" only, as the current page.
+    expect(await browser.count('nav[aria-label="Main"] a')).toBe(1);
+    expect(await browser.text('nav[aria-label="Main"] a[aria-current="page"]')).toBe('Mentors');
     expect(await browser.count('a[href="/admin"]')).toBe(0);
+    expect(await browser.count('a[href="/mentor"]')).toBe(0);
     expect(await psql("select roles from users where email = 'mock-mentee@devmentor.test'")).toBe('{mentee}');
 
     menteeSession = await sessionCookie();
@@ -102,6 +105,12 @@ describe('GitHub sign-in through the stub (agent-browser)', () => {
 
     expect(await browser.text('header')).toContain('mock-operator@devmentor.test');
     expect(await browser.text('header')).toContain('Admin');
+    // Operator sidebar (L09): "Admin → Dashboard", current on /admin; no mentor workspace without the role.
+    expect(await browser.text('nav[aria-label="Main"]')).toContain('Admin');
+    expect(await browser.text('nav[aria-label="Main"] a[aria-current="page"]')).toBe('Dashboard');
+    expect(await browser.attr('nav[aria-label="Main"] a[aria-current="page"]', 'href')).toBe('/admin');
+    expect(await browser.count('nav[aria-label="Main"] a[href="/mentors"]')).toBe(1);
+    expect(await browser.count('a[href="/mentor"]')).toBe(0);
     expect(await psql("select roles from users where email = 'mock-operator@devmentor.test'")).toBe('{mentee,operator}');
   });
 

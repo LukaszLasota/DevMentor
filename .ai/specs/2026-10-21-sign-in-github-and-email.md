@@ -68,6 +68,15 @@ Why the password is set from the link: if registration accepted a password, some
 - Guards: every guarded layout and every guarded `page.tsx` calls `requirePageRole`; no session → `/sign-in?returnTo=<current>`; wrong role → `homeFor(roles)` (`operator → /admin`, `mentor → /mentor`, else `/mentors`) with a short message (L03). Nothing of the user's renders before the check.
 - States: submitting (button disabled), field errors from `fieldErrors`, 429 message with retry time, GitHub cancelled.
 
+### App shell (added 2026-11-14, course parity)
+Lesson 08 ends with an app shell: header, sidebar and a place for further features. Every signed-in root layout (`(mentee)`, `(admin)`, later `(mentor)`) renders the same shell: the account bar on top, a sidebar with role-based links next to the page.
+- Account bar stays minimal: logo, area name, email (GitHub avatar), "Sign out". The role links ("Mentor", "Admin") move from the bar into the sidebar, so navigation lives in one place and the bar does not grow with every feature.
+- Sidebar (`nav` "Main"), only links to pages that exist: "Mentors" (`/mentors`, every signed-in user, the mentee home); "Mentor workspace" (`/mentor`, only for `mentor`; the page arrives in phase 3); section "Admin" with "Dashboard" (`/admin`, only for `operator`). "Users", "My sessions" and further items are added with their pages.
+- The current item has `aria-current="page"` (longest matching path prefix) and a visible non-colour cue (weight + background). The session is read on the server; only the active-item check runs on the client (`usePathname`).
+- When the shell is narrower than 48rem (a container query on the shell, so stories show it too) the sidebar becomes a wrapping row under the account bar (no menu button, no JavaScript needed, no horizontal scroll at 320–360 px). With three links at most, a drawer would add a click and a focus trap for nothing; revisit when the list outgrows one row.
+- No shadcn `sidebar` primitive: it brings a provider, cookie state, sheet, tooltip and a mobile hook for a list of three links. The shell is two small panel components in `@devmentor/ui` (`AppShell`, `SideNav`) plus the role-to-links mapping (`accountNavSections`).
+- Links are plain `<a>`: every target lives in another root layout, so a full page load is the right navigation (as for the account bar).
+
 ## 📝 Edge Cases & Failure Scenarios
 - User cancels on GitHub → callback with `error=access_denied` → `/sign-in?error=github_cancelled`.
 - `state` missing or mismatched (CSRF on the callback, expired `dm_oauth`) → refuse before any outbound call, no account touched → `/sign-in?error=github_state_invalid`.
@@ -134,7 +143,7 @@ Moved from issue #21 and extended with the screen-map decisions of 2026-10-23 (L
 - (s05) Given a user who holds only `mentee`, when they sign in without `returnTo`, then they land on `/mentors` (L01).
 - (s04) Given a registration started from a page with `returnTo` (e.g. an invitation), when the password is set from the link, then the user lands on that page, otherwise on `homeFor(roles)` (L02).
 - (s01, s09) Given an expired session, when the user is sent to `/sign-in`, then it says "Your session ended. Sign in again."; given a signed-in user without the role, when they open a role page, then the page they land on says "This page is for mentors." (or operators) (L03).
-- (s05, s06, s07) Given a signed-in user, then every signed-in page shows their email (GitHub avatar when present) and "Sign out"; a user with `mentor` and `operator` sees "Mentor" and "Admin" links (L04, L09).
+- (s05, s06, s07) Given a signed-in user, then every signed-in page shows their email (GitHub avatar when present) and "Sign out"; a user with `mentor` and `operator` sees "Mentor workspace" and "Admin → Dashboard" in the sidebar, a mentee sees "Mentors" only (L04, L09; links moved from the account bar to the sidebar on 2026-11-14, see App shell).
 - (s04) Given the set-password page, then it has one password field with "Show password" (L05).
 - (s03) Given the mail provider fails, when the user registers or resends, then they see "We could not send the email. Try again later, or continue with GitHub." (L06).
 - (s01) Given the sign-in page, then it says "Forgot your password? Use GitHub with the same email." (L12).

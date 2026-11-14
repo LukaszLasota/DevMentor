@@ -26,7 +26,8 @@ describe("AccountHeader", () => {
     render(await AccountHeader({ area: "Admin" }));
 
     expect(screen.getByRole("banner").textContent).toContain("adam@devmentor.test");
-    expect(screen.getAllByRole("link").map((link) => link.textContent)).toEqual(["Mentor", "Admin"]);
+    expect(screen.getByText("Admin", { selector: "span" })).toBeTruthy();
+    expect(screen.queryByRole("link")).toBeNull();
     expect(screen.getByRole("button", { name: "Sign out" })).toBeTruthy();
   });
 

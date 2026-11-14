@@ -13,8 +13,8 @@ afterEach(() => {
 });
 
 describe("AccountBar", () => {
-  it("shows the email and the sign-out control, and no role links for a mentee (L04)", () => {
-    render(<AccountBar user={{ email: "ola@devmentor.test", roles: ["mentee"] }} signOut={<button>Sign out</button>} />);
+  it("shows the email and the sign-out control, and no navigation (L04; links live in the sidebar)", () => {
+    render(<AccountBar user={{ email: "ola@devmentor.test" }} signOut={<button>Sign out</button>} />);
 
     const header = screen.getByRole("banner");
     expect(within(header).getByText("ola@devmentor.test")).toBeTruthy();
@@ -22,35 +22,16 @@ describe("AccountBar", () => {
     expect(screen.queryByRole("navigation")).toBeNull();
     expect(screen.queryByRole("link")).toBeNull();
     expect(header.querySelector("img")).toBeNull();
-    expect(screen.queryByText("Admin")).toBeNull();
   });
 
-  it("links Mentor and Admin for a user holding both roles, with the area and the GitHub avatar (L09)", () => {
-    render(
-      <AccountBar
-        user={{ email: "adam@devmentor.test", roles: ["mentee", "mentor", "operator"], avatarUrl: "https://avatars.example/adam" }}
-        area="Admin"
-        signOut={null}
-      />,
-    );
+  it("shows the area and the GitHub avatar", () => {
+    render(<AccountBar user={{ email: "adam@devmentor.test", avatarUrl: "https://avatars.example/adam" }} area="Admin" signOut={null} />);
 
-    const links = within(screen.getByRole("navigation", { name: "Your areas" })).getAllByRole("link");
-    expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
-      ["Mentor", "/mentor"],
-      ["Admin", "/admin"],
-    ]);
     expect(screen.getByText("Admin", { selector: "span" })).toBeTruthy();
-
     const avatar = screen.getByRole("banner").querySelector("img");
     expect(avatar?.getAttribute("src")).toBe("https://avatars.example/adam");
     expect(avatar?.getAttribute("alt")).toBe("");
     expect(avatar?.getAttribute("referrerpolicy")).toBe("no-referrer");
-  });
-
-  it("links only the role the user holds", () => {
-    render(<AccountBar user={{ email: "o@devmentor.test", roles: ["operator"], avatarUrl: null }} signOut={null} />);
-
-    expect(screen.getAllByRole("link").map((link) => link.textContent)).toEqual(["Admin"]);
   });
 });
 

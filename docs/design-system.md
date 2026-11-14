@@ -32,7 +32,8 @@ Matter-of-fact, not generic. Dense where people scan (mentor and slot lists: thi
 | Table / DataTable | `@devmentor/ui` | Records to compare in panels | Public mentor list |
 | EmptyState / ErrorMessage / LoadingMessage / Skeleton | `@devmentor/ui` | Every data region | — |
 | ReadinessChecklist, ProfileActions, CopyShareLink, SlotsPanel, SignInPanel, CheckInboxNotice, PayoutStatusPanel | `@devmentor/ui` | E01 screens | Public pages |
-| AccountBar + SignOutButton (DS-01, closed 2026-10-26) | `@devmentor/ui` | Header of every signed-in page (`(mentee)`, `(mentor)`, `(admin)`): email, GitHub avatar, "Mentor"/"Admin" links per role, "Sign out" (L04, L09) | `(auth)` and public pages; per-page navigation |
+| AccountBar + SignOutButton (DS-01, closed 2026-10-26) | `@devmentor/ui` | Header of every signed-in page (`(mentee)`, `(mentor)`, `(admin)`): email, GitHub avatar, "Sign out" (L04); no links | `(auth)` and public pages; navigation (sidebar) |
+| AppShell + SideNav + `accountNavSections` (2026-11-14) | `@devmentor/ui` | Frame of every signed-in root layout: account bar on top, sidebar "Main" with role links ("Mentors"; "Mentor workspace" for mentors; "Admin → Dashboard" for operators, L09), current item `aria-current="page"`; a wrapping row above the page when the shell is under 48rem (container query). Add an item only with its page | `(auth)` and public pages; in-page tabs or filters |
 | MentorCard, MentorTagFilter, MentorListSkeleton, MentorPageView, MentorAvatar, SessionFacts, TagList, TextSessionNotice, LocalTime, InvitationPanel, buttonVariants | `@devmentor/ui/mentors` | Public pages | — |
 
 ## Semantic tokens (Tailwind classes)
@@ -41,7 +42,7 @@ Matter-of-fact, not generic. Dense where people scan (mentor and slot lists: thi
 - Space (5 steps): `*-related` 8, `*-paragraph` 16, `*-panel` 24, `*-component` 32, `*-section` 48.
 - Shape: `rounded-control` 8, `rounded-button` 10, `rounded-card` 12, `rounded-panel` 16, `rounded-checkbox` 4; `shadow-overlay` only for popovers, menus, dialogs.
 - Motion: `duration-control` 120, `duration-menu` 180, `duration-dialog` 240 (zero with reduced motion).
-- Width: `max-w-measure` (65ch) for running text; `w-phone` (320 px) for narrow-screen stories.
+- Width: `max-w-measure` (65ch) for running text; `w-phone` (320 px) for narrow-screen stories; `w-sidebar` (14rem) for the shell sidebar.
 
 ## If… then use
 - Changes data → Button. Goes elsewhere → TextLink. Icon only → Button `iconOnly` + `aria-label`. 3+ row actions → DropdownMenu.

@@ -12,7 +12,7 @@ const meta = {
   component: AccountBar,
   parameters: { layout: "fullscreen" },
   args: {
-    user: { email: "ola@devmentor.test", roles: ["mentee"] },
+    user: { email: "ola@devmentor.test" },
     signOut: <SignOutButton onSignedOut={fn()} />,
   },
 } satisfies Meta<typeof AccountBar>;
@@ -27,25 +27,26 @@ export const Mentee: Story = {
   },
 };
 
-export const MentorAndOperator: Story = {
-  name: "Mentor and operator (L09)",
+export const WithAvatarAndArea: Story = {
+  name: "With avatar and area",
   args: {
-    user: { email: "adam@devmentor.test", roles: ["mentee", "mentor", "operator"], avatarUrl: avatar },
+    user: { email: "adam@devmentor.test", avatarUrl: avatar },
     area: "Admin",
   },
   play: async ({ canvas }) => {
-    await expect(canvas.getAllByRole("link").map((link) => link.textContent)).toEqual(["Mentor", "Admin"]);
+    // Role links live in the shell sidebar since 2026-11-14 (see App shell).
+    await expect(canvas.queryByRole("navigation")).toBeNull();
   },
 };
 
 export const Dark: Story = {
-  args: MentorAndOperator.args,
+  args: WithAvatarAndArea.args,
   globals: { theme: "dark" },
 };
 
 export const NarrowScreen: Story = {
   args: {
-    user: { email: "a.very.long.address@devmentor.test", roles: ["mentee", "mentor", "operator"], avatarUrl: avatar },
+    user: { email: "a.very.long.address@devmentor.test", avatarUrl: avatar },
     area: "Admin",
   },
   decorators: [(Story) => <div className="w-phone">{Story()}</div>],
