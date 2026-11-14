@@ -29,6 +29,14 @@ const operatorEmails = z
 export const DEFAULT_PASSWORD_HASH_CONCURRENCY = 2;
 export const DEFAULT_PASSWORD_HASH_WAIT_MS = 3_000;
 
+/** Mentor invitations (invitations spec): how long a link is valid, and the publish-by window after acceptance. */
+export const DEFAULT_INVITATION_TTL_DAYS = 14;
+export const DEFAULT_MENTOR_PUBLISH_WINDOW_DAYS = 14;
+
+/** A whole number of days, at least 1 and at most a year; empty → `fallback`. */
+const days = (fallback: number) =>
+  optional(z.coerce.number().int().min(1).max(365)).transform((value) => value ?? fallback);
+
 const TEST_OVERRIDE_KEYS = ['GITHUB_OAUTH_URL', 'GITHUB_API_URL'] as const;
 
 export const MAIL_PROVIDERS = ['resend', 'log'] as const;
@@ -45,7 +53,8 @@ export type MailProvider = (typeof MAIL_PROVIDERS)[number];
  *   MAIL_PROVIDER=log in production without ALLOW_TEST_OVERRIDES=1 (mail would only be logged);
  * - defaulted: SESSION_SECRET_PREVIOUS, OPERATOR_EMAILS, GITHUB_OAUTH_URL, GITHUB_API_URL,
  *   TRUSTED_PROXY_HOPS (0: no client IP is trusted), PASSWORD_HASH_CONCURRENCY, PASSWORD_HASH_WAIT_MS,
- *   MAIL_PROVIDER (`log` in development and test, `resend` in production).
+ *   MAIL_PROVIDER (`log` in development and test, `resend` in production), INVITATION_TTL_DAYS,
+ *   MENTOR_PUBLISH_WINDOW_DAYS (14 each).
  */
 const envSchema = z
   .object({
@@ -69,6 +78,8 @@ const envSchema = z
     PASSWORD_HASH_WAIT_MS: optional(z.coerce.number().int().min(0).max(60_000)).transform(
       (ms) => ms ?? DEFAULT_PASSWORD_HASH_WAIT_MS,
     ),
+    INVITATION_TTL_DAYS: days(DEFAULT_INVITATION_TTL_DAYS),
+    MENTOR_PUBLISH_WINDOW_DAYS: days(DEFAULT_MENTOR_PUBLISH_WINDOW_DAYS),
     MAIL_PROVIDER: optional(z.enum(MAIL_PROVIDERS, 'must be resend or log')),
     MAIL_API_KEY: optional(z.string()),
     /** Sender, e.g. `DevMentor <noreply@example.com>`; Resend requires a verified domain. */

@@ -24,6 +24,8 @@ describe('parseEnv', () => {
       TRUSTED_PROXY_HOPS: 0,
       PASSWORD_HASH_CONCURRENCY: 2,
       PASSWORD_HASH_WAIT_MS: 3000,
+      INVITATION_TTL_DAYS: 14,
+      MENTOR_PUBLISH_WINDOW_DAYS: 14,
       MAIL_PROVIDER: 'log',
       MAIL_API_KEY: undefined,
       MAIL_FROM: undefined,
@@ -153,6 +155,30 @@ describe('parseEnv', () => {
       ['TRUSTED_PROXY_HOPS', '1.5'],
       ['PASSWORD_HASH_CONCURRENCY', '0'],
       ['PASSWORD_HASH_WAIT_MS', 'soon'],
+    ])('rejects %s=%s', (key, value) => {
+      expect(() => parseEnv({ DATABASE_URL, [key]: value })).toThrow(new RegExp(key));
+    });
+  });
+
+  describe('invitation windows', () => {
+    it('coerces whole days and treats empty values as the 14-day defaults', () => {
+      expect(parseEnv({ DATABASE_URL, INVITATION_TTL_DAYS: '7', MENTOR_PUBLISH_WINDOW_DAYS: '30' })).toMatchObject({
+        INVITATION_TTL_DAYS: 7,
+        MENTOR_PUBLISH_WINDOW_DAYS: 30,
+      });
+      expect(parseEnv({ DATABASE_URL, INVITATION_TTL_DAYS: '', MENTOR_PUBLISH_WINDOW_DAYS: '' })).toMatchObject({
+        INVITATION_TTL_DAYS: 14,
+        MENTOR_PUBLISH_WINDOW_DAYS: 14,
+      });
+    });
+
+    it.each([
+      ['INVITATION_TTL_DAYS', '0'],
+      ['INVITATION_TTL_DAYS', '-3'],
+      ['INVITATION_TTL_DAYS', '1.5'],
+      ['INVITATION_TTL_DAYS', '366'],
+      ['MENTOR_PUBLISH_WINDOW_DAYS', '0'],
+      ['MENTOR_PUBLISH_WINDOW_DAYS', 'two weeks'],
     ])('rejects %s=%s', (key, value) => {
       expect(() => parseEnv({ DATABASE_URL, [key]: value })).toThrow(new RegExp(key));
     });
