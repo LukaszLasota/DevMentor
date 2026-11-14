@@ -100,7 +100,26 @@ Until a GitHub OAuth App is set up, sign in through a local GitHub stub (`script
    - [`/sign-in?login=mock-mentee`](http://localhost:3000/sign-in?login=mock-mentee) → `/mentors` (mentee; any other login is a new mentee too);
    - `login=deny` → "You cancelled GitHub sign-in."; `login=mock-unverified` → no verified email.
 
-   `/api/auth/github?login=<persona>` starts the same flow directly. Accounts are created on the first sign-in; there is no seed. If port 3000 is taken, run `PORT=3001 npm run dev` and set `APP_URL=http://localhost:3001`.
+   `/api/auth/github?login=<persona>` starts the same flow directly. Accounts are created on the first sign-in, or ahead of time with `npm run db:seed` ("Seed demo accounts"). If port 3000 is taken, run `PORT=3001 npm run dev` and set `APP_URL=http://localhost:3001`.
+
+### Seed demo accounts
+
+```bash
+npm run db:seed        # development only; reads DATABASE_URL from .env
+```
+
+Creates (or restores) demo accounts in the local database and prints them. Re-running changes nothing; a demo account you changed (password, GitHub link) is put back and its sessions end. Other accounts are never touched. It refuses to run with `NODE_ENV=production`, because the password is published here.
+
+Password: `mock-password-not-a-secret`
+
+| Account | Roles | Sign in with |
+|---|---|---|
+| `mock-mentee@devmentor.test` | mentee | password, or GitHub stub `login=mock-mentee` |
+| `mock-operator@devmentor.test` | mentee + operator (while listed in `OPERATOR_EMAILS`) | password, or GitHub stub `login=mock-operator` |
+| `mock-github-only@devmentor.test` | mentee | GitHub stub `login=mock-github-only` only; password sign-in is refused |
+| `mock-pending@example.com` | mentee | nothing: a pending registration (unverified, no password, no GitHub) |
+
+No account is a mentor yet (the mentor area arrives with invitations). The GitHub identities match the stub's personas, so stub sign-in lands on the seeded account.
 
 ### Sign in with real GitHub (OAuth App)
 
@@ -154,6 +173,7 @@ With `MAIL_PROVIDER=log` (the default outside production) no email is sent: the 
 | `npm run audit` | `npm audit` gate (high/critical, minus `audit-allowlist.json`) |
 | `npm run validate` | Lint, typecheck, coverage, build, audit |
 | `npm run db:migrate` | Apply all pending migrations |
+| `npm run db:seed` | Create or restore the demo accounts (development only; see "Seed demo accounts") |
 | `npm run db -- migration:create` | Generate a migration from entity changes |
 | `npm run db -- migration:up` / `migration:down` | Apply / roll back migrations |
 | `npm run db -- <command>` | Any other MikroORM CLI command |

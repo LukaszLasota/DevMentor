@@ -38,6 +38,14 @@ describe('public entries', () => {
     );
   });
 
+  it('@devmentor/core/cli exposes the command-line entries', async () => {
+    const cli = await import('./cli/index');
+
+    expect(Object.keys(cli).sort()).toEqual(
+      ['DEMO_ACCOUNTS', 'DEMO_PASSWORD', 'SEED_REFUSED_IN_PRODUCTION', 'formatSeedReport', 'runSeedCli', 'seedDemoAccounts'].sort(),
+    );
+  });
+
   it('@devmentor/core/http exposes the API layer', async () => {
     const http = await import('./http/index');
 

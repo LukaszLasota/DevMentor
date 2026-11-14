@@ -77,6 +77,18 @@ Lesson 08 ends with an app shell: header, sidebar and a place for further featur
 - No shadcn `sidebar` primitive: it brings a provider, cookie state, sheet, tooltip and a mobile hook for a list of three links. The shell is two small panel components in `@devmentor/ui` (`AppShell`, `SideNav`) plus the role-to-links mapping (`accountNavSections`).
 - Links are plain `<a>`: every target lives in another root layout, so a full page load is the right navigation (as for the account bar).
 
+### Dev seed (added 2026-11-14 at the user's request; supersedes the 1.10 no-seed decision)
+Course parity with lesson 08 ("migrations and test data from the seed"). `npm run db:seed` creates or restores demo accounts in the local database; development only.
+- Accounts (password `mock-password-not-a-secret`, published in the README):
+  - `mock-mentee@devmentor.test` — mentee, verified, password + GitHub identity of the stub persona `mock-mentee` (both sign-in methods work);
+  - `mock-operator@devmentor.test` — mentee, verified, password + stub identity `mock-operator`; `operator` comes from `OPERATOR_EMAILS` as for any account (the seed stores only the effective roles, never an operator the allowlist does not grant);
+  - `mock-github-only@devmentor.test` — mentee, verified, stub identity `mock-github-only`, no password (password sign-in refused);
+  - `mock-pending@example.com` — pending registration: unverified, no password, no GitHub (usable with neither; a reserved domain the stub never produces).
+- The GitHub id is the stub's own `githubIdFor(login)` (passed in by the entry script, not re-implemented).
+- Matched by email, in one transaction. Re-running changes nothing; a demo account changed since (password, link, verification, roles) is put back to its demo state and its sessions end (`session_version` + 1). Other rows are never touched; a demo GitHub id linked to another account stops the seed with nothing changed.
+- Refuses to run with `NODE_ENV=production` (no override): production must never get a known password.
+- No `mentor` until phase 3 ships `/mentor`; phase 3 adds a `mock-mentor` persona.
+
 ## 📝 Edge Cases & Failure Scenarios
 - User cancels on GitHub → callback with `error=access_denied` → `/sign-in?error=github_cancelled`.
 - `state` missing or mismatched (CSRF on the callback, expired `dm_oauth`) → refuse before any outbound call, no account touched → `/sign-in?error=github_state_invalid`.
