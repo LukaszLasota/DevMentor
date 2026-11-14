@@ -173,7 +173,9 @@ export class InvitationService {
   /**
    * A new pending invitation and its link. Refused when the email belongs to a current mentor, or
    * when it already has an unresolved invitation (the partial unique index decides, so two parallel
-   * creates leave one row; an expired one counts: resend or revoke it first).
+   * creates leave one row; an expired one counts: resend or revoke it first). The mentor check and
+   * the insert run in one transaction under the invitee's user row lock, like accept, so an
+   * acceptance committing in between cannot leave a pending invitation for a current mentor.
    */
   async create(input: CreateInvitationInput): Promise<InvitationWithLink> {
     const parsed = createSchema().safeParse(input);
@@ -184,24 +186,29 @@ export class InvitationService {
 
     const { email, tags, batch, operator } = parsed.data;
     const appUrl = this.requireAppUrl();
-    const holder = await this.em.findOne(User, { email });
-
-    if (holder?.roles.includes('mentor') === true) {
-      throw new ConflictError(EMAIL_IS_MENTOR_MESSAGE);
-    }
-
-    const token = randomToken();
     const now = this.clock.now();
-    const invitation = this.em.create(Invitation, {
-      email,
-      tokenHash: hashToken(token),
-      stackTags: tags,
-      batch: batch ?? null,
-      expiresAt: this.daysFrom(now, this.env.INVITATION_TTL_DAYS),
-    });
+    const token = randomToken();
+    let invitation: Invitation;
 
     try {
-      await this.em.flush();
+      invitation = await this.em.transactional(async (em) => {
+        // The lock accept takes first. Accept committed before us: the refreshed row holds
+        // `mentor`. Accept waits behind us: its invitation is still unresolved, so the partial
+        // unique index refuses this insert ("already invited").
+        const holder = await em.findOne(User, { email }, lockForUpdate());
+
+        if (holder?.roles.includes('mentor') === true) {
+          throw new ConflictError(EMAIL_IS_MENTOR_MESSAGE);
+        }
+
+        return em.create(Invitation, {
+          email,
+          tokenHash: hashToken(token),
+          stackTags: tags,
+          batch: batch ?? null,
+          expiresAt: this.daysFrom(now, this.env.INVITATION_TTL_DAYS),
+        });
+      });
     } catch (error) {
       if (!(error instanceof UniqueConstraintViolationException)) {
         throw error;

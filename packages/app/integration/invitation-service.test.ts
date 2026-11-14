@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { setTimeout as delay } from 'node:timers/promises';
 import { afterAll, afterEach, beforeAll, describe, expect, inject, it } from 'vitest';
 import { psql } from './psql';
 
@@ -138,6 +139,33 @@ describe('InvitationService against PostgreSQL', () => {
       expect(results.find((result) => result.status === 'rejected')).toMatchObject({
         reason: { status: 409, code: 'CONFLICT' },
       });
+      expect(await psql(`select count(*) from invitations where email = '${email}'`)).toBe('1');
+    }
+  });
+
+  it('create racing accept for the same email: never a pending invitation for a current mentor', async () => {
+    // Both lock the user row first, so they serialize. Accept first: create re-reads the user
+    // under the lock and sees `mentor` (409). Create first: the first invitation is still
+    // unresolved, so the partial unique index refuses the second (409 "already invited"). Either
+    // way create is refused and accept wins. Create starts 0–9 ms after accept, so some rounds
+    // read the user before accept commits and insert after it (the window the lock closes).
+    for (let round = 0; round < ROUNDS * 2; round += 1) {
+      const email = `create-accept-race-${round}${DOMAIN}`;
+      const userId = await seedVerifiedUser(email);
+      const { token } = await createInvitation(email);
+
+      const [accepted, created] = await Promise.allSettled([
+        accept(token, userId),
+        delay(round).then(() => createInvitation(email)),
+      ]);
+
+      expect(accepted.status).toBe('fulfilled');
+      expect(created).toMatchObject({ status: 'rejected', reason: { status: 409, code: 'CONFLICT' } });
+      expect(
+        await psql(
+          `select count(*) from invitations where email = '${email}' and accepted_at is null and revoked_at is null`,
+        ),
+      ).toBe('0');
       expect(await psql(`select count(*) from invitations where email = '${email}'`)).toBe('1');
     }
   });

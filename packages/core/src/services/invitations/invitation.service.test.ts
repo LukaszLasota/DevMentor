@@ -287,8 +287,36 @@ describe('InvitationService.create', () => {
       code: 'CONFLICT',
       message: EMAIL_IS_MENTOR_MESSAGE,
     });
-    expect(em.findOne).toHaveBeenCalledWith(User, { email: EMAIL });
+    expect(em.findOne).toHaveBeenCalledWith(User, { email: EMAIL }, LOCK);
     expect(em.create).not.toHaveBeenCalled();
+    expect(em.log).toEqual(['begin', 'findOne:User']);
+  });
+
+  it('checks the invitee under the user row lock and inserts in the same transaction', async () => {
+    const { service, em, invitations } = setup({
+      users: [makeUser({ roles: ['mentee'] })],
+    });
+
+    await service.create(VALID_CREATE);
+
+    expect(em.findOne).toHaveBeenCalledWith(User, { email: EMAIL }, LOCK);
+    expect(em.log).toEqual(['begin', 'findOne:User', 'flush', 'commit']);
+    expect(invitations).toHaveLength(1);
+  });
+
+  it('create after a committed accept: the locked re-read sees mentor, 409, nothing inserted', async () => {
+    const user = makeUser({ roles: ['mentee'] });
+    const { service, em, invitations } = setup({ users: [user] });
+    // The lock is granted once accept commits; the refreshed row already holds mentor.
+    em.findOne.mockImplementationOnce(async (_entity: unknown, _where: Row, options?: unknown) => {
+      em.log.push('findOne:User');
+      expect(options).toEqual(LOCK);
+      user.roles = ['mentee', 'mentor'];
+      return user;
+    });
+
+    await expect(service.create(VALID_CREATE)).rejects.toMatchObject({ status: 409, message: EMAIL_IS_MENTOR_MESSAGE });
+    expect(invitations).toHaveLength(0);
   });
 
   it('invites an existing account that is not a mentor (a mentee or an operator)', async () => {
