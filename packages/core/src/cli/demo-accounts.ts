@@ -1,4 +1,4 @@
-import { DEFAULT_ROLES, User, type Role } from '@devmentor/db';
+import { DEFAULT_ROLES, MentorProfile, User, type Role } from '@devmentor/db';
 import type { Cradle } from '../container/cradle';
 import { effectiveRoles } from '../services/auth/account.service';
 
@@ -14,19 +14,25 @@ export interface DemoAccount {
   password: boolean;
   /** Expected in `OPERATOR_EMAILS`; the role itself comes from there, never from the seed. */
   operator: boolean;
+  /** Holds `mentor` and has a `MentorProfile` (as after an accepted invitation). */
+  mentor: boolean;
 }
 
 /**
- * Demo accounts of `npm run db:seed` (sign-in spec, "Dev seed"). No account holds `mentor` until
- * the mentor area exists (Epic 01 phase 3). The pending account uses a reserved domain the GitHub
- * stub never produces, so a stub sign-in cannot link and verify it.
+ * Demo accounts of `npm run db:seed` (sign-in spec, "Dev seed"). `mock-mentee` stays a plain mentee
+ * so it can accept an invitation in a manual test; `mock-mentor` is a ready mentor; the operator
+ * also mentors (the course's operator persona: both sidebar sections). The pending account uses a
+ * reserved domain the GitHub stub never produces, so a stub sign-in cannot link and verify it.
  */
 export const DEMO_ACCOUNTS: readonly DemoAccount[] = [
-  { email: 'mock-mentee@devmentor.test', githubLogin: 'mock-mentee', verified: true, password: true, operator: false },
-  { email: 'mock-operator@devmentor.test', githubLogin: 'mock-operator', verified: true, password: true, operator: true },
-  { email: 'mock-github-only@devmentor.test', githubLogin: 'mock-github-only', verified: true, password: false, operator: false },
-  { email: 'mock-pending@example.com', githubLogin: null, verified: false, password: false, operator: false },
+  { email: 'mock-mentee@devmentor.test', githubLogin: 'mock-mentee', verified: true, password: true, operator: false, mentor: false },
+  { email: 'mock-mentor@devmentor.test', githubLogin: 'mock-mentor', verified: true, password: true, operator: false, mentor: true },
+  { email: 'mock-operator@devmentor.test', githubLogin: 'mock-operator', verified: true, password: true, operator: true, mentor: true },
+  { email: 'mock-github-only@devmentor.test', githubLogin: 'mock-github-only', verified: true, password: false, operator: false, mentor: false },
+  { email: 'mock-pending@example.com', githubLogin: null, verified: false, password: false, operator: false, mentor: false },
 ];
+
+const DAY_MS = 86_400_000;
 
 export type SeedStatus = 'created' | 'updated' | 'unchanged';
 
@@ -72,6 +78,40 @@ function demoPasswordHash({ passwordHasher }: SeedDeps, stored: string | null): 
   });
 }
 
+/** Stored roles of a demo account before operator reconciliation (`OPERATOR_EMAILS` decides that one). */
+function demoRoles(account: DemoAccount): Role[] {
+  return account.mentor ? [...DEFAULT_ROLES, 'mentor'] : [...DEFAULT_ROLES];
+}
+
+/** The publish-by deadline an accepted invitation would set now (spec 2026-10-21-mentor-invitations). */
+function publishDeadline({ clock, env }: SeedDeps): Date {
+  return new Date(clock.now().getTime() + env.MENTOR_PUBLISH_WINDOW_DAYS * DAY_MS);
+}
+
+/**
+ * Gives an existing mentor demo account its `MentorProfile` when it has none. An existing deadline
+ * is never moved, so re-seeding does not reset it. Returns whether anything was written.
+ */
+async function ensureMentorProfile(em: SeedEm, deps: SeedDeps, account: DemoAccount, user: User): Promise<boolean> {
+  if (!account.mentor) {
+    return false;
+  }
+
+  const profile = await em.findOne(MentorProfile, { user: user.id });
+
+  if (profile === null) {
+    em.create(MentorProfile, { user, initialPublishDueAt: publishDeadline(deps) });
+    return true;
+  }
+
+  if (profile.initialPublishDueAt == null) {
+    profile.initialPublishDueAt = publishDeadline(deps);
+    return true;
+  }
+
+  return false;
+}
+
 async function upsert(em: SeedEm, deps: SeedDeps, account: DemoAccount, githubIdFor: GithubIdFor): Promise<SeedResult> {
   const githubId = account.githubLogin === null ? null : githubIdFor(account.githubLogin);
 
@@ -87,7 +127,7 @@ async function upsert(em: SeedEm, deps: SeedDeps, account: DemoAccount, githubId
 
   const user = await em.findOne(User, { email: account.email });
   const state: DemoState = {
-    roles: effectiveRoles(DEFAULT_ROLES, account.email, account.verified, deps.env.OPERATOR_EMAILS),
+    roles: effectiveRoles(demoRoles(account), account.email, account.verified, deps.env.OPERATOR_EMAILS),
     githubId,
     githubLogin: account.githubLogin,
     passwordHash: account.password ? await demoPasswordHash(deps, user?.passwordHash ?? null) : null,
@@ -95,13 +135,19 @@ async function upsert(em: SeedEm, deps: SeedDeps, account: DemoAccount, githubId
   };
 
   if (user === null) {
-    em.create(User, { email: account.email, ...state });
+    const created = em.create(User, { email: account.email, ...state });
+
+    if (account.mentor) {
+      em.create(MentorProfile, { user: created, initialPublishDueAt: publishDeadline(deps) });
+    }
 
     return { account, roles: state.roles, status: 'created' };
   }
 
+  const profileWritten = await ensureMentorProfile(em, deps, account, user);
+
   if (sameState(user, state)) {
-    return { account, roles: state.roles, status: 'unchanged' };
+    return { account, roles: state.roles, status: profileWritten ? 'updated' : 'unchanged' };
   }
 
   // Credentials or roles changed back to the demo state: sessions issued for the old state end.
@@ -113,8 +159,10 @@ async function upsert(em: SeedEm, deps: SeedDeps, account: DemoAccount, githubId
 
 /**
  * Creates or restores the demo accounts in one transaction, matched by email. Re-running changes
- * nothing; an account changed since (password, GitHub link, verification) is put back. Other rows
- * are never touched, and a demo GitHub identity linked to another account stops the whole seed.
+ * nothing; an account changed since (password, GitHub link, verification, roles) is put back, and a
+ * mentor account missing its `MentorProfile` gets one. Other rows are never touched (a profile left
+ * on a demo account that is no mentor stays), and a demo GitHub identity linked to another account
+ * stops the whole seed.
  */
 export function seedDemoAccounts(deps: SeedDeps, githubIdFor: GithubIdFor): Promise<SeedResult[]> {
   return deps.em.transactional(async (em) => {

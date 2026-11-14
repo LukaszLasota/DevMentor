@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { delay, http, HttpResponse } from "msw";
-import { expect, fn, userEvent } from "storybook/test";
+import { expect, fn, userEvent, waitFor } from "storybook/test";
 import { AccountBar, SignOutButton } from "../../../src";
 
 const endpoint = "/api/auth/sign-out";
@@ -36,6 +36,18 @@ export const WithAvatarAndArea: Story = {
   play: async ({ canvas }) => {
     // Role links live in the shell sidebar since 2026-11-14 (see App shell).
     await expect(canvas.queryByRole("navigation")).toBeNull();
+  },
+};
+
+export const AvatarFailsToLoad: Story = {
+  name: "Avatar fails to load",
+  args: {
+    // An avatar URL that does not resolve (e.g. the GitHub stub is not running): no broken-image icon.
+    user: { email: "mock-mentee@devmentor.test", avatarUrl: "data:image/png;base64,broken" },
+    area: "Mentor",
+  },
+  play: async ({ canvasElement }) => {
+    await waitFor(() => expect(canvasElement.querySelector("img")).toBeNull());
   },
 };
 

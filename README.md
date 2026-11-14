@@ -114,12 +114,38 @@ Password: `mock-password-not-a-secret`
 
 | Account | Roles | Sign in with |
 |---|---|---|
-| `mock-mentee@devmentor.test` | mentee | password, or GitHub stub `login=mock-mentee` |
-| `mock-operator@devmentor.test` | mentee + operator (while listed in `OPERATOR_EMAILS`) | password, or GitHub stub `login=mock-operator` |
+| `mock-mentee@devmentor.test` | mentee (invite it to try the invitation flow) | password, or GitHub stub `login=mock-mentee` |
+| `mock-mentor@devmentor.test` | mentee + mentor, with a mentor profile | password, or GitHub stub `login=mock-mentor` |
+| `mock-operator@devmentor.test` | mentee + mentor + operator (operator while listed in `OPERATOR_EMAILS`), with a mentor profile | password, or GitHub stub `login=mock-operator` |
 | `mock-github-only@devmentor.test` | mentee | GitHub stub `login=mock-github-only` only; password sign-in is refused |
 | `mock-pending@example.com` | mentee | nothing: a pending registration (unverified, no password, no GitHub) |
 
-No account is a mentor yet (the mentor area arrives with invitations). The GitHub identities match the stub's personas, so stub sign-in lands on the seeded account.
+Mentor accounts get their mentor profile with the publish-by deadline an accepted invitation would set (now + `MENTOR_PUBLISH_WINDOW_DAYS`); re-seeding never moves a deadline. Re-seeding does reset roles to the table above, so a `mentor` role that `mock-mentee` gained by accepting an invitation is removed again (its profile and the accepted invitation stay). The GitHub identities match the stub's personas, so stub sign-in lands on the seeded account.
+
+### Invite a mentor
+
+Only invited engineers become mentors. The operator creates an invitation in the terminal and sends the printed link by hand (R16: no operator screen, no mail transport); the invited person opens it, signs in with the invited, verified email and accepts. Needs `APP_URL` (the links are built from it) and reads `DATABASE_URL` from `.env`.
+
+```bash
+npm run invite -- create --email <email> --tags <tag,...> [--batch <name>] --operator <your name>
+npm run invite -- list [--batch <name>]   # status, expiry, accepted and publish-by dates
+npm run invite -- resend <id>             # new link and expiry; the old link stops working
+npm run invite -- revoke <id>             # the link stops working
+npm run invite -- --help
+```
+
+Tags: `typescript`, `react`, `python`, `ai-agents` (display names such as `TypeScript` or `"AI agents"` work too, any case). Example:
+
+```text
+$ npm run invite -- create --email ada@example.com --tags react,typescript --batch b1 --operator lukasz
+Invitation link for ada@example.com (shown once; send it by hand):
+http://localhost:3000/invitation/Xq3v9b2LkT0mWn7pR4sYd8eFh1jC6uAz5gNo-_EiQ0c
+
+Audit line for the shared note:
+2026-11-14T20:23:24Z invited ada@example.com tags=typescript,react batch=b1 by lukasz id=3f6c1e2a-8b7d-4c59-9e0f-1a2b3c4d5e6f expires=2026-11-28T20:23:24Z
+```
+
+The link is printed once and only its hash is stored: if it is lost, `resend` makes a new one. Paste the token-free audit line into the shared operator note. An email can hold one unresolved invitation (pending or expired): resend or revoke it before creating another; a current mentor cannot be invited. Errors print the reason (per option for invalid input) and exit with code 1. Times are UTC.
 
 ### Sign in with real GitHub (OAuth App)
 
@@ -174,6 +200,7 @@ With `MAIL_PROVIDER=log` (the default outside production) no email is sent: the 
 | `npm run validate` | Lint, typecheck, coverage, build, audit |
 | `npm run db:migrate` | Apply all pending migrations |
 | `npm run db:seed` | Create or restore the demo accounts (development only; see "Seed demo accounts") |
+| `npm run invite -- <command>` | Mentor invitations: `create`, `list`, `resend`, `revoke` (see "Invite a mentor") |
 | `npm run db -- migration:create` | Generate a migration from entity changes |
 | `npm run db -- migration:up` / `migration:down` | Apply / roll back migrations |
 | `npm run db -- <command>` | Any other MikroORM CLI command |

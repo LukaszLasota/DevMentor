@@ -42,7 +42,15 @@ describe('public entries', () => {
     const cli = await import('./cli/index');
 
     expect(Object.keys(cli).sort()).toEqual(
-      ['DEMO_ACCOUNTS', 'DEMO_PASSWORD', 'SEED_REFUSED_IN_PRODUCTION', 'formatSeedReport', 'runSeedCli', 'seedDemoAccounts'].sort(),
+      [
+        'DEMO_ACCOUNTS',
+        'DEMO_PASSWORD',
+        'SEED_REFUSED_IN_PRODUCTION',
+        'formatSeedReport',
+        'runInviteCli',
+        'runSeedCli',
+        'seedDemoAccounts',
+      ].sort(),
     );
   });
 

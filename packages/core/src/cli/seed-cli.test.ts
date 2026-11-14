@@ -21,7 +21,7 @@ const { DEMO_ACCOUNTS } = await import('./demo-accounts');
 const { formatSeedReport, runSeedCli, SEED_REFUSED_IN_PRODUCTION } = await import('./seed-cli');
 
 const env = (overrides: Record<string, string> = {}) => parseEnv({ DATABASE_URL: 'postgres://localhost/dev', ...overrides });
-const [mentee, operator, githubOnly, pending] = DEMO_ACCOUNTS;
+const [mentee, , operator, githubOnly, pending] = DEMO_ACCOUNTS;
 const RESULTS: SeedResult[] = [
   { account: mentee, roles: ['mentee'], status: 'created' },
   { account: operator, roles: ['mentee', 'operator'], status: 'unchanged' },

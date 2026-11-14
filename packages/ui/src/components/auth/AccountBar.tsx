@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { AccountAvatar } from "./AccountAvatar";
 
 /** What the account bar shows of the signed-in user (a subset of core's `SessionUser`). */
 export interface AccountBarUser {
@@ -29,16 +30,7 @@ export function AccountBar({ user, area, signOut }: AccountBarProps) {
         </div>
         <div className="flex min-w-0 max-w-full flex-wrap items-center gap-paragraph">
           <span className="flex min-w-0 max-w-full items-center gap-related">
-            {user.avatarUrl ? (
-              // Spec #21: a plain <img> straight from GitHub; decorative, the email next to it names the account.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={user.avatarUrl}
-                alt=""
-                referrerPolicy="no-referrer"
-                className="size-avatar-sm shrink-0 rounded-full object-cover"
-              />
-            ) : null}
+            {user.avatarUrl ? <AccountAvatar src={user.avatarUrl} /> : null}
             <span className="truncate font-mono text-body-small text-muted-foreground">{user.email}</span>
           </span>
           {signOut}

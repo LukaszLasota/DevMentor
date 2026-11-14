@@ -20,6 +20,7 @@
     "validate": "npm run lint && npm run typecheck && npm run test:coverage && npm run build && npm run audit",
     "db:migrate": "npm run db -- migration:up",
     "db:seed": "tsx --conditions=react-server --env-file-if-exists=.env scripts/seed.mts",
+    "invite": "tsx --conditions=react-server --env-file-if-exists=.env scripts/invite.mts",
     "test:coverage": "vitest run --coverage",
     "test:integration": "npm run build && vitest run --config vitest.integration.config.mts",
     "github:stub": "node scripts/github-stub.mjs"

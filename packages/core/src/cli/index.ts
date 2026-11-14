@@ -12,3 +12,4 @@ export {
   type SeedStatus,
 } from './demo-accounts';
 export { formatSeedReport, runSeedCli, SEED_REFUSED_IN_PRODUCTION, type SeedCliOptions } from './seed-cli';
+export { runInviteCli, type InviteCliOptions } from './invite-cli';
