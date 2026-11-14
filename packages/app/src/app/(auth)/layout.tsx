@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "DevMentor",
 };
 
-// Auth pages (/sign-in; /register and /verify-email in phase 2): panel surface via @devmentor/ui.
+// Auth pages (/sign-in, /register, /verify-email): panel surface via @devmentor/ui.
 export default function AuthRootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="h-full antialiased">

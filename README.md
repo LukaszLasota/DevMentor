@@ -102,6 +102,15 @@ Until a GitHub OAuth App is set up, sign in through a local GitHub stub (`script
 
    `/api/auth/github?login=<persona>` starts the same flow directly. Accounts are created on the first sign-in; there is no seed. If port 3000 is taken, run `PORT=3001 npm run dev` and set `APP_URL=http://localhost:3001`.
 
+### Register with email locally
+
+With `MAIL_PROVIDER=log` (the default outside production) no email is sent: the app writes it to its own log as a JSON line with `"msg":"mail.sent"` (`LOG_LEVEL=info`, the default). `APP_URL` must match the port the dev server listens on, because the link is built from it.
+
+1. Open [`/register`](http://localhost:3000/register) (or "Create an account" on `/sign-in`), enter an email, "Send link".
+2. Find the link in the `npm run dev` output: the `mail.sent` line with your address has `http://localhost:3000/verify-email#token=…` in its `text`. If you pipe the output to a file: `grep '"mail.sent"' dev.log | grep '<your email>' | tail -1 | grep -o 'http://[^ \\"]*verify-email#[^ \\"]*'`.
+3. Open the link, type a password (12–128 characters; "Show password" shows it), "Set password and sign in" → `/mentors`, signed in.
+4. "Sign out", then sign in on `/sign-in` with the email and password. A used or expired link shows "This link does not work any more" with "Send a new link".
+
 ## Scripts
 
 | Command | Description |

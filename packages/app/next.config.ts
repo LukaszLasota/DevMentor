@@ -18,6 +18,11 @@ const nextConfig: NextConfig = {
     serverMinification: false,
   },
   cacheComponents: true,
+  // /verify-email carries the link token in the URL fragment (never sent to servers); no-referrer also
+  // keeps the page URL out of any Referer (sign-in spec, UI/UX). The page sets the same policy as a meta tag.
+  async headers() {
+    return [{ source: "/verify-email", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] }];
+  },
   partialPrefetching: true,
   // Workspace packages (@devmentor/*) are transpiled by Turbopack automatically.
   serverExternalPackages: ["@mikro-orm/postgresql", "@mikro-orm/sql"],

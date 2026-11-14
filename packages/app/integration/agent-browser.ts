@@ -48,6 +48,9 @@ export function createAgentBrowser(session: string) {
     attr: async (selector: string, name: string) => (await run<{ value: string | null }>('get', 'attr', selector, name)).value,
     text: async (selector: string) => (await run<{ text: string }>('get', 'text', selector)).text,
     click: (selector: string) => run('click', selector),
+    /** Clears the field and types the text. */
+    fill: (selector: string, text: string) => run('fill', selector, text),
+    value: async (selector: string) => (await run<{ value: string }>('get', 'value', selector)).value,
     clickButton: (name: string) => run('find', 'role', 'button', 'click', '--name', name),
     count: async (selector: string) => (await run<{ count: number }>('get', 'count', selector)).count,
     /** Value of a cookie of the current page's browser context, `undefined` when it is not set. */

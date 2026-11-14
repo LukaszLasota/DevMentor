@@ -45,6 +45,11 @@ describe('signInSchema', () => {
     });
   });
 
+  it('carries an optional returnTo and drops an invalid one silently', () => {
+    expect(signInSchema.parse({ email: 'a@example.com', password: 'p', returnTo: '/mentors' }).returnTo).toBe('/mentors');
+    expect(signInSchema.parse({ email: 'a@example.com', password: 'p', returnTo: 42 }).returnTo).toBeUndefined();
+  });
+
   it('reports both fields', () => {
     expect(fieldErrors(signInSchema, { email: '', password: '' })).toEqual({
       email: ['Enter your email.'],

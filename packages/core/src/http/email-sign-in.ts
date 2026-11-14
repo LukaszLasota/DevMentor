@@ -1,3 +1,4 @@
+import { homeFor } from '../auth/home';
 import { getSessionUser, toSessionUser, type SessionUser } from '../auth/session-user';
 import { clientIp } from '../security/rate-limit';
 import { requireSessionSecrets, signSession } from '../security/session-token';
@@ -6,6 +7,7 @@ import { registerSchema, resendVerificationSchema, setPasswordSchema, signInSche
 import type { ApiHandlerOptions, HandlerArgs, RouteParams } from './apiHandler';
 import { withCookies, type WithCookies } from './apiHandler';
 import { parseJsonBody } from './parse';
+import { safeReturnTo } from './return-to';
 import { readSessionCookie, sessionCookie } from './session-cookie';
 
 // Email registration and password sign-in as `apiHandler` handlers; the app's route files only wire
@@ -30,12 +32,11 @@ export const VERIFY_EMAIL_RESPONSE: ApiHandlerOptions = {
 
 export interface SignedIn {
   user: SessionUser;
-}
-
-export interface EmailVerified extends SignedIn {
   /** `safeReturnTo(returnTo, homeFor(roles))`: where the page sends the user. */
   redirectTo: string;
 }
+
+export type EmailVerified = SignedIn;
 
 function attemptContext({ req, cradle: { env, logger } }: HandlerArgs<RouteParams>): AttemptContext {
   return { ip: clientIp(req.headers, env.TRUSTED_PROXY_HOPS, logger) };
@@ -58,7 +59,7 @@ export async function resendVerificationLink(args: HandlerArgs<RouteParams>): Pr
 }
 
 /**
- * `POST /api/auth/sign-in` `{ email, password }` → `{ user }` + `dm_session` with the current
+ * `POST /api/auth/sign-in` `{ email, password, returnTo? }` → `{ user, redirectTo }` + `dm_session` with the current
  * `session_version`; one 401 for every failure; 429; 503 (hashing gate, no `SESSION_SECRET` — checked
  * first so a misconfigured server neither hashes nor counts attempts).
  */
@@ -66,10 +67,12 @@ export async function signInWithPassword(args: HandlerArgs<RouteParams>): Promis
   const { req, cradle } = args;
   const secrets = requireSessionSecrets(cradle.env);
   const input = await parseJsonBody(req, signInSchema);
-  const user = await cradle.accountService.verifyPassword(input, attemptContext(args));
+  const { email, password, returnTo } = input;
+  const user = await cradle.accountService.verifyPassword({ email, password }, attemptContext(args));
   const session = await signSession({ sub: user.id, sv: user.sessionVersion }, secrets.current, cradle.clock);
+  const redirectTo = safeReturnTo(returnTo, homeFor(user.roles));
 
-  return withCookies({ user: toSessionUser(user) }, [sessionCookie(session)]);
+  return withCookies({ user: toSessionUser(user), redirectTo }, [sessionCookie(session)]);
 }
 
 /**

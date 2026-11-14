@@ -1,7 +1,9 @@
 import { execFile, spawn, type ChildProcess } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { existsSync } from 'node:fs';
+import { createWriteStream, existsSync, mkdtempSync } from 'node:fs';
 import { createServer } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
@@ -14,6 +16,8 @@ declare module 'vitest' {
     postgresContainerId: string;
     databaseUrl: string;
     githubStubUrl: string;
+    /** The app's stdout/stderr (pino JSON lines at `info`), read by `waitForMail` (`mail.ts`). */
+    appLogFile: string;
   }
 }
 
@@ -82,11 +86,16 @@ export default async function setup(project: TestProject) {
   const port = await freePort();
   const baseUrl = `http://127.0.0.1:${port}`;
   const logs: string[] = [];
+  // The app logs at `info` so the log mailer's `mail.sent` lines (verification links) reach the file;
+  // nothing is printed unless DEBUG_APP_LOGS is set, so the test output stays quiet.
+  const appLogFile = join(mkdtempSync(join(tmpdir(), 'devmentor-integration-')), 'app.log');
+  const logStream = createWriteStream(appLogFile);
   const server = spawn(nextBin, ['start', '--port', String(port), '--hostname', '127.0.0.1'], {
     cwd: appDir,
     // Production refuses to serve without SESSION_SECRET and APP_URL; each run gets a throwaway secret.
     env: {
       ...env,
+      LOG_LEVEL: 'info',
       NODE_ENV: 'production',
       SESSION_SECRET: randomBytes(32).toString('hex'),
       APP_URL: baseUrl,
@@ -102,8 +111,12 @@ export default async function setup(project: TestProject) {
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
-  server.stdout?.on('data', (chunk: Buffer) => logs.push(chunk.toString()));
-  server.stderr?.on('data', (chunk: Buffer) => logs.push(chunk.toString()));
+  const collect = (chunk: Buffer) => {
+    logs.push(chunk.toString());
+    logStream.write(chunk);
+  };
+  server.stdout?.on('data', collect);
+  server.stderr?.on('data', collect);
 
   try {
     await waitForHealthy(`${baseUrl}/api/health`, server, logs);
@@ -118,11 +131,13 @@ export default async function setup(project: TestProject) {
   project.provide('postgresContainerId', postgres.getId());
   project.provide('databaseUrl', postgres.getConnectionUri());
   project.provide('githubStubUrl', githubStub.url);
+  project.provide('appLogFile', appLogFile);
 
   return async () => {
     // `DEBUG_APP_LOGS=1 npm run test:integration` prints the app's log (server errors behind a browser error page).
     if (process.env.DEBUG_APP_LOGS) console.log(logs.join(''));
     server.kill();
+    logStream.end();
     await githubStub.close();
     await postgres.stop();
   };

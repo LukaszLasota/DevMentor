@@ -3,9 +3,9 @@ import { describe, expect, inject, it } from 'vitest';
 import { psql } from './psql';
 
 // Email routes over HTTP against the production server: register, verify-email, sign-in, resend.
-// The mailed link is not read from the log here (global-setup runs the app with LOG_LEVEL=warn, which
-// hides `mail.sent`; the browser flow with `waitForMail` is 2.6): instead a link token with a known raw
-// value is inserted for the registered account, stored the way the app stores it (SHA-256 hex).
+// Instead of reading the mailed link (`waitForMail`, used by the browser flow in email-browser.test.ts), a
+// link token with a known raw value is inserted for the registered account, stored the way the app stores
+// it (SHA-256 hex).
 const baseUrl = inject('baseUrl');
 const PASSWORD = 'correct horse battery staple';
 const CSRF = { 'x-devmentor-request': '1' };

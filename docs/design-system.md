@@ -22,7 +22,8 @@ Matter-of-fact, not generic. Dense where people scan (mentor and slot lists: thi
 | Button (`intent` primary/neutral/destructive × `appearance` filled/outline/soft/text, `size` lg/md/sm/xs, `loading`) | `@devmentor/ui` | An action on this screen; one filled primary per screen | Navigation |
 | TextLink | `@devmentor/ui` | Navigation from text (always underlined) | Actions |
 | Field + Input / Textarea / Checkbox / Select | `@devmentor/ui` | Every form control, with a visible label | Placeholder as label |
-| CrudForm | `@devmentor/ui` | Every create/edit form (blur + submit validation; a shown error clears while typing once the value is valid; focus first error, Cancel before primary) | — |
+| CrudForm | `@devmentor/ui` | Every create/edit form (blur + submit validation; a shown error clears while typing once the value is valid; focus first error, Cancel before primary; `autoComplete` per field, `revealable` password field, `submittingLabel`) | — |
+| PasswordField (DS-02, closed 2026-11-14) | `@devmentor/ui` | A password the user chooses: one field with "Show password" (L05); in a form use CrudForm `type: "password", revealable: true` | Signing in with an existing password (plain password field); "repeat password" |
 | Card | `@devmentor/ui` | One self-contained block | List rows, nested cards |
 | Badge (`tone` neutral/success/warning/danger) | `@devmentor/ui` | State of one object, icon + word | Ratings, facts, counts |
 | Alert (`tone`) | `@devmentor/ui` | Page-level message with next step | Field errors |
@@ -30,7 +31,7 @@ Matter-of-fact, not generic. Dense where people scan (mentor and slot lists: thi
 | DropdownMenu | `@devmentor/ui` | 3+ row actions | 1–2 actions |
 | Table / DataTable | `@devmentor/ui` | Records to compare in panels | Public mentor list |
 | EmptyState / ErrorMessage / LoadingMessage / Skeleton | `@devmentor/ui` | Every data region | — |
-| ReadinessChecklist, ProfileActions, CopyShareLink, SlotsPanel, SignInPanel, PayoutStatusPanel | `@devmentor/ui` | E01 screens | Public pages |
+| ReadinessChecklist, ProfileActions, CopyShareLink, SlotsPanel, SignInPanel, CheckInboxNotice, PayoutStatusPanel | `@devmentor/ui` | E01 screens | Public pages |
 | AccountBar + SignOutButton (DS-01, closed 2026-10-26) | `@devmentor/ui` | Header of every signed-in page (`(mentee)`, `(mentor)`, `(admin)`): email, GitHub avatar, "Mentor"/"Admin" links per role, "Sign out" (L04, L09) | `(auth)` and public pages; per-page navigation |
 | MentorCard, MentorTagFilter, MentorListSkeleton, MentorPageView, MentorAvatar, SessionFacts, TagList, TextSessionNotice, LocalTime, InvitationPanel, buttonVariants | `@devmentor/ui/mentors` | Public pages | — |
 

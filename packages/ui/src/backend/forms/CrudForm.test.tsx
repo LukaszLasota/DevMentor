@@ -286,4 +286,41 @@ describe("CrudForm", () => {
     await user.type(screen.getByLabelText("Minutes"), "-");
     expect(screen.queryByText("Must be positive")).toBeNull();
   });
+
+  it("renders a revealable password field with autofill hints and a custom submitting label", async () => {
+    const passwordSchema = z.object({ email: z.string(), password: z.string().min(12, "Password must be at least 12 characters.") });
+    let resolve: (value: ApiResult<unknown>) => void = () => undefined;
+    const onSubmit = vi.fn(() => new Promise<ApiResult<unknown>>((r) => (resolve = r)));
+    const user = userEvent.setup();
+    render(
+      <CrudForm
+        schema={passwordSchema}
+        fields={[
+          { name: "email", label: "Email", type: "email", autoComplete: "email" },
+          { name: "password", label: "New password", type: "password", revealable: true },
+        ]}
+        onSubmit={onSubmit}
+        submitLabel="Set password"
+        submittingLabel="Setting password…"
+      />,
+    );
+    const password = screen.getByLabelText("New password") as HTMLInputElement;
+
+    expect(screen.getByLabelText("Email").getAttribute("autocomplete")).toBe("email");
+    expect(password.type).toBe("password");
+    expect(password.autocomplete).toBe("new-password");
+
+    await user.type(password, "short");
+    await user.tab();
+    expect(screen.getByText("Password must be at least 12 characters.")).toBeTruthy();
+
+    await user.type(password, " but longer");
+    expect(screen.queryByText("Password must be at least 12 characters.")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Set password" }));
+    expect(onSubmit).toHaveBeenCalledWith({ email: "", password: "short but longer" });
+    expect(screen.getByRole("button", { name: /Setting password…/ })).toBeTruthy();
+    resolve({ ok: true, data: null });
+    expect(await screen.findByRole("button", { name: "Set password" })).toBeTruthy();
+  });
 });

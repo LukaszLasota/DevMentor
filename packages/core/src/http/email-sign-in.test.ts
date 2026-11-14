@@ -172,6 +172,7 @@ describe('POST /api/auth/sign-in', () => {
       ok: true,
       data: {
         user: { id: USER_ID, email: 'ada@devmentor.test', roles: ['mentee'], githubLogin: null, avatarUrl: null, emailVerified: true },
+        redirectTo: '/mentors',
       },
     });
     expect(accountService.verifyPassword).toHaveBeenCalledWith(
@@ -179,6 +180,21 @@ describe('POST /api/auth/sign-in', () => {
       { ip: '203.0.113.7' },
     );
     expect(await verifySession(sessionToken(res), { current: SECRET }, clock)).toMatchObject({ sub: USER_ID, sv: 4 });
+  });
+
+  it.each([
+    ['a safe returnTo', ['mentee'], '/mentors/ada?tab=slots', '/mentors/ada?tab=slots'],
+    ['an off-site returnTo → home', ['mentee'], 'https://evil.example/', '/mentors'],
+    ['an auth page as returnTo → home', ['mentee', 'operator'], '/register', '/admin'],
+    ['no returnTo → the operator home', ['mentee', 'operator'], undefined, '/admin'],
+  ] as const)('answers redirectTo for %s', async (_case, roles, returnTo, redirectTo) => {
+    const { user, accountService } = setup();
+    user.roles = [...roles];
+
+    const res = await signIn(post({ email: 'ada@devmentor.test', password: PASSWORD, returnTo }), noParams);
+
+    expect((await res.json()).data.redirectTo).toBe(redirectTo);
+    expect(accountService.verifyPassword).toHaveBeenCalledWith({ email: 'ada@devmentor.test', password: PASSWORD }, { ip: '203.0.113.7' });
   });
 
   it('is 401 with the one credentials message and no cookie', async () => {

@@ -65,6 +65,7 @@ export { cn } from "./lib/utils";
 export { apiCall, apiCallOrThrow, ApiError, readJsonSafe, type ApiCallInit, type ApiPath } from "./backend/api/apiCall";
 export type { ApiFailure, ApiResult, ApiSuccess, FieldErrors } from "./backend/api/types";
 export { Field, type FieldControlProps, type FieldProps } from "./backend/forms/Field";
+export { PasswordField, type PasswordFieldProps } from "./backend/forms/PasswordField";
 export { TextLink, type TextLinkProps } from "./backend/navigation/TextLink";
 export { CrudForm, type CrudFormField, type CrudFormFieldType, type CrudFormProps } from "./backend/forms/CrudForm";
 export { DataTable, type DataTableColumn, type DataTableProps } from "./backend/tables/DataTable";
@@ -74,6 +75,7 @@ export { LoadingMessage, type LoadingMessageProps } from "./backend/feedback/Loa
 
 // Product components (panel surfaces: /mentor, /sign-in, /mentor/payouts)
 export { AccountBar, type AccountBarProps, type AccountBarUser, type AccountRole } from "./components/auth/AccountBar";
+export { CheckInboxNotice, type CheckInboxNoticeProps } from "./components/auth/CheckInboxNotice";
 export { ROLE_NOTICES, RoleNotice, type RoleNoticeCode, type RoleNoticeProps } from "./components/auth/RoleNotice";
 export { SIGN_IN_ERRORS, SignInPanel, type SignInErrorCode, type SignInPanelProps } from "./components/auth/SignInPanel";
 export { SignOutButton, type SignOutButtonProps } from "./components/auth/SignOutButton";

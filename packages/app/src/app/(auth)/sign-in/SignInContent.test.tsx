@@ -14,6 +14,9 @@ vi.mock("next/navigation", () => ({
     throw new Error(`NEXT_REDIRECT ${url}`);
   }),
 }));
+vi.mock("./SignInForm", () => ({
+  SignInForm: ({ returnTo }: { returnTo: string }) => <form aria-label="Sign in with email" data-return-to={returnTo} />,
+}));
 
 const { SignInContent } = await import("./SignInContent");
 
@@ -36,21 +39,26 @@ beforeEach(() => {
 });
 
 describe("SignInContent (signed out)", () => {
-  it("offers GitHub only, with the forgotten-password line and no message", async () => {
+  it("offers GitHub, the email form and the register link, with the forgotten-password line and no message", async () => {
     await renderSignIn({});
 
     expect(screen.getByRole("heading", { level: 1, name: "Sign in to DevMentor" })).toBeTruthy();
     expect(githubHref()).toBe("/api/auth/github");
+    expect(screen.getByRole("form", { name: "Sign in with email" }).getAttribute("data-return-to")).toBe("");
+    expect(screen.getByRole("link", { name: "Create an account" }).getAttribute("href")).toBe("/register");
     expect(screen.getByText("Forgot your password? Use GitHub with the same email.")).toBeTruthy();
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.queryByRole("status")).toBeNull();
-    expect(screen.queryByRole("textbox")).toBeNull();
   });
 
-  it("forwards a safe returnTo to the GitHub start route", async () => {
+  it("forwards a safe returnTo to GitHub, the email form and the register link", async () => {
     await renderSignIn({ returnTo: "/mentor/profile?tab=bio" });
 
     expect(githubHref()).toBe("/api/auth/github?returnTo=%2Fmentor%2Fprofile%3Ftab%3Dbio");
+    expect(screen.getByRole("form", { name: "Sign in with email" }).getAttribute("data-return-to")).toBe("/mentor/profile?tab=bio");
+    expect(screen.getByRole("link", { name: "Create an account" }).getAttribute("href")).toBe(
+      "/register?returnTo=%2Fmentor%2Fprofile%3Ftab%3Dbio",
+    );
   });
 
   it("forwards a login hint with returnTo, and alone", async () => {
