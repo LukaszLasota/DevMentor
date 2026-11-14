@@ -6,6 +6,8 @@ export {
   EMAIL_VERIFICATION_TTL_MS,
   EmailVerificationToken,
 } from './entities/auth/email-verification-token.entity';
+export { Invitation, STACK_TAGS, type StackTag } from './entities/invitations/invitation.entity';
+export { MentorProfile } from './entities/mentors/mentor-profile.entity';
 export type { DbOptions } from './config';
 // Re-exported so no package other than db imports @mikro-orm/* directly.
 export type { EntityManager, MikroORM } from '@mikro-orm/postgresql';
