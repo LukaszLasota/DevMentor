@@ -52,7 +52,7 @@ The invited email appears only on the invitation page after the token is present
 | Route | Auth | Answer |
 |---|---|---|
 | `GET /api/invitations/[token]` | public | 200 `{ email, stackTags }`; unknown, expired, revoked and used → 404 with one message |
-| `POST /api/invitations/[token]/accept` | `requireSession` (no role) | 200 `{ roles, publishDueAt, redirect: '/mentor' }` + a re-issued `dm_session` whose `sv` equals the new `session_version`. Order: token validity first (404, identical for every invalid state), then identity (unverified or email mismatch → 403), so the caller's role never reveals whether a token was once valid |
+| `POST /api/invitations/[token]/accept` | `requireSession` (no role) | 200 `{ roles, publishDueAt, redirect: '/mentor' }` + a re-issued `dm_session` whose `sv` equals the new `session_version`. Order: token validity first (404, identical for every invalid state), then identity (unverified or email mismatch → 403), so the caller's role never reveals whether a token was once valid. One exception (L07, decided in implementation 2026-11-14): a used link presented by the very account that accepted it, which still holds `mentor`, answers 409 `ALREADY_MENTOR` "You are already a mentor." (nothing is granted again); that account already knows the link, so nothing leaks |
 
 The invitation page and both routes send `Cache-Control: no-store` and `Referrer-Policy: no-referrer`; the logger redacts the token segment of `/invitation/*` and `/api/invitations/*` paths. Brute force needs no rate limiter: the token is 32 random bytes.
 

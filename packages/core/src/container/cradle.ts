@@ -9,6 +9,7 @@ import type { RateLimiter } from '../security/rate-limit';
 import type { AccountService } from '../services/auth/account.service';
 import type { GithubOAuthService } from '../services/auth/github-oauth.service';
 import type { HealthService } from '../services/health/health.service';
+import type { InvitationService } from '../services/invitations/invitation.service';
 import type { Clock } from '../time/clock';
 
 /**
@@ -29,4 +30,5 @@ export interface Cradle {
   healthService: HealthService;
   githubOAuthService: GithubOAuthService;
   accountService: AccountService;
+  invitationService: InvitationService;
 }

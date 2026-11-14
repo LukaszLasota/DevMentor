@@ -131,6 +131,8 @@ describe('DI container', () => {
     expect(first.cradle.githubOAuthService).not.toBe(second.cradle.githubOAuthService);
     expect(first.cradle.accountService).toBe(first.cradle.accountService);
     expect(first.cradle.accountService).not.toBe(second.cradle.accountService);
+    expect(first.cradle.invitationService).toBe(first.cradle.invitationService);
+    expect(first.cradle.invitationService).not.toBe(second.cradle.invitationService);
     expect(first.cradle.rateLimiter).toBe(first.cradle.rateLimiter);
     expect(first.cradle.rateLimiter).not.toBe(second.cradle.rateLimiter);
   });
