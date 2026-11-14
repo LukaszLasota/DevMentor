@@ -29,6 +29,11 @@ export interface ApiHandlerOptions {
    * Turn off only for endpoints called by third parties (e.g. payment webhooks).
    */
   csrf?: boolean;
+  /**
+   * Extra headers on every response of the route, success and error alike
+   * (e.g. `Cache-Control: no-store`). Cookies go through `withCookies`, not here.
+   */
+  headers?: Record<string, string>;
 }
 
 const RESPONSE_COOKIES = Symbol('responseCookies');
@@ -65,8 +70,17 @@ export function cookieHeaders(cookies: readonly string[]): Headers {
 const STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const INTERNAL_ERROR_MESSAGE = 'Internal server error.';
 
-function json<T>(body: ApiResult<T>, status: number, headers?: Headers): Response {
+function json<T>(body: ApiResult<T>, status: number, headers: Headers = new Headers()): Response {
   return Response.json(body, { status, headers });
+}
+
+/** `extra` added to `headers` (returned for chaining). */
+function withHeaders(headers: Headers, extra: Record<string, string>): Headers {
+  for (const [name, value] of Object.entries(extra)) {
+    headers.set(name, value);
+  }
+
+  return headers;
 }
 
 function assertCsrfHeader(req: Request): void {
@@ -123,7 +137,7 @@ export function apiHandler<T, P extends RouteParams = RouteParams>(
   handler: (args: HandlerArgs<P>) => Promise<T>,
   options: ApiHandlerOptions = {},
 ): (req: Request, context: { params: Promise<P> }) => Promise<Response> {
-  const { successStatus = 200, csrf = true } = options;
+  const { successStatus = 200, csrf = true, headers = {} } = options;
 
   return async (req, context) => {
     try {
@@ -135,12 +149,17 @@ export function apiHandler<T, P extends RouteParams = RouteParams>(
       const result = await withScope((cradle) => handler({ req, params, cradle }));
 
       if (isWithCookies(result)) {
-        return json({ ok: true, data: result.data }, successStatus, cookieHeaders(result[RESPONSE_COOKIES]));
+        const responseHeaders = withHeaders(cookieHeaders(result[RESPONSE_COOKIES]), headers);
+
+        return json({ ok: true, data: result.data }, successStatus, responseHeaders);
       }
 
-      return json({ ok: true, data: result }, successStatus);
+      return json({ ok: true, data: result }, successStatus, withHeaders(new Headers(), headers));
     } catch (error) {
-      return toErrorResponse(error, req);
+      const response = toErrorResponse(error, req);
+      withHeaders(response.headers, headers);
+
+      return response;
     }
   };
 }

@@ -51,10 +51,18 @@ export async function getSessionUser(
 
   await accountService.reconcileOperator(user);
 
+  return toSessionUser(user);
+}
+
+/**
+ * The `user` DTO of a user whose roles are effective (reconciled) and non-empty: after the session
+ * check above, a password sign-in (`verifyPassword`) or a password set from the link.
+ */
+export function toSessionUser(user: User): SessionUser {
   return {
     id: user.id,
     email: user.email,
-    // Non-empty: the stored set was checked above and reconciliation never empties it.
+    // Non-empty: stored sets are checked (DB constraint, check above) and reconciliation never empties them.
     roles: [...user.roles] as SessionUser['roles'],
     githubLogin: user.githubLogin ?? null,
     avatarUrl: user.avatarUrl ?? null,

@@ -79,6 +79,15 @@ describe('public entries', () => {
         'parseJsonBody',
         'parseSearchParams',
         'parseWith',
+        'CHECK_INBOX',
+        'CHECK_INBOX_RESPONSE',
+        'INVALID_CREDENTIALS_MESSAGE',
+        'VERIFY_EMAIL_RESPONSE',
+        'VerificationLinkInvalidError',
+        'registerWithEmail',
+        'resendVerificationLink',
+        'signInWithPassword',
+        'verifyEmailAndSetPassword',
       ].sort(),
     );
   });

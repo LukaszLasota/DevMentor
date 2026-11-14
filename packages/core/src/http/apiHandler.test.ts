@@ -188,4 +188,37 @@ describe('apiHandler', () => {
       expect(await res.json()).toEqual({ ok: true, data });
     }
   });
+  describe('headers option', () => {
+    const headers = { 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' };
+
+    it.each<[string, () => Promise<unknown>]>([
+      ['a plain result', async () => 'ok'],
+      ['a result with cookies', async () => withCookies('ok', ['a=1; Path=/'])],
+    ])('adds the headers to the success response of %s', async (_label, handler) => {
+      const res = await apiHandler(handler, { headers })(request(), noParams);
+
+      expect(res.headers.get('cache-control')).toBe('no-store');
+      expect(res.headers.get('referrer-policy')).toBe('no-referrer');
+    });
+
+    it('adds the headers to error responses, next to the error\'s own headers', async () => {
+      const res = await apiHandler(
+        async () => {
+          throw new TooManyRequestsError(90);
+        },
+        { headers },
+      )(request(), noParams);
+
+      expect(res.status).toBe(429);
+      expect(res.headers.get('retry-after')).toBe('90');
+      expect(res.headers.get('cache-control')).toBe('no-store');
+    });
+
+    it('adds the headers to the CSRF refusal', async () => {
+      const res = await apiHandler(async () => 'ok', { headers })(request('POST'), noParams);
+
+      expect(res.status).toBe(403);
+      expect(res.headers.get('referrer-policy')).toBe('no-referrer');
+    });
+  });
 });

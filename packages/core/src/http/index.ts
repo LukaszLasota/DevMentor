@@ -20,6 +20,19 @@ export {
   GithubStateInvalidError,
   startGithubSignIn,
 } from './github-sign-in';
+export {
+  CHECK_INBOX,
+  CHECK_INBOX_RESPONSE,
+  registerWithEmail,
+  resendVerificationLink,
+  signInWithPassword,
+  VERIFY_EMAIL_RESPONSE,
+  verifyEmailAndSetPassword,
+  type CheckInbox,
+  type EmailVerified,
+  type SignedIn,
+} from './email-sign-in';
+export { INVALID_CREDENTIALS_MESSAGE, VerificationLinkInvalidError } from '../services/auth/account.service';
 export { OAUTH_STATE_COOKIE } from './oauth-state-cookie';
 export { clearSessionCookie, readSessionCookie, SESSION_COOKIE, sessionCookie } from './session-cookie';
 export { createFetchJson, DEFAULT_OUTBOUND_TIMEOUT_MS, type FetchJson, type FetchJsonInit } from './outbound';
