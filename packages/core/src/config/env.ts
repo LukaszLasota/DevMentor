@@ -25,6 +25,10 @@ const operatorEmails = z
   )
   .pipe(z.array(z.email('must be a comma-separated list of email addresses')));
 
+/** Defaults of the hashing gate (`core/src/security/password.ts`): scrypt slots and the wait for one. */
+export const DEFAULT_PASSWORD_HASH_CONCURRENCY = 2;
+export const DEFAULT_PASSWORD_HASH_WAIT_MS = 3_000;
+
 const TEST_OVERRIDE_KEYS = ['GITHUB_OAUTH_URL', 'GITHUB_API_URL'] as const;
 
 /**
@@ -33,7 +37,8 @@ const TEST_OVERRIDE_KEYS = ['GITHUB_OAUTH_URL', 'GITHUB_API_URL'] as const;
  * - required at first container creation in production (see `assertProductionEnv`), never here,
  *   so `npm run build` with no env passes: SESSION_SECRET, APP_URL;
  * - dangerous configuration refused at boot: override URLs without ALLOW_TEST_OVERRIDES=1;
- * - defaulted: SESSION_SECRET_PREVIOUS, OPERATOR_EMAILS, GITHUB_OAUTH_URL, GITHUB_API_URL.
+ * - defaulted: SESSION_SECRET_PREVIOUS, OPERATOR_EMAILS, GITHUB_OAUTH_URL, GITHUB_API_URL,
+ *   TRUSTED_PROXY_HOPS (0: no client IP is trusted), PASSWORD_HASH_CONCURRENCY, PASSWORD_HASH_WAIT_MS.
  */
 const envSchema = z
   .object({
@@ -49,6 +54,14 @@ const envSchema = z
     GITHUB_OAUTH_URL: optional(baseUrl),
     GITHUB_API_URL: optional(baseUrl),
     OPERATOR_EMAILS: operatorEmails,
+    /** Proxies in front of the app that append to `x-forwarded-for`; 0 = no client IP is derivable. */
+    TRUSTED_PROXY_HOPS: optional(z.coerce.number().int().min(0).max(10)).transform((hops) => hops ?? 0),
+    PASSWORD_HASH_CONCURRENCY: optional(z.coerce.number().int().min(1).max(64)).transform(
+      (slots) => slots ?? DEFAULT_PASSWORD_HASH_CONCURRENCY,
+    ),
+    PASSWORD_HASH_WAIT_MS: optional(z.coerce.number().int().min(0).max(60_000)).transform(
+      (ms) => ms ?? DEFAULT_PASSWORD_HASH_WAIT_MS,
+    ),
     ALLOW_TEST_OVERRIDES: z
       .enum(['0', '1'], 'must be 1 or 0')
       .default('0')

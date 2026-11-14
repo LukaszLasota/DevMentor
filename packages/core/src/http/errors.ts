@@ -13,6 +13,8 @@ const APP_ERROR_BRAND = Symbol.for('devmentor.app-error');
  */
 export class AppError extends Error {
   readonly [APP_ERROR_BRAND] = true;
+  /** Extra response headers `apiHandler` copies onto the error response (e.g. `Retry-After`). */
+  readonly headers?: Readonly<Record<string, string>>;
 
   constructor(
     readonly status: number,
@@ -65,6 +67,23 @@ export class ServiceUnavailableError extends AppError {
   }
 }
 
+export class TooManyRequestsError extends AppError {
+  override readonly headers: Readonly<Record<string, string>>;
+
+  /**
+   * Generic message on purpose: it never says which limit (IP or email) was hit, so it does not
+   * reveal whether an account exists. `retryAfterSeconds` goes out as `Retry-After` and in the envelope.
+   */
+  constructor(
+    readonly retryAfterSeconds: number,
+    message = 'Too many attempts. Try again later.',
+    options?: ErrorOptions,
+  ) {
+    super(429, 'TOO_MANY_REQUESTS', message, options);
+    this.headers = { 'Retry-After': String(retryAfterSeconds) };
+  }
+}
+
 /** `AppError` (or a subclass) from any copy of this module — see `APP_ERROR_BRAND`. */
 export function isAppError(value: unknown): value is AppError {
   if (typeof value !== 'object' || value === null) {
@@ -88,5 +107,14 @@ export function isValidationError(value: unknown): value is ValidationError {
     value.code === 'VALIDATION_ERROR' &&
     typeof (value as Partial<ValidationError>).fieldErrors === 'object' &&
     (value as Partial<ValidationError>).fieldErrors !== null
+  );
+}
+
+/** `TooManyRequestsError` from any copy of this module: its code plus a numeric `retryAfterSeconds`. */
+export function isTooManyRequestsError(value: unknown): value is TooManyRequestsError {
+  return (
+    isAppError(value) &&
+    value.code === 'TOO_MANY_REQUESTS' &&
+    typeof (value as Partial<TooManyRequestsError>).retryAfterSeconds === 'number'
   );
 }

@@ -5,8 +5,10 @@ import {
   ForbiddenError,
   NotFoundError,
   ServiceUnavailableError,
+  TooManyRequestsError,
   UnauthorizedError,
   isAppError,
+  isTooManyRequestsError,
   isValidationError,
   ValidationError,
 } from './errors';
@@ -19,6 +21,7 @@ describe('error hierarchy', () => {
     [new NotFoundError(), 404, 'NOT_FOUND', 'Resource not found.'],
     [new ConflictError(), 409, 'CONFLICT', 'Resource conflict.'],
     [new ServiceUnavailableError(), 503, 'SERVICE_UNAVAILABLE', 'Service unavailable.'],
+    [new TooManyRequestsError(1), 429, 'TOO_MANY_REQUESTS', 'Too many attempts. Try again later.'],
   ])('%o maps to %i %s with a default message', (error, status, code, message) => {
     expect(error).toBeInstanceOf(AppError);
     expect(error).toMatchObject({ status, code, message, name: error.constructor.name });
@@ -31,6 +34,26 @@ describe('error hierarchy', () => {
     expect(error.message).toBe('Bad email.');
     expect(error.fieldErrors).toEqual({ email: ['Invalid'] });
     expect(error.cause).toBe(cause);
+  });
+
+  it('gives TooManyRequestsError a Retry-After header and keeps a custom message and cause', () => {
+    const cause = new Error('limit');
+    const error = new TooManyRequestsError(42, 'Slow down.', { cause });
+
+    expect(error.retryAfterSeconds).toBe(42);
+    expect(error.headers).toEqual({ 'Retry-After': '42' });
+    expect(error.message).toBe('Slow down.');
+    expect(error.cause).toBe(cause);
+    expect(new NotFoundError().headers).toBeUndefined();
+  });
+
+  it('recognises a TooManyRequestsError only with its code and a numeric retryAfterSeconds', () => {
+    const brand = Symbol.for('devmentor.app-error');
+
+    expect(isTooManyRequestsError(new TooManyRequestsError(5))).toBe(true);
+    expect(isTooManyRequestsError(new NotFoundError())).toBe(false);
+    expect(isTooManyRequestsError({ [brand]: true, status: 429, code: 'TOO_MANY_REQUESTS', message: 'x' })).toBe(false);
+    expect(isTooManyRequestsError(null)).toBe(false);
   });
 
   it('defaults ValidationError field errors to an empty object', () => {

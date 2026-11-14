@@ -14,6 +14,18 @@ export {
   type SessionClaims,
   type SessionSecrets,
 } from './security/session-token';
+export { PasswordHasher, type SlotHashing } from './security/password';
+export {
+  clientIp,
+  guardPasswordAttempt,
+  RateLimiter,
+  rateLimitChecks,
+  REGISTER_RATE_LIMITS,
+  RESEND_RATE_LIMITS,
+  SIGN_IN_RATE_LIMITS,
+  type RateLimitCheck,
+  type RateLimitPolicy,
+} from './security/rate-limit';
 export { getSessionUser, type SessionUser, type SessionUserDeps } from './auth/session-user';
 export { homeFor } from './auth/home';
 export type { Role } from '@devmentor/db';

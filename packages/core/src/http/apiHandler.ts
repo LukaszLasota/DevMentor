@@ -2,7 +2,14 @@ import { z } from 'zod';
 import { withScope } from '../container/container';
 import type { Cradle } from '../container/cradle';
 import { logger } from '../logger';
-import { ForbiddenError, isAppError, isValidationError, ValidationError, type AppError } from './errors';
+import {
+  ForbiddenError,
+  isAppError,
+  isTooManyRequestsError,
+  isValidationError,
+  ValidationError,
+  type AppError,
+} from './errors';
 import { CSRF_HEADER, CSRF_HEADER_VALUE, type ApiFailure, type ApiResult } from './envelope';
 import { toFieldErrors } from './parse';
 
@@ -95,10 +102,11 @@ function toErrorResponse(error: unknown, req: Request): Response {
         code: appError.code,
         message: appError.message,
         ...(isValidationError(appError) ? { fieldErrors: appError.fieldErrors } : {}),
+        ...(isTooManyRequestsError(appError) ? { retryAfterSeconds: appError.retryAfterSeconds } : {}),
       },
     };
 
-    return json(body, appError.status);
+    return json(body, appError.status, new Headers(appError.headers));
   }
 
   // Unexpected failure: log with context, never send the stack or message to the client.

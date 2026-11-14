@@ -198,11 +198,16 @@ explicit**, not the one that looks more "enterprise."
 
 ### Security & Validation — Minimum Requirements
 
-- **Password hashing:** `bcrypt`/`bcryptjs`, cost factor **≥ 12** (OWASP's floor is
-  10; raise it since this is a small user base and the extra ~50ms per login is free).
-  If a faster/stronger option becomes desirable later, the documented upgrade path is
-  `argon2id` (memory ≥ 19 MiB, iterations ≥ 2, parallelism 1) — don't switch without a
-  reason, but don't invent a third option either.
+- **Password hashing:** `scrypt` from `node:crypto` (no dependency), N = 2^17, r = 8,
+  p = 1, `maxmem` raised explicitly, 16-byte random salt; the stored string carries its
+  parameters (`$scrypt$ln=17,r=8,p=1$<salt>$<key>`) so the cost can be raised later
+  without breaking old hashes. Compare in constant time and run the same work against a
+  dummy hash for unknown accounts. Every hash runs behind a process-wide concurrency gate
+  (`PASSWORD_HASH_CONCURRENCY`, `PASSWORD_HASH_WAIT_MS`; over the wait → 503, not counted
+  by the rate limiter), since each hash takes ~128 MiB. Implemented in
+  `packages/core/src/security/password.ts`. (Amended 2026-11-14 from `bcrypt` cost ≥ 12 by
+  the sign-in spec, phase 2 step 2; `argon2id` stays the upgrade path if a native
+  dependency becomes acceptable — don't invent a third option.)
 - **JWT:** signed with `HS256` minimum, using a secret ≥ 32 random bytes loaded from
   `env.ts` (zod-validated) — never hardcoded, never committed. Short expiry (e.g. 24h);
   there is no refresh-token flow in MVP scope — document that as a known limitation,

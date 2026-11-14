@@ -12,6 +12,7 @@ declare module 'vitest' {
   export interface ProvidedContext {
     baseUrl: string;
     postgresContainerId: string;
+    databaseUrl: string;
     githubStubUrl: string;
   }
 }
@@ -113,6 +114,7 @@ export default async function setup(project: TestProject) {
 
   project.provide('baseUrl', baseUrl);
   project.provide('postgresContainerId', postgres.getId());
+  project.provide('databaseUrl', postgres.getConnectionUri());
   project.provide('githubStubUrl', githubStub.url);
 
   return async () => {

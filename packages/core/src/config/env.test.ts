@@ -21,6 +21,9 @@ describe('parseEnv', () => {
       GITHUB_OAUTH_URL: 'https://github.com',
       GITHUB_API_URL: 'https://api.github.com',
       OPERATOR_EMAILS: [],
+      TRUSTED_PROXY_HOPS: 0,
+      PASSWORD_HASH_CONCURRENCY: 2,
+      PASSWORD_HASH_WAIT_MS: 3000,
       ALLOW_TEST_OVERRIDES: false,
     });
   });
@@ -129,6 +132,26 @@ describe('parseEnv', () => {
       expect(() => parseEnv({ DATABASE_URL, OPERATOR_EMAILS: 'ok@devmentor.test,not-an-email' })).toThrow(
         /OPERATOR_EMAILS/,
       );
+    });
+  });
+
+  describe('TRUSTED_PROXY_HOPS and the hashing gate', () => {
+    it('coerces the values and treats empty ones as defaults', () => {
+      expect(
+        parseEnv({ DATABASE_URL, TRUSTED_PROXY_HOPS: '1', PASSWORD_HASH_CONCURRENCY: '4', PASSWORD_HASH_WAIT_MS: '0' }),
+      ).toMatchObject({ TRUSTED_PROXY_HOPS: 1, PASSWORD_HASH_CONCURRENCY: 4, PASSWORD_HASH_WAIT_MS: 0 });
+      expect(
+        parseEnv({ DATABASE_URL, TRUSTED_PROXY_HOPS: '', PASSWORD_HASH_CONCURRENCY: '', PASSWORD_HASH_WAIT_MS: '' }),
+      ).toMatchObject({ TRUSTED_PROXY_HOPS: 0, PASSWORD_HASH_CONCURRENCY: 2, PASSWORD_HASH_WAIT_MS: 3000 });
+    });
+
+    it.each([
+      ['TRUSTED_PROXY_HOPS', '-1'],
+      ['TRUSTED_PROXY_HOPS', '1.5'],
+      ['PASSWORD_HASH_CONCURRENCY', '0'],
+      ['PASSWORD_HASH_WAIT_MS', 'soon'],
+    ])('rejects %s=%s', (key, value) => {
+      expect(() => parseEnv({ DATABASE_URL, [key]: value })).toThrow(new RegExp(key));
     });
   });
 });

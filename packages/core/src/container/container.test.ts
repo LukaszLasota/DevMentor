@@ -60,6 +60,19 @@ describe('DI container', () => {
     expect(scope.cradle.events).toBe(container.cradle.events);
   });
 
+  it('registers one process-wide PasswordHasher with the production scrypt cost and the env gate', async () => {
+    vi.stubEnv('PASSWORD_HASH_CONCURRENCY', '3');
+    const { getContainer, createRequestScope } = await loadContainer();
+    const { PasswordHasher, PASSWORD_SCRYPT_PARAMS } = await import('../security/password');
+    const container = await getContainer();
+    const scope = await createRequestScope();
+
+    expect(container.cradle.passwordHasher).toBeInstanceOf(PasswordHasher);
+    expect(scope.cradle.passwordHasher).toBe(container.cradle.passwordHasher);
+    expect(container.cradle.passwordHasher.params).toBe(PASSWORD_SCRYPT_PARAMS);
+    expect(container.cradle.passwordHasher['gate']).toMatchObject({ options: { concurrency: 3, waitMs: 3000 } });
+  });
+
   it('disables ORM debug outside development', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('SESSION_SECRET', 'a'.repeat(64));
@@ -102,6 +115,8 @@ describe('DI container', () => {
     expect(first.cradle.githubOAuthService).not.toBe(second.cradle.githubOAuthService);
     expect(first.cradle.accountService).toBe(first.cradle.accountService);
     expect(first.cradle.accountService).not.toBe(second.cradle.accountService);
+    expect(first.cradle.rateLimiter).toBe(first.cradle.rateLimiter);
+    expect(first.cradle.rateLimiter).not.toBe(second.cradle.rateLimiter);
   });
 
   it('withScope runs the callback with the scoped cradle and disposes the scope', async () => {

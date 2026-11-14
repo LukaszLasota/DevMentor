@@ -18,6 +18,8 @@ export class ApiError extends Error {
     readonly code: string,
     message: string,
     readonly fieldErrors: FieldErrors = {},
+    /** Seconds to wait before retrying, sent with 429 `TOO_MANY_REQUESTS`. */
+    readonly retryAfterSeconds?: number,
   ) {
     super(message);
     this.name = "ApiError";
@@ -102,7 +104,7 @@ export async function apiCallOrThrow<T>(path: ApiPath, init?: ApiCallInit): Prom
   const result = await apiCall<T>(path, init);
 
   if (!result.ok) {
-    throw new ApiError(result.error.code, result.error.message, result.error.fieldErrors);
+    throw new ApiError(result.error.code, result.error.message, result.error.fieldErrors, result.error.retryAfterSeconds);
   }
 
   return result.data;

@@ -4,7 +4,7 @@ import type { Cradle } from '../container/cradle';
 import { logger } from '../logger';
 import { apiHandler, withCookies } from './apiHandler';
 import { CSRF_HEADER, CSRF_HEADER_VALUE } from './envelope';
-import { AppError, NotFoundError, ValidationError } from './errors';
+import { AppError, NotFoundError, TooManyRequestsError, ValidationError } from './errors';
 
 const cradle = { marker: 'test-cradle' } as unknown as Cradle;
 
@@ -61,6 +61,37 @@ describe('apiHandler', () => {
       ok: false,
       error: { code: 'VALIDATION_ERROR', message: 'Invalid request.', fieldErrors: { email: ['Required'] } },
     });
+  });
+
+  it('sends Retry-After and retryAfterSeconds for a TooManyRequestsError, also from another bundle', async () => {
+    vi.resetModules();
+    const foreign = await import('./errors');
+
+    for (const error of [new TooManyRequestsError(90), new foreign.TooManyRequestsError(90)]) {
+      const res = await apiHandler(async () => {
+        throw error;
+      })(request('POST', { [CSRF_HEADER]: CSRF_HEADER_VALUE }), noParams);
+
+      expect(res.status).toBe(429);
+      expect(res.headers.get('retry-after')).toBe('90');
+      expect(await res.json()).toEqual({
+        ok: false,
+        error: { code: 'TOO_MANY_REQUESTS', message: 'Too many attempts. Try again later.', retryAfterSeconds: 90 },
+      });
+    }
+  });
+
+  it('copies the headers of any AppError onto the error response', async () => {
+    class TeapotError extends AppError {
+      override readonly headers = { 'x-teapot': 'short' };
+    }
+
+    const res = await apiHandler(async () => {
+      throw new TeapotError(418, 'TEAPOT', 'Short and stout.');
+    })(request(), noParams);
+
+    expect(res.headers.get('x-teapot')).toBe('short');
+    expect(await res.json()).toEqual({ ok: false, error: { code: 'TEAPOT', message: 'Short and stout.' } });
   });
 
   // Regression: under `next dev` the container (and its services) came from another server bundle,
