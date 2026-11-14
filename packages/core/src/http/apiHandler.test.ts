@@ -140,6 +140,20 @@ describe('apiHandler', () => {
     );
   });
 
+  it('logs the path of an unexpected error with an invitation token redacted', async () => {
+    const logSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
+
+    await apiHandler(async () => {
+      throw new Error('boom');
+    })(new Request('http://localhost/api/invitations/secret-token-1/accept'), noParams);
+
+    expect(logSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ path: '/api/invitations/[REDACTED]/accept' }),
+      'Unhandled API error',
+    );
+    expect(JSON.stringify(logSpy.mock.calls)).not.toContain('secret-token-1');
+  });
+
   it.each(['POST', 'PUT', 'PATCH', 'DELETE'])('rejects %s without the CSRF header', async (method) => {
     const handler = vi.fn(async () => 'never');
 

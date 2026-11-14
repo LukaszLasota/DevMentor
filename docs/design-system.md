@@ -6,7 +6,8 @@ Short version of the Storybook in `packages/ui` (`npm run storybook -w @devmento
 Matter-of-fact, not generic. Dense where people scan (mentor and slot lists: thin lines, no cards per row), calm where people read (sessions). Shows what a mentor has built, never a score. Shows only data the product has. Sources: `lekcja-06/referencje.md`, `lekcja-06/tokeny.md`, `.ai/specs/product-brief.md`, specs #21–#28.
 
 ## Surfaces (which entry to use)
-- Public pages (`(marketing)`: `/mentors`, `/m/[slug]`, `/invitation/[token]`, `/`): Tailwind only, import from `@devmentor/ui/mentors` only.
+- Public pages (`(marketing)`: `/mentors`, `/m/[slug]`, `/`): Tailwind only, import from `@devmentor/ui/mentors` only.
+- `/invitation/[token]` (public, session-aware; own root layout outside the groups, decided 2026-11-14): panel stylesheet like `(auth)`, because it signs out and accepts through the panel layer (`apiCall`, `SignOutButton`); the panel itself is the Tailwind-only `InvitationPanel` (states `signed-out`, `match` with `onAccept`/`accepting`/`acceptError`, `mismatch` with a `signOut` slot, `already-mentor`, `invalid`).
 - Signed-in pages — `(auth)`, `(mentor)`, `(mentee)` (mentee pages such as favorites or sessions), `(admin)`: panel surface, import from `@devmentor/ui`; they may also use the Tailwind-only components from `@devmentor/ui/mentors` (e.g. `TagList`, `MentorTagFilter` with `basePath`).
 - Interface language: English.
 
@@ -34,7 +35,7 @@ Matter-of-fact, not generic. Dense where people scan (mentor and slot lists: thi
 | ReadinessChecklist, ProfileActions, CopyShareLink, SlotsPanel, SignInPanel, CheckInboxNotice, PayoutStatusPanel | `@devmentor/ui` | E01 screens | Public pages |
 | AccountBar + SignOutButton (DS-01, closed 2026-10-26) | `@devmentor/ui` | Header of every signed-in page (`(mentee)`, `(mentor)`, `(admin)`): email, GitHub avatar, "Sign out" (L04); no links | `(auth)` and public pages; navigation (sidebar) |
 | AppShell + SideNav + `accountNavSections` (2026-11-14) | `@devmentor/ui` | Frame of every signed-in root layout: account bar on top, sidebar "Main" with role links ("Mentors"; "Mentor workspace" for mentors; "Admin → Dashboard" for operators, L09), current item `aria-current="page"`; a wrapping row above the page when the shell is under 48rem (container query). Add an item only with its page | `(auth)` and public pages; in-page tabs or filters |
-| MentorCard, MentorTagFilter, MentorListSkeleton, MentorPageView, MentorAvatar, SessionFacts, TagList, TextSessionNotice, LocalTime, InvitationPanel, buttonVariants | `@devmentor/ui/mentors` | Public pages | — |
+| MentorCard, MentorTagFilter, MentorListSkeleton, MentorPageView, MentorAvatar, SessionFacts, TagList, TextSessionNotice, LocalTime, InvitationPanel, buttonVariants | `@devmentor/ui/mentors` (`LocalTime` also in `@devmentor/ui`) | Public pages; `/invitation/[token]`; `LocalTime` in panels (/mentor deadline) | — |
 
 ## Semantic tokens (Tailwind classes)
 - Colour: `bg-background`, `text-foreground`, `bg-muted`, `text-muted-foreground`, `bg-primary` / `text-primary-foreground` (one main action), `text-link`, `text-destructive`, `text-success`, `text-warning`, `border-border` (decorative lines), `border-input` (control outlines), `focus-visible:focus-ring`, `bg-disabled` / `text-disabled-foreground`.

@@ -24,6 +24,18 @@ function censor(value: unknown, path: string[]): unknown {
   return path.length === 2 && path[0] === 'err' && path[1] === 'code' ? value : '[REDACTED]';
 }
 
+// Paths whose last segment is a bearer secret (an invitation link token): `/invitation/<token>`,
+// `/api/invitations/<token>[/accept]`. Matched case-sensitively like the routes themselves.
+const SECRET_PATH_SEGMENTS = /^(\/invitation|\/api\/invitations)\/[^/]+/;
+
+/**
+ * A URL path safe to log: the token segment of invitation paths becomes `[REDACTED]` (spec
+ * 2026-10-21-mentor-invitations). Use it wherever a request path is logged.
+ */
+export function redactPath(pathname: string): string {
+  return pathname.replace(SECRET_PATH_SEGMENTS, '$1/[REDACTED]');
+}
+
 export function createLogger(destination?: DestinationStream): Logger {
   return pino(
     {

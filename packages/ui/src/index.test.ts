@@ -7,6 +7,8 @@ describe("@devmentor/ui public entry", () => {
     expect(Object.keys(ui).sort()).toEqual(
       [
         "Alert",
+        "LocalTime",
+        "formatInstant",
         "AlertDialog",
         "AlertDialogAction",
         "AlertDialogCancel",

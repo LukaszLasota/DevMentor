@@ -51,11 +51,18 @@ describe('next.config', () => {
     expect(config.experimental?.serverMinification).toBe(false);
   });
 
-  it('sends Referrer-Policy: no-referrer for /verify-email', async () => {
+  it('sends Referrer-Policy: no-referrer for /verify-email, and no-store as well for /invitation/<token>', async () => {
     const config = await loadConfig({});
 
     expect(await config.headers?.()).toEqual([
       { source: '/verify-email', headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }] },
+      {
+        source: '/invitation/:token',
+        headers: [
+          { key: 'Cache-Control', value: 'no-store' },
+          { key: 'Referrer-Policy', value: 'no-referrer' },
+        ],
+      },
     ]);
   });
 });

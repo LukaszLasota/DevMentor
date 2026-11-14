@@ -1,5 +1,5 @@
 import { withScope } from '../container/container';
-import { logger } from '../logger';
+import { logger, redactPath } from '../logger';
 import { cookieHeaders, toAppError, type HandlerArgs, type RouteParams } from './apiHandler';
 import { safeReturnTo } from './return-to';
 
@@ -99,7 +99,7 @@ export function redirectHandler<P extends RouteParams = RouteParams>(
       const appError = toAppError(error);
 
       if (!appError) {
-        logger.error({ err: error, method: req.method, path: new URL(req.url).pathname }, 'Unhandled redirect error');
+        logger.error({ err: error, method: req.method, path: redactPath(new URL(req.url).pathname) }, 'Unhandled redirect error');
       }
 
       const code = appError ? (errorCodes[appError.code] ?? appError.code.toLowerCase()) : UNEXPECTED_ERROR_CODE;

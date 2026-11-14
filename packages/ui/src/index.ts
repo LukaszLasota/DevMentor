@@ -60,6 +60,7 @@ export { Label } from "./components/ui/label";
 export { Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "./components/ui/table";
 export { Textarea } from "./components/ui/textarea";
 export { cn } from "./lib/utils";
+export { formatInstant, LocalTime, type LocalTimeProps } from "./time/LocalTime";
 
 // Panel building blocks
 export { apiCall, apiCallOrThrow, ApiError, readJsonSafe, type ApiCallInit, type ApiPath } from "./backend/api/apiCall";

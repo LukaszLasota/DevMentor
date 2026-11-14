@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { withScope } from '../container/container';
 import type { Cradle } from '../container/cradle';
-import { logger } from '../logger';
+import { logger, redactPath } from '../logger';
 import {
   ForbiddenError,
   isAppError,
@@ -124,7 +124,7 @@ function toErrorResponse(error: unknown, req: Request): Response {
   }
 
   // Unexpected failure: log with context, never send the stack or message to the client.
-  logger.error({ err: error, method: req.method, path: new URL(req.url).pathname }, 'Unhandled API error');
+  logger.error({ err: error, method: req.method, path: redactPath(new URL(req.url).pathname) }, 'Unhandled API error');
 
   return json({ ok: false, error: { code: 'INTERNAL_ERROR', message: INTERNAL_ERROR_MESSAGE } }, 500);
 }

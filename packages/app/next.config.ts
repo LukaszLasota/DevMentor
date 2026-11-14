@@ -20,8 +20,19 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   // /verify-email carries the link token in the URL fragment (never sent to servers); no-referrer also
   // keeps the page URL out of any Referer (sign-in spec, UI/UX). The page sets the same policy as a meta tag.
+  // /invitation/<token> carries the token in the path: no Referer and no stored copy (invitations spec);
+  // the API routes send the same headers through apiHandler.
   async headers() {
-    return [{ source: "/verify-email", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] }];
+    return [
+      { source: "/verify-email", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] },
+      {
+        source: "/invitation/:token",
+        headers: [
+          { key: "Cache-Control", value: "no-store" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+        ],
+      },
+    ];
   },
   partialPrefetching: true,
   // Workspace packages (@devmentor/*) are transpiled by Turbopack automatically.

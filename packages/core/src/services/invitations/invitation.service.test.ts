@@ -359,6 +359,30 @@ describe('InvitationService.lookup', () => {
   });
 });
 
+describe('InvitationService.find', () => {
+  it('returns the lookup of a pending invitation and null for any invalid state', async () => {
+    const { service } = setup({
+      invitations: [makeInvitation(), makeInvitation({ token: 'used-token', acceptedAt: EARLIER })],
+    });
+
+    await expect(service.find(TOKEN)).resolves.toEqual({ email: EMAIL, stackTags: ['typescript'] });
+    await expect(service.find('used-token')).resolves.toBeNull();
+    await expect(service.find('unknown-token')).resolves.toBeNull();
+  });
+
+  it.each([
+    ['empty', ''],
+    ['non-base64url', 'not a token/..'],
+    ['oversized', 'a'.repeat(257)],
+  ])('answers null for an %s token without querying', async (_case, token) => {
+    const { service, em } = setup({ invitations: [makeInvitation()] });
+
+    await expect(service.find(token)).resolves.toBeNull();
+    await expect(service.lookup(token)).rejects.toMatchObject({ status: 404, message: INVITATION_INVALID_MESSAGE });
+    expect(em.findOne).not.toHaveBeenCalled();
+  });
+});
+
 describe('InvitationService.accept', () => {
   it('locks the user then the invitation, grants mentor, stores the acceptance and creates the profile', async () => {
     const user = makeUser();
@@ -573,6 +597,18 @@ describe('InvitationService.accept', () => {
     expect(grantRole).toHaveBeenCalledTimes(1);
     expect(user.sessionVersion).toBe(4);
     expect(profiles).toHaveLength(1);
+  });
+
+  it('answers 404 for a malformed token before locking anything', async () => {
+    const user = makeUser();
+    const { service, em, grantRole } = setup({ users: [user], invitations: [makeInvitation()] });
+
+    await expect(service.accept('../../etc', { id: user.id })).rejects.toMatchObject({
+      status: 404,
+      message: INVITATION_INVALID_MESSAGE,
+    });
+    expect(em.transactional).not.toHaveBeenCalled();
+    expect(grantRole).not.toHaveBeenCalled();
   });
 
   it('answers 401 when the session user no longer exists', async () => {

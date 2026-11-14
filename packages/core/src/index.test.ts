@@ -96,6 +96,10 @@ describe('public entries', () => {
         'resendVerificationLink',
         'signInWithPassword',
         'verifyEmailAndSetPassword',
+        'INVITATION_RESPONSE',
+        'MENTOR_HOME',
+        'acceptInvitation',
+        'lookupInvitation',
       ].sort(),
     );
   });

@@ -1,6 +1,6 @@
 import { Writable } from 'node:stream';
 import { describe, expect, it, vi } from 'vitest';
-import { createLogger } from './logger';
+import { createLogger, redactPath } from './logger';
 
 function capture() {
   const lines: string[] = [];
@@ -86,5 +86,16 @@ describe('logger level', () => {
     const { logger } = await import('./logger');
 
     expect(typeof logger.info).toBe('function');
+  });
+
+  it.each([
+    ['/invitation/abc_DEF-123', '/invitation/[REDACTED]'],
+    ['/api/invitations/abc_DEF-123', '/api/invitations/[REDACTED]'],
+    ['/api/invitations/abc_DEF-123/accept', '/api/invitations/[REDACTED]/accept'],
+    ['/api/auth/github/callback', '/api/auth/github/callback'],
+    ['/invitations-help/x', '/invitations-help/x'],
+    ['/invitation', '/invitation'],
+  ])('redactPath(%s) → %s', (path, expected) => {
+    expect(redactPath(path)).toBe(expected);
   });
 });

@@ -21,7 +21,7 @@ import {
   ValidationError,
 } from '../../http/errors';
 import { hashToken, randomToken } from '../../security/token';
-import { emailField } from '../../validators/auth/fields';
+import { emailField, linkTokenField } from '../../validators/auth/fields';
 import { normalizeEmail } from '../auth/account.service';
 
 const DAY_MS = 86_400_000;
@@ -228,17 +228,35 @@ export class InvitationService {
     };
   }
 
-  /** What the invitation page shows for a valid token; one 404 for every invalid state. */
-  async lookup(token: string): Promise<InvitationLookup> {
-    const invitation = await this.em.findOne(Invitation, {
-      tokenHash: hashToken(token),
-    });
+  /**
+   * What the invitation page shows for a valid token, else `null` for every invalid state
+   * (malformed, unknown, expired, revoked, used): the page renders one sentence for all of them.
+   */
+  async find(token: string): Promise<InvitationLookup | null> {
+    const tokenHash = this.tokenHashOf(token);
+
+    if (tokenHash === null) {
+      return null;
+    }
+
+    const invitation = await this.em.findOne(Invitation, { tokenHash });
 
     if (invitation === null || !this.isPending(invitation, this.clock.now())) {
-      throw new NotFoundError(INVITATION_INVALID_MESSAGE);
+      return null;
     }
 
     return { email: invitation.email, stackTags: [...invitation.stackTags] };
+  }
+
+  /** `find` for the API: one 404 for every invalid state. */
+  async lookup(token: string): Promise<InvitationLookup> {
+    const found = await this.find(token);
+
+    if (found === null) {
+      throw new NotFoundError(INVITATION_INVALID_MESSAGE);
+    }
+
+    return found;
   }
 
   /**
@@ -250,7 +268,12 @@ export class InvitationService {
    * after the commit.
    */
   async accept(token: string, sessionUser: Pick<SessionUser, 'id'>): Promise<AcceptInvitationResult> {
-    const tokenHash = hashToken(token);
+    const tokenHash = this.tokenHashOf(token);
+
+    if (tokenHash === null) {
+      throw new NotFoundError(INVITATION_INVALID_MESSAGE);
+    }
+
     const accepted = await this.em.transactional(async (em) => {
       const now = this.clock.now();
       const user = await em.findOne(User, { id: sessionUser.id }, lockForUpdate());
@@ -375,6 +398,11 @@ export class InvitationService {
     }
 
     return invitation;
+  }
+
+  /** SHA-256 of a well-formed link token (`linkTokenField`), else `null`: never hash or query arbitrary input. */
+  private tokenHashOf(token: string): string | null {
+    return linkTokenField.safeParse(token).success ? hashToken(token) : null;
   }
 
   private isPending(invitation: Invitation, now: Date): boolean {

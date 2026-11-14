@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { cn } from "cn";
 import { Circle, CircleCheck } from "lucide-react";
 
@@ -13,7 +14,8 @@ export interface ReadinessItem {
 }
 
 export interface ReadinessChecklistProps {
-  title: string;
+  /** Heading; may hold inline elements, e.g. a `LocalTime` deadline on /mentor. */
+  title: ReactNode;
   items: ReadinessItem[];
   className?: string;
 }

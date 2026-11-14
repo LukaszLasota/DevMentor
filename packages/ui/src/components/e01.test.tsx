@@ -158,26 +158,64 @@ describe("E01 product components", () => {
     expect(container.innerHTML).toBe("");
   });
 
-  it("InvitationPanel covers signed-out, match, mismatch and invalid", () => {
+  it("InvitationPanel covers signed-out, match, mismatch, already-mentor and invalid", () => {
     const { rerender } = render(
       <InvitationPanel
         state={{ kind: "signed-out", email: "marta@example.com", tags: ["typescript"], githubHref: "/g", emailHref: "/e" }}
       />,
     );
-    expect(screen.getAllByRole("link").map((a) => a.textContent)).toEqual(["Sign in with GitHub", "Sign in with email"]);
+    expect(screen.getAllByRole("link").map((a) => [a.textContent, a.getAttribute("href")])).toEqual([
+      ["Sign in with GitHub", "/g"],
+      ["Sign in with email", "/e"],
+    ]);
+    expect(screen.queryByRole("button")).toBeNull();
 
-    rerender(
-      <InvitationPanel acceptAction="/api/invitations/accept" state={{ kind: "match", email: "m@x.io", tags: [], accountEmail: "m@x.io" }} />,
-    );
+    rerender(<InvitationPanel state={{ kind: "match", email: "m@x.io", tags: [], accountEmail: "m@x.io" }} />);
+    expect(screen.getByText("m@x.io", { selector: ".text-foreground" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Accept invitation" })).toBeTruthy();
 
-    rerender(<InvitationPanel state={{ kind: "mismatch", email: "m@x.io", accountEmail: "other@x.io", signOutHref: "/out" }} />);
+    rerender(
+      <InvitationPanel
+        state={{ kind: "mismatch", email: "m@x.io", accountEmail: "other@x.io" }}
+        signOut={<button type="button">Sign out</button>}
+      />,
+    );
     expect(screen.queryByRole("button", { name: "Accept invitation" })).toBeNull();
-    expect(screen.getByRole("link", { name: "Sign out" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sign out" })).toBeTruthy();
+    expect(screen.getByText(/You are signed in as/).textContent).toBe(
+      "You are signed in as other@x.io. Sign out, then sign in with m@x.io to accept.",
+    );
+
+    rerender(<InvitationPanel state={{ kind: "already-mentor", mentorHref: "/mentor" }} />);
+    expect(screen.getByRole("heading", { name: "You are already a mentor." })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Go to your mentor page" }).getAttribute("href")).toBe("/mentor");
 
     rerender(<InvitationPanel state={{ kind: "invalid" }} />);
     expect(screen.getByRole("heading", { name: "This invitation is not valid" })).toBeTruthy();
     expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("InvitationPanel accept: calls onAccept, busy while accepting, error with Try again (L07)", async () => {
+    const user = userEvent.setup();
+    const onAccept = vi.fn();
+    const state = { kind: "match", email: "m@x.io", tags: ["react"], accountEmail: "m@x.io" } as const;
+    const { rerender } = render(<InvitationPanel state={state} onAccept={onAccept} />);
+
+    await user.click(screen.getByRole("button", { name: "Accept invitation" }));
+    expect(onAccept).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    rerender(<InvitationPanel state={state} onAccept={onAccept} accepting acceptError="Network error." />);
+    const busy = screen.getByRole("button", { name: "Accepting…" });
+    expect(busy.hasAttribute("disabled")).toBe(true);
+    expect(busy.getAttribute("aria-busy")).toBe("true");
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    rerender(<InvitationPanel state={state} onAccept={onAccept} acceptError="Network error." />);
+    expect(screen.getByRole("alert").textContent).toBe("Network error. Nothing changed.");
+    expect(screen.getByRole("button", { name: "Accept invitation" }).getAttribute("aria-busy")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+    expect(onAccept).toHaveBeenCalledTimes(2);
   });
 
   it("PayoutStatusPanel shows one state at a time with Refresh status", async () => {

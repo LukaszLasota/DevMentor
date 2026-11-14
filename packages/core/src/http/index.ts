@@ -33,6 +33,14 @@ export {
   type EmailVerified,
   type SignedIn,
 } from './email-sign-in';
+export {
+  acceptInvitation,
+  INVITATION_RESPONSE,
+  lookupInvitation,
+  MENTOR_HOME,
+  type InvitationAccepted,
+  type InvitationTokenParams,
+} from './invitations';
 export { INVALID_CREDENTIALS_MESSAGE, VerificationLinkInvalidError } from '../services/auth/account.service';
 export { OAUTH_STATE_COOKIE } from './oauth-state-cookie';
 export { clearSessionCookie, readSessionCookie, SESSION_COOKIE, sessionCookie } from './session-cookie';

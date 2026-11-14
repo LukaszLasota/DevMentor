@@ -10,6 +10,7 @@ import type { AccountService } from '../services/auth/account.service';
 import type { GithubOAuthService } from '../services/auth/github-oauth.service';
 import type { HealthService } from '../services/health/health.service';
 import type { InvitationService } from '../services/invitations/invitation.service';
+import type { MentorProfileService } from '../services/mentors/mentor-profile.service';
 import type { Clock } from '../time/clock';
 
 /**
@@ -31,4 +32,5 @@ export interface Cradle {
   githubOAuthService: GithubOAuthService;
   accountService: AccountService;
   invitationService: InvitationService;
+  mentorProfileService: MentorProfileService;
 }
