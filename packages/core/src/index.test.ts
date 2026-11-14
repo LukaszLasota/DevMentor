@@ -12,6 +12,7 @@ describe('public entries', () => {
         'GithubEmailUnverifiedError',
         'GithubOAuthService',
         'HealthService',
+        'MAIL_SENT_MESSAGE',
         'PasswordHasher',
         'REGISTER_RATE_LIMITS',
         'RESEND_RATE_LIMITS',

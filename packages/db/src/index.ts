@@ -2,6 +2,10 @@ import 'server-only';
 
 export { getOrm } from './orm';
 export { DEFAULT_ROLES, ROLES, User, type Role } from './entities/auth/user.entity';
+export {
+  EMAIL_VERIFICATION_TTL_MS,
+  EmailVerificationToken,
+} from './entities/auth/email-verification-token.entity';
 export type { DbOptions } from './config';
 // Re-exported so no package other than db imports @mikro-orm/* directly.
 export type { EntityManager, MikroORM } from '@mikro-orm/postgresql';

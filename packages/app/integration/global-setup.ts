@@ -90,8 +90,10 @@ export default async function setup(project: TestProject) {
       NODE_ENV: 'production',
       SESSION_SECRET: randomBytes(32).toString('hex'),
       APP_URL: baseUrl,
-      // GitHub sign-in goes to the local stub; the app accepts override URLs only with ALLOW_TEST_OVERRIDES=1.
+      // GitHub sign-in goes to the local stub and mail to the app log (`mail.sent`); production accepts
+      // override URLs and the log mailer only with ALLOW_TEST_OVERRIDES=1.
       ALLOW_TEST_OVERRIDES: '1',
+      MAIL_PROVIDER: 'log',
       GITHUB_OAUTH_URL: githubStub.url,
       GITHUB_API_URL: githubStub.url,
       GITHUB_CLIENT_ID: 'integration-client',

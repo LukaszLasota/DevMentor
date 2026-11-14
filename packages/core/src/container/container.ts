@@ -4,6 +4,7 @@ import { assertProductionEnv, getEnv } from '../config/env';
 import { EventBus } from '../events/events';
 import { createFetchJson } from '../http/outbound';
 import { logger } from '../logger';
+import { createMailSender } from '../mail/mail-sender';
 import { PasswordHasher } from '../security/password';
 import { RateLimiter } from '../security/rate-limit';
 import { AccountService } from '../services/auth/account.service';
@@ -38,6 +39,7 @@ async function buildContainer(): Promise<AwilixContainer<Cradle>> {
     clock: asValue(systemClock),
     fetchJson: asFunction(({ logger }: Cradle) => createFetchJson({ logger })).singleton(),
     events: asClass(EventBus).singleton(),
+    mailSender: asFunction(createMailSender).singleton(),
     // Singleton: its concurrency gate must be shared by every request in the process.
     passwordHasher: asFunction(
       ({ env }: Cradle) =>
@@ -49,6 +51,9 @@ async function buildContainer(): Promise<AwilixContainer<Cradle>> {
     githubOAuthService: asClass(GithubOAuthService).scoped(),
     accountService: asClass(AccountService).scoped(),
   });
+
+  // Resolved eagerly so the log mailer's "not delivered" warning appears at boot, not at the first mail.
+  void container.cradle.mailSender;
 
   return container;
 }

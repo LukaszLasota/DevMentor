@@ -3,6 +3,7 @@ import type { Env } from '../config/env';
 import type { EventBus } from '../events/events';
 import type { FetchJson } from '../http/outbound';
 import type { Logger } from '../logger';
+import type { MailSender } from '../mail/mail-sender';
 import type { PasswordHasher } from '../security/password';
 import type { RateLimiter } from '../security/rate-limit';
 import type { AccountService } from '../services/auth/account.service';
@@ -21,6 +22,7 @@ export interface Cradle {
   clock: Clock;
   fetchJson: FetchJson;
   events: EventBus;
+  mailSender: MailSender;
   passwordHasher: PasswordHasher;
   em: EntityManager;
   rateLimiter: RateLimiter;

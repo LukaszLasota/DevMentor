@@ -73,10 +73,26 @@ describe('DI container', () => {
     expect(container.cradle.passwordHasher['gate']).toMatchObject({ options: { concurrency: 3, waitMs: 3000 } });
   });
 
+  it('registers the mail sender chosen by MAIL_PROVIDER as a singleton, resolved at boot', async () => {
+    const { getContainer, createRequestScope } = await loadContainer();
+    const { LogMailer } = await import('../mail/log-mailer');
+    const { logger } = await import('../logger');
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    const container = await getContainer();
+    const scope = await createRequestScope();
+
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('MAIL_PROVIDER=log'));
+    expect(container.cradle.mailSender).toBeInstanceOf(LogMailer);
+    expect(scope.cradle.mailSender).toBe(container.cradle.mailSender);
+    warn.mockRestore();
+  });
+
   it('disables ORM debug outside development', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('SESSION_SECRET', 'a'.repeat(64));
     vi.stubEnv('APP_URL', 'https://devmentor.test');
+    vi.stubEnv('MAIL_API_KEY', 're_test');
+    vi.stubEnv('MAIL_FROM', 'noreply@devmentor.test');
     const { getContainer } = await loadContainer();
 
     await getContainer();
@@ -84,11 +100,11 @@ describe('DI container', () => {
     expect(getOrm).toHaveBeenCalledWith(expect.objectContaining({ debug: false }));
   });
 
-  it('refuses to start in production without SESSION_SECRET and APP_URL', async () => {
+  it('refuses to start in production without SESSION_SECRET, APP_URL and the Resend key and sender', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     const { getContainer } = await loadContainer();
 
-    await expect(getContainer()).rejects.toThrow('SESSION_SECRET, APP_URL must be set in production');
+    await expect(getContainer()).rejects.toThrow('SESSION_SECRET, APP_URL, MAIL_API_KEY, MAIL_FROM must be set in production');
     expect(getOrm).not.toHaveBeenCalled();
   });
 

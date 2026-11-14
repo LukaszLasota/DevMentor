@@ -24,6 +24,9 @@ describe('parseEnv', () => {
       TRUSTED_PROXY_HOPS: 0,
       PASSWORD_HASH_CONCURRENCY: 2,
       PASSWORD_HASH_WAIT_MS: 3000,
+      MAIL_PROVIDER: 'log',
+      MAIL_API_KEY: undefined,
+      MAIL_FROM: undefined,
       ALLOW_TEST_OVERRIDES: false,
     });
   });
@@ -154,6 +157,38 @@ describe('parseEnv', () => {
       expect(() => parseEnv({ DATABASE_URL, [key]: value })).toThrow(new RegExp(key));
     });
   });
+
+  describe('mail', () => {
+    it('defaults MAIL_PROVIDER to log in development and test, resend in production', () => {
+      expect(parseEnv({ DATABASE_URL, NODE_ENV: 'development' }).MAIL_PROVIDER).toBe('log');
+      expect(parseEnv({ DATABASE_URL, NODE_ENV: 'test', MAIL_PROVIDER: '' }).MAIL_PROVIDER).toBe('log');
+      expect(parseEnv({ DATABASE_URL, NODE_ENV: 'production' }).MAIL_PROVIDER).toBe('resend');
+    });
+
+    it('keeps an explicit provider and the optional key and sender', () => {
+      expect(
+        parseEnv({ DATABASE_URL, MAIL_PROVIDER: 'resend', MAIL_API_KEY: 're_x', MAIL_FROM: 'DevMentor <a@b.test>' }),
+      ).toMatchObject({ MAIL_PROVIDER: 'resend', MAIL_API_KEY: 're_x', MAIL_FROM: 'DevMentor <a@b.test>' });
+      expect(parseEnv({ DATABASE_URL, MAIL_API_KEY: '', MAIL_FROM: '' })).toMatchObject({
+        MAIL_API_KEY: undefined,
+        MAIL_FROM: undefined,
+      });
+    });
+
+    it('rejects an unknown provider', () => {
+      expect(() => parseEnv({ DATABASE_URL, MAIL_PROVIDER: 'smtp' })).toThrow(/MAIL_PROVIDER/);
+    });
+
+    it('refuses MAIL_PROVIDER=log in production without ALLOW_TEST_OVERRIDES=1', () => {
+      expect(() => parseEnv({ DATABASE_URL, NODE_ENV: 'production', MAIL_PROVIDER: 'log' })).toThrow(
+        /MAIL_PROVIDER=log in production requires ALLOW_TEST_OVERRIDES=1/,
+      );
+      expect(
+        parseEnv({ DATABASE_URL, NODE_ENV: 'production', MAIL_PROVIDER: 'log', ALLOW_TEST_OVERRIDES: '1' })
+          .MAIL_PROVIDER,
+      ).toBe('log');
+    });
+  });
 });
 
 describe('assertProductionEnv', () => {
@@ -163,15 +198,37 @@ describe('assertProductionEnv', () => {
 
   it('lists the missing keys in production', () => {
     expect(() => assertProductionEnv(parseEnv({ DATABASE_URL, NODE_ENV: 'production' }))).toThrow(
-      'Invalid environment: SESSION_SECRET, APP_URL must be set in production',
+      'Invalid environment: SESSION_SECRET, APP_URL, MAIL_API_KEY, MAIL_FROM must be set in production',
     );
     expect(() =>
-      assertProductionEnv(parseEnv({ DATABASE_URL, NODE_ENV: 'production', SESSION_SECRET: SECRET })),
+      assertProductionEnv(
+        parseEnv({ DATABASE_URL, NODE_ENV: 'production', SESSION_SECRET: SECRET, MAIL_API_KEY: 're_x', MAIL_FROM: 'a@b.test' }),
+      ),
     ).toThrow('Invalid environment: APP_URL must be set in production');
   });
 
-  it('passes in production with SESSION_SECRET and APP_URL', () => {
-    const env = parseEnv({ DATABASE_URL, NODE_ENV: 'production', SESSION_SECRET: SECRET, APP_URL: 'https://x.test' });
+  it('passes in production with SESSION_SECRET, APP_URL and the resend key and sender', () => {
+    const env = parseEnv({
+      DATABASE_URL,
+      NODE_ENV: 'production',
+      SESSION_SECRET: SECRET,
+      APP_URL: 'https://x.test',
+      MAIL_API_KEY: 're_x',
+      MAIL_FROM: 'a@b.test',
+    });
+
+    expect(() => assertProductionEnv(env)).not.toThrow();
+  });
+
+  it('does not require the resend key when the log mailer is legitimately set', () => {
+    const env = parseEnv({
+      DATABASE_URL,
+      NODE_ENV: 'production',
+      SESSION_SECRET: SECRET,
+      APP_URL: 'https://x.test',
+      MAIL_PROVIDER: 'log',
+      ALLOW_TEST_OVERRIDES: '1',
+    });
 
     expect(() => assertProductionEnv(env)).not.toThrow();
   });

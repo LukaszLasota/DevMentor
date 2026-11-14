@@ -31,14 +31,21 @@ export const DEFAULT_PASSWORD_HASH_WAIT_MS = 3_000;
 
 const TEST_OVERRIDE_KEYS = ['GITHUB_OAUTH_URL', 'GITHUB_API_URL'] as const;
 
+export const MAIL_PROVIDERS = ['resend', 'log'] as const;
+
+export type MailProvider = (typeof MAIL_PROVIDERS)[number];
+
 /**
  * Tiers (platform-primitives spec, "API Contracts"):
- * - optional, checked at the route: GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET;
+ * - optional, checked at the route: GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, MAIL_API_KEY, MAIL_FROM;
  * - required at first container creation in production (see `assertProductionEnv`), never here,
- *   so `npm run build` with no env passes: SESSION_SECRET, APP_URL;
- * - dangerous configuration refused at boot: override URLs without ALLOW_TEST_OVERRIDES=1;
+ *   so `npm run build` with no env passes: SESSION_SECRET, APP_URL, and MAIL_API_KEY + MAIL_FROM
+ *   for the `resend` mailer;
+ * - dangerous configuration refused at boot: override URLs without ALLOW_TEST_OVERRIDES=1, and
+ *   MAIL_PROVIDER=log in production without ALLOW_TEST_OVERRIDES=1 (mail would only be logged);
  * - defaulted: SESSION_SECRET_PREVIOUS, OPERATOR_EMAILS, GITHUB_OAUTH_URL, GITHUB_API_URL,
- *   TRUSTED_PROXY_HOPS (0: no client IP is trusted), PASSWORD_HASH_CONCURRENCY, PASSWORD_HASH_WAIT_MS.
+ *   TRUSTED_PROXY_HOPS (0: no client IP is trusted), PASSWORD_HASH_CONCURRENCY, PASSWORD_HASH_WAIT_MS,
+ *   MAIL_PROVIDER (`log` in development and test, `resend` in production).
  */
 const envSchema = z
   .object({
@@ -62,6 +69,10 @@ const envSchema = z
     PASSWORD_HASH_WAIT_MS: optional(z.coerce.number().int().min(0).max(60_000)).transform(
       (ms) => ms ?? DEFAULT_PASSWORD_HASH_WAIT_MS,
     ),
+    MAIL_PROVIDER: optional(z.enum(MAIL_PROVIDERS, 'must be resend or log')),
+    MAIL_API_KEY: optional(z.string()),
+    /** Sender, e.g. `DevMentor <noreply@example.com>`; Resend requires a verified domain. */
+    MAIL_FROM: optional(z.string()),
     ALLOW_TEST_OVERRIDES: z
       .enum(['0', '1'], 'must be 1 or 0')
       .default('0')
@@ -77,11 +88,20 @@ const envSchema = z
         ctx.addIssue({ code: 'custom', path: [key], message: 'test override URLs require ALLOW_TEST_OVERRIDES=1' });
       }
     }
+
+    if (env.MAIL_PROVIDER === 'log' && env.NODE_ENV === 'production') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['MAIL_PROVIDER'],
+        message: 'MAIL_PROVIDER=log in production requires ALLOW_TEST_OVERRIDES=1 (mail would only be logged)',
+      });
+    }
   })
   .transform((env) => ({
     ...env,
     GITHUB_OAUTH_URL: env.GITHUB_OAUTH_URL ?? DEFAULT_GITHUB_OAUTH_URL,
     GITHUB_API_URL: env.GITHUB_API_URL ?? DEFAULT_GITHUB_API_URL,
+    MAIL_PROVIDER: env.MAIL_PROVIDER ?? (env.NODE_ENV === 'production' ? 'resend' : 'log'),
   }));
 
 export type Env = z.infer<typeof envSchema>;
@@ -101,6 +121,7 @@ export function parseEnv(source: Record<string, string | undefined> = process.en
 }
 
 const PRODUCTION_REQUIRED_KEYS = ['SESSION_SECRET', 'APP_URL'] as const;
+const RESEND_REQUIRED_KEYS = ['MAIL_API_KEY', 'MAIL_FROM'] as const;
 
 /**
  * Production refuses to serve without the values auth depends on. Called at the first
@@ -111,7 +132,8 @@ export function assertProductionEnv(env: Env): void {
     return;
   }
 
-  const missing = PRODUCTION_REQUIRED_KEYS.filter((key) => env[key] === undefined);
+  const required = env.MAIL_PROVIDER === 'resend' ? [...PRODUCTION_REQUIRED_KEYS, ...RESEND_REQUIRED_KEYS] : PRODUCTION_REQUIRED_KEYS;
+  const missing = required.filter((key) => env[key] === undefined);
 
   if (missing.length > 0) {
     throw new Error(`Invalid environment: ${missing.join(', ')} must be set in production`);

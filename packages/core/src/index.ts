@@ -5,6 +5,8 @@ export { getContainer, createRequestScope, withScope } from './container/contain
 export type { Cradle } from './container/cradle';
 export { getEnv, parseEnv, type Env } from './config/env';
 export { logger, type Logger } from './logger';
+export type { MailMessage, MailSender } from './mail/mail-sender';
+export { MAIL_SENT_MESSAGE } from './mail/log-mailer';
 export { systemClock, type Clock } from './time/clock';
 export {
   requireSessionSecrets,
