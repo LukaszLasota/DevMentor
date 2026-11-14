@@ -102,6 +102,34 @@ Until a GitHub OAuth App is set up, sign in through a local GitHub stub (`script
 
    `/api/auth/github?login=<persona>` starts the same flow directly. Accounts are created on the first sign-in; there is no seed. If port 3000 is taken, run `PORT=3001 npm run dev` and set `APP_URL=http://localhost:3001`.
 
+### Sign in with real GitHub (OAuth App)
+
+Each environment gets its own OAuth App (one for localhost, one for production), registered by founder B. Client ID and secret live only in `.env` and the deploy environment, never in the repository.
+
+1. GitHub → Settings → Developer settings → OAuth Apps → New OAuth App:
+
+   | Field | Local value |
+   |---|---|
+   | Application name | `DevMentor (local)` — name the environment |
+   | Homepage URL | `http://localhost:3000` |
+   | Authorization callback URL | `http://localhost:3000/api/auth/github/callback` |
+   | Enable Device Flow | off |
+
+   OAuth Apps have no permission screen: the app asks for the scopes `read:user user:email` on each sign-in (read-only profile and email addresses), and GitHub shows them on the consent screen.
+2. Register the app, copy the Client ID, then "Generate a new client secret" and copy it (GitHub shows it once).
+3. `.env`: remove (or comment out) the stub lines `ALLOW_TEST_OVERRIDES`, `GITHUB_OAUTH_URL`, `GITHUB_API_URL`, then set
+
+   ```bash
+   GITHUB_CLIENT_ID=<client id>
+   GITHUB_CLIENT_SECRET=<client secret>
+   APP_URL=http://localhost:3000          # must match the callback URL's origin
+   OPERATOR_EMAILS=<your GitHub primary email>   # optional, to reach /admin
+   ```
+
+4. Restart `npm run dev`, open [`/sign-in`](http://localhost:3000/sign-in), "Continue with GitHub", approve → you land on your role home. Your account is created from your GitHub verified primary email.
+
+Revoke a session on GitHub's side: Settings → Applications → Authorized OAuth Apps → Revoke; the next sign-in shows the consent screen again.
+
 ### Register with email locally
 
 With `MAIL_PROVIDER=log` (the default outside production) no email is sent: the app writes it to its own log as a JSON line with `"msg":"mail.sent"` (`LOG_LEVEL=info`, the default). `APP_URL` must match the port the dev server listens on, because the link is built from it.
