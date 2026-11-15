@@ -14,6 +14,8 @@
       "Read(~/.aws/**)",
       "Read(~/.config/gh/**)",
       "Read(~/.kube/**)",
+      "Read(~/.npmrc)",
+      "Read(~/.pypirc)",
       "Read(~/.qodo/auth.key)",
       "Read(~/.claude/projects/**/*.jsonl)",
       "Edit(./.env)",
@@ -26,7 +28,16 @@
       "Edit(~/.aws/**)",
       "Edit(~/.config/gh/**)",
       "Edit(~/.kube/**)",
+      "Edit(~/.npmrc)",
+      "Edit(~/.pypirc)",
       "Edit(~/.qodo/**)"
+    ],
+    "ask": [
+      "Bash(npm run dev)",
+      "Bash(npm run test:integration)",
+      "Bash(docker compose *)",
+      "Bash(git push)",
+      "Bash(git push *)"
     ]
   },
   "sandbox": {
