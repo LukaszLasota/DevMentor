@@ -1,6 +1,6 @@
 # security-notes.md
 
-Audit date: 2026-11-15 · Project: DevMentor (`LukaszLasota/DevMentor`) · Course lesson 09 "Security of AI tools" · Spec: `.ai/specs/2026-11-15-agent-workshop-hardening.md` · Detailed skill review: `.ai/security-skills-review.md`
+Audit date: 2026-11-15 · Project: DevMentor (`LukaszLasota/DevMentor`) · Course lesson 09 "Security of AI tools" · Spec: `.ai/specs/implemented/2026-11-15-agent-workshop-hardening.md` · Detailed skill review: `.ai/security-skills-review.md`
 
 No secret value appears in this file: only counts, masked hosts and file names.
 
