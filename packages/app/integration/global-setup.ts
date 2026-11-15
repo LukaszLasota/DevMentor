@@ -103,8 +103,8 @@ export default async function setup(project: TestProject) {
       // override URLs and the log mailer only with ALLOW_TEST_OVERRIDES=1.
       ALLOW_TEST_OVERRIDES: '1',
       MAIL_PROVIDER: 'log',
-      GITHUB_OAUTH_URL: githubStub.url,
-      GITHUB_API_URL: githubStub.url,
+      DEVMENTOR_GITHUB_OAUTH_URL: githubStub.url,
+      DEVMENTOR_GITHUB_API_URL: githubStub.url,
       GITHUB_CLIENT_ID: 'integration-client',
       GITHUB_CLIENT_SECRET: 'integration-secret',
       OPERATOR_EMAILS: OPERATOR_EMAIL,

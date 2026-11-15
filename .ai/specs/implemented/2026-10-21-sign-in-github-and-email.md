@@ -15,7 +15,7 @@ Hand-written GitHub OAuth (authorization code flow with `state` and PKCE, `fetch
 
 ## 📝 Architecture
 - `packages/db/src/entities/auth/user.entity.ts`, `email-verification-token.entity.ts`, `auth-rate-limit.entity.ts` — registered in `entities/index.ts`; one migration per phase (`up` and `down`).
-- `packages/core/src/services/auth/github-oauth.service.ts` — builds the authorize URL (forwards GitHub's `login` hint), exchanges the code, reads `/user` and `/user/emails` through `fetchJson` with `GITHUB_OAUTH_URL` / `GITHUB_API_URL`.
+- `packages/core/src/services/auth/github-oauth.service.ts` — builds the authorize URL (forwards GitHub's `login` hint), exchanges the code, reads `/user` and `/user/emails` through `fetchJson` with `DEVMENTOR_GITHUB_OAUTH_URL` / `DEVMENTOR_GITHUB_API_URL`.
 - `packages/core/src/services/auth/account.service.ts` — find-or-create by GitHub id, link by verified email, operator reconciliation, start registration, set the password from a verification link, verify password, sign-out (bump `session_version`). `users.email` is never updated after creation.
 - `packages/core/src/validators/auth/{account-register,password-set,account-sign-in}.schema.ts` (shared fields in `fields.ts`) — shared with the forms through the new `@devmentor/core/validators` entry.
 - `packages/app/src/app/api/auth/**/route.ts` — thin `apiHandler` routes; the GitHub start and callback routes use `redirectHandler` (see API). No `export const dynamic`.

@@ -54,7 +54,7 @@ describe('GithubOAuthService.buildAuthorizeUrl', () => {
   });
 
   it('appends paths to an overridden base URL that has a path (test stub)', () => {
-    const { service } = setup(undefined, { ALLOW_TEST_OVERRIDES: '1', GITHUB_OAUTH_URL: 'http://localhost:4010/github/' });
+    const { service } = setup(undefined, { ALLOW_TEST_OVERRIDES: '1', DEVMENTOR_GITHUB_OAUTH_URL: 'http://localhost:4010/github/' });
 
     const url = service.buildAuthorizeUrl({ state: 's', codeChallenge: 'c' });
 

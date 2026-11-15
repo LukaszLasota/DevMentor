@@ -89,7 +89,7 @@ export class GithubOAuthService {
   /** GitHub's authorize URL for a redirect from the start route. */
   buildAuthorizeUrl({ state, codeChallenge, login }: AuthorizeUrlInput): URL {
     const { clientId, redirectUri } = this.credentials();
-    const url = new URL(`${this.env.GITHUB_OAUTH_URL}/login/oauth/authorize`);
+    const url = new URL(`${this.env.DEVMENTOR_GITHUB_OAUTH_URL}/login/oauth/authorize`);
 
     url.searchParams.set('client_id', clientId);
     url.searchParams.set('redirect_uri', redirectUri);
@@ -108,7 +108,7 @@ export class GithubOAuthService {
   /** Exchanges the callback `code` (with the PKCE verifier) for an access token. */
   async exchangeCode({ code, codeVerifier }: ExchangeCodeInput): Promise<string> {
     const { clientId, clientSecret, redirectUri } = this.credentials();
-    const body = await this.fetchJson<unknown>(`${this.env.GITHUB_OAUTH_URL}/login/oauth/access_token`, {
+    const body = await this.fetchJson<unknown>(`${this.env.DEVMENTOR_GITHUB_OAUTH_URL}/login/oauth/access_token`, {
       method: 'POST',
       headers: { accept: 'application/json', 'user-agent': USER_AGENT },
       body: new URLSearchParams({
@@ -145,8 +145,8 @@ export class GithubOAuthService {
       'x-github-api-version': GITHUB_API_VERSION,
     };
     const [userBody, emailsBody] = await Promise.all([
-      this.fetchJson<unknown>(`${this.env.GITHUB_API_URL}/user`, { headers }),
-      this.fetchJson<unknown>(`${this.env.GITHUB_API_URL}/user/emails`, { headers }),
+      this.fetchJson<unknown>(`${this.env.DEVMENTOR_GITHUB_API_URL}/user`, { headers }),
+      this.fetchJson<unknown>(`${this.env.DEVMENTOR_GITHUB_API_URL}/user/emails`, { headers }),
     ]);
 
     const user = this.parse(userSchema, userBody, '/user');

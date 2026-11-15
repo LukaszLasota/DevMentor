@@ -87,8 +87,8 @@ Until a GitHub OAuth App is set up, sign in through a local GitHub stub (`script
    SESSION_SECRET=<openssl rand -hex 32>
    APP_URL=http://localhost:3000
    ALLOW_TEST_OVERRIDES=1                  # the app refuses the override URLs below without it
-   GITHUB_OAUTH_URL=http://localhost:3999
-   GITHUB_API_URL=http://localhost:3999
+   DEVMENTOR_GITHUB_OAUTH_URL=http://localhost:3999
+   DEVMENTOR_GITHUB_API_URL=http://localhost:3999
    GITHUB_CLIENT_ID=local-stub-client      # any non-empty values
    GITHUB_CLIENT_SECRET=local-stub-secret
    OPERATOR_EMAILS=mock-operator@devmentor.test
@@ -162,7 +162,7 @@ Each environment gets its own OAuth App (one for localhost, one for production),
 
    OAuth Apps have no permission screen: the app asks for the scopes `read:user user:email` on each sign-in (read-only profile and email addresses), and GitHub shows them on the consent screen.
 2. Register the app, copy the Client ID, then "Generate a new client secret" and copy it (GitHub shows it once).
-3. `.env`: remove (or comment out) the stub lines `ALLOW_TEST_OVERRIDES`, `GITHUB_OAUTH_URL`, `GITHUB_API_URL`, then set
+3. `.env`: remove (or comment out) the stub lines `ALLOW_TEST_OVERRIDES`, `DEVMENTOR_GITHUB_OAUTH_URL`, `DEVMENTOR_GITHUB_API_URL`, then set
 
    ```bash
    GITHUB_CLIENT_ID=<client id>

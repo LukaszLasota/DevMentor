@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-import { assertProductionEnv, parseEnv } from './env';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { assertProductionEnv, ENV_KEYS, parseEnv } from './env';
 
 const DATABASE_URL = 'postgres://u:p@localhost:5432/db';
 const SECRET = 'a'.repeat(64);
@@ -18,8 +18,8 @@ describe('parseEnv', () => {
       APP_URL: undefined,
       GITHUB_CLIENT_ID: undefined,
       GITHUB_CLIENT_SECRET: undefined,
-      GITHUB_OAUTH_URL: 'https://github.com',
-      GITHUB_API_URL: 'https://api.github.com',
+      DEVMENTOR_GITHUB_OAUTH_URL: 'https://github.com',
+      DEVMENTOR_GITHUB_API_URL: 'https://api.github.com',
       OPERATOR_EMAILS: [],
       TRUSTED_PROXY_HOPS: 0,
       PASSWORD_HASH_CONCURRENCY: 2,
@@ -93,26 +93,42 @@ describe('parseEnv', () => {
     });
 
     it('refuses override URLs without ALLOW_TEST_OVERRIDES=1', () => {
-      expect(() => parseEnv({ DATABASE_URL, GITHUB_OAUTH_URL: 'http://127.0.0.1:4000' })).toThrow(
-        /ALLOW_TEST_OVERRIDES=1[\s\S]*at GITHUB_OAUTH_URL/,
+      expect(() => parseEnv({ DATABASE_URL, DEVMENTOR_GITHUB_OAUTH_URL: 'http://127.0.0.1:4000' })).toThrow(
+        /ALLOW_TEST_OVERRIDES=1[\s\S]*at DEVMENTOR_GITHUB_OAUTH_URL/,
       );
       expect(() =>
-        parseEnv({ DATABASE_URL, GITHUB_API_URL: 'http://127.0.0.1:4000', ALLOW_TEST_OVERRIDES: '0' }),
-      ).toThrow(/ALLOW_TEST_OVERRIDES=1[\s\S]*at GITHUB_API_URL/);
+        parseEnv({ DATABASE_URL, DEVMENTOR_GITHUB_API_URL: 'http://127.0.0.1:4000', ALLOW_TEST_OVERRIDES: '0' }),
+      ).toThrow(/ALLOW_TEST_OVERRIDES=1[\s\S]*at DEVMENTOR_GITHUB_API_URL/);
     });
 
     it('accepts override URLs with ALLOW_TEST_OVERRIDES=1', () => {
       const env = parseEnv({
         DATABASE_URL,
         ALLOW_TEST_OVERRIDES: '1',
-        GITHUB_OAUTH_URL: 'http://127.0.0.1:4000/',
-        GITHUB_API_URL: 'http://127.0.0.1:4000/api',
+        DEVMENTOR_GITHUB_OAUTH_URL: 'http://127.0.0.1:4000/',
+        DEVMENTOR_GITHUB_API_URL: 'http://127.0.0.1:4000/api',
       });
 
       expect(env).toMatchObject({
         ALLOW_TEST_OVERRIDES: true,
-        GITHUB_OAUTH_URL: 'http://127.0.0.1:4000',
-        GITHUB_API_URL: 'http://127.0.0.1:4000/api',
+        DEVMENTOR_GITHUB_OAUTH_URL: 'http://127.0.0.1:4000',
+        DEVMENTOR_GITHUB_API_URL: 'http://127.0.0.1:4000/api',
+      });
+    });
+
+    it('ignores the GITHUB_* variables CI runners set and keeps the default GitHub URLs', () => {
+      // GitHub Actions sets GITHUB_API_URL, GITHUB_SERVER_URL… on every runner; they are not app config.
+      const env = parseEnv({
+        DATABASE_URL,
+        GITHUB_API_URL: 'https://api.github.com',
+        GITHUB_SERVER_URL: 'https://github.com',
+        GITHUB_ACTIONS: 'true',
+      });
+
+      expect(env).toMatchObject({
+        DEVMENTOR_GITHUB_OAUTH_URL: 'https://github.com',
+        DEVMENTOR_GITHUB_API_URL: 'https://api.github.com',
+        ALLOW_TEST_OVERRIDES: false,
       });
     });
 
@@ -261,9 +277,18 @@ describe('assertProductionEnv', () => {
 });
 
 describe('getEnv', () => {
-  it('parses process.env once and caches the result', async () => {
+  beforeEach(() => {
     vi.resetModules();
+    // Only the stubs below count: a runner's or developer's environment must not leak into the test.
+    for (const key of ENV_KEYS) vi.stubEnv(key, undefined);
     vi.stubEnv('DATABASE_URL', DATABASE_URL);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('parses process.env once and caches the result', async () => {
     const { getEnv } = await import('./env');
 
     const first = getEnv();
@@ -271,6 +296,17 @@ describe('getEnv', () => {
 
     expect(first.DATABASE_URL).toBe(DATABASE_URL);
     expect(getEnv()).toBe(first);
-    vi.unstubAllEnvs();
+  });
+
+  it('boots on a GitHub Actions runner, whose default GITHUB_* variables are set', async () => {
+    vi.stubEnv('GITHUB_ACTIONS', 'true');
+    vi.stubEnv('GITHUB_API_URL', 'https://api.github.com');
+    vi.stubEnv('GITHUB_SERVER_URL', 'https://github.com');
+    const { getEnv } = await import('./env');
+
+    expect(getEnv()).toMatchObject({
+      DEVMENTOR_GITHUB_OAUTH_URL: 'https://github.com',
+      DEVMENTOR_GITHUB_API_URL: 'https://api.github.com',
+    });
   });
 });

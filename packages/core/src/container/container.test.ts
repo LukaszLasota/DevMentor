@@ -18,7 +18,10 @@ async function loadContainer() {
 }
 
 describe('DI container', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Only ENV and the per-test stubs count: a runner's or developer's environment must not leak in.
+    const { ENV_KEYS } = await import('../config/env');
+    for (const key of ENV_KEYS) vi.stubEnv(key, undefined);
     for (const [key, value] of Object.entries(ENV)) vi.stubEnv(key, value);
     getOrm.mockClear();
     orm.em.fork.mockClear();

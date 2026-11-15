@@ -1,6 +1,6 @@
 // Local GitHub OAuth + REST stub for integration tests and local development (no real GitHub App).
 // Serves the four endpoints `GithubOAuthService` calls; the app reaches it through
-// GITHUB_OAUTH_URL / GITHUB_API_URL, which the app accepts only with ALLOW_TEST_OVERRIDES=1.
+// DEVMENTOR_GITHUB_OAUTH_URL / DEVMENTOR_GITHUB_API_URL, which the app accepts only with ALLOW_TEST_OVERRIDES=1.
 //
 // Personas come from GitHub's `login` hint (`/api/auth/github?login=<persona>`):
 // - any valid login → a user `<login>` with the verified primary email `<login>@devmentor.test`;
@@ -180,7 +180,7 @@ export function createGithubStubHandler(options = {}) {
 }
 
 /**
- * Starts the stub; resolves with its base URL (use it for both GITHUB_OAUTH_URL and GITHUB_API_URL).
+ * Starts the stub; resolves with its base URL (use it for both DEVMENTOR_GITHUB_OAUTH_URL and DEVMENTOR_GITHUB_API_URL).
  * Port 0 picks a free port.
  * @param {{ port?: number, host?: string, clientId?: string, clientSecret?: string }} [options]
  * @returns {Promise<{ url: string, close: () => Promise<void> }>}
@@ -206,7 +206,7 @@ export async function main({ env = process.env, log = console.log, start = start
   const port = Number(env.GITHUB_STUB_PORT ?? DEFAULT_PORT);
   const stub = await start({ port, host: env.GITHUB_STUB_HOST ?? '127.0.0.1' });
 
-  log(`GitHub stub on ${stub.url} — set GITHUB_OAUTH_URL and GITHUB_API_URL to it (with ALLOW_TEST_OVERRIDES=1).`);
+  log(`GitHub stub on ${stub.url} — set DEVMENTOR_GITHUB_OAUTH_URL and DEVMENTOR_GITHUB_API_URL to it (with ALLOW_TEST_OVERRIDES=1).`);
   log(`Personas: /api/auth/github?login=<login> → <login>@${EMAIL_DOMAIN}; "${DENY_LOGIN}" cancels, "${UNVERIFIED_LOGIN}" has no verified email.`);
 
   return stub;

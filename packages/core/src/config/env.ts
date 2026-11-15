@@ -37,7 +37,7 @@ export const DEFAULT_MENTOR_PUBLISH_WINDOW_DAYS = 14;
 const days = (fallback: number) =>
   optional(z.coerce.number().int().min(1).max(365)).transform((value) => value ?? fallback);
 
-const TEST_OVERRIDE_KEYS = ['GITHUB_OAUTH_URL', 'GITHUB_API_URL'] as const;
+const TEST_OVERRIDE_KEYS = ['DEVMENTOR_GITHUB_OAUTH_URL', 'DEVMENTOR_GITHUB_API_URL'] as const;
 
 export const MAIL_PROVIDERS = ['resend', 'log'] as const;
 
@@ -51,13 +51,12 @@ export type MailProvider = (typeof MAIL_PROVIDERS)[number];
  *   for the `resend` mailer;
  * - dangerous configuration refused at boot: override URLs without ALLOW_TEST_OVERRIDES=1, and
  *   MAIL_PROVIDER=log in production without ALLOW_TEST_OVERRIDES=1 (mail would only be logged);
- * - defaulted: SESSION_SECRET_PREVIOUS, OPERATOR_EMAILS, GITHUB_OAUTH_URL, GITHUB_API_URL,
+ * - defaulted: SESSION_SECRET_PREVIOUS, OPERATOR_EMAILS, DEVMENTOR_GITHUB_OAUTH_URL, DEVMENTOR_GITHUB_API_URL,
  *   TRUSTED_PROXY_HOPS (0: no client IP is trusted), PASSWORD_HASH_CONCURRENCY, PASSWORD_HASH_WAIT_MS,
  *   MAIL_PROVIDER (`log` in development and test, `resend` in production), INVITATION_TTL_DAYS,
  *   MENTOR_PUBLISH_WINDOW_DAYS (14 each).
  */
-const envSchema = z
-  .object({
+const envShape = z.object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     DATABASE_URL: z.string().regex(/^postgres(ql)?:\/\//, 'must be a postgres:// connection URL'),
     DATABASE_POOL_MIN: z.coerce.number().int().min(0).default(0),
@@ -67,8 +66,8 @@ const envSchema = z
     APP_URL: optional(baseUrl),
     GITHUB_CLIENT_ID: optional(z.string()),
     GITHUB_CLIENT_SECRET: optional(z.string()),
-    GITHUB_OAUTH_URL: optional(baseUrl),
-    GITHUB_API_URL: optional(baseUrl),
+    DEVMENTOR_GITHUB_OAUTH_URL: optional(baseUrl),
+    DEVMENTOR_GITHUB_API_URL: optional(baseUrl),
     OPERATOR_EMAILS: operatorEmails,
     /** Proxies in front of the app that append to `x-forwarded-for`; 0 = no client IP is derivable. */
     TRUSTED_PROXY_HOPS: optional(z.coerce.number().int().min(0).max(10)).transform((hops) => hops ?? 0),
@@ -88,7 +87,12 @@ const envSchema = z
       .enum(['0', '1'], 'must be 1 or 0')
       .default('0')
       .transform((flag) => flag === '1'),
-  })
+  });
+
+/** Every variable the schema reads; tests clear them so the runner's environment cannot leak in. */
+export const ENV_KEYS = Object.keys(envShape.shape) as (keyof typeof envShape.shape)[];
+
+const envSchema = envShape
   .superRefine((env, ctx) => {
     if (env.ALLOW_TEST_OVERRIDES) {
       return;
@@ -110,8 +114,8 @@ const envSchema = z
   })
   .transform((env) => ({
     ...env,
-    GITHUB_OAUTH_URL: env.GITHUB_OAUTH_URL ?? DEFAULT_GITHUB_OAUTH_URL,
-    GITHUB_API_URL: env.GITHUB_API_URL ?? DEFAULT_GITHUB_API_URL,
+    DEVMENTOR_GITHUB_OAUTH_URL: env.DEVMENTOR_GITHUB_OAUTH_URL ?? DEFAULT_GITHUB_OAUTH_URL,
+    DEVMENTOR_GITHUB_API_URL: env.DEVMENTOR_GITHUB_API_URL ?? DEFAULT_GITHUB_API_URL,
     MAIL_PROVIDER: env.MAIL_PROVIDER ?? (env.NODE_ENV === 'production' ? 'resend' : 'log'),
   }));
 
