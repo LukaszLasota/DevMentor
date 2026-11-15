@@ -43,6 +43,9 @@
       "qodo read *"
     ],
     "filesystem": {
+      "allowWrite": [
+        "~/.npm"
+      ],
       "denyRead": [
         "~/.ssh",
         "~/.aws",
