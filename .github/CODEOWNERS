@@ -1,0 +1,14 @@
+# Agent configuration is code: changes to these paths need the code owner's review.
+# Enforced only with branch protection "Require review from Code Owners"; on a solo repo
+# that blocks self-merge, so it stays off until there is a second maintainer (owner's decision).
+
+/.claude/                @LukaszLasota
+/.agents/                @LukaszLasota
+/.codex/                 @LukaszLasota
+/.mcp.json               @LukaszLasota
+/CLAUDE.md               @LukaszLasota
+/AGENTS.md               @LukaszLasota
+/packages/app/AGENTS.md  @LukaszLasota
+/skills-lock.json        @LukaszLasota
+/.github/workflows/      @LukaszLasota
+/.github/CODEOWNERS      @LukaszLasota
