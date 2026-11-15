@@ -92,6 +92,13 @@ New reusable components have one home each:
 - Run `npm run validate` locally before review (lint, typecheck, coverage, build, audit), plus `npm run test:integration` when HTTP/DB/UI behaviour changes. `npm run audit` fails on high/critical advisories not listed in `audit-allowlist.json` (each entry: reason + `reviewBy` date).
 - Security minimums and the review checklist (auth server-side, ownership checks, fail closed, no secrets in logs/responses, rate limiting on auth endpoints): engineering standards spec §1.
 
+## Agent workshop security
+
+- **Agent config is code.** `.claude/`, `.agents/`, `.codex/`, `.mcp.json`, `CLAUDE.md`, `AGENTS.md`, `packages/app/AGENTS.md`, `skills-lock.json` and `.github/workflows/` are owned in `.github/CODEOWNERS`; changes to them go through the owner's review like any other code.
+- **Never read secrets.** Do not open `.env` / `.env.*` (only `.env.example` is readable), `*.pem`, `~/.ssh`, `~/.aws`, `~/.config/gh`, `~/.qodo`, `~/.kube` or session history in `~/.claude/projects` — not with Read, not through any command. Do not try to work around a block: ask the user.
+- **The sandbox and the hook are quality gates.** `.claude/settings.json` (`permissions.deny`, `sandbox` with the network allowlist and `denyRead`, `PreToolUse` hook) and `.claude/hooks/pre-tool-use.sh` (tests: `scripts/hooks/pre-tool-use.test.mjs`) apply to every session. Never weaken them (remove a deny rule, widen `allowedDomains`, add `excludedCommands`, turn the sandbox off, edit the hook to let more through) without the owner's explicit approval; a new domain or excluded command is added deliberately, with its reason recorded.
+- Decisions, allowlist reasons, audit results and known hook gaps: spec `.ai/specs/2026-11-15-agent-workshop-hardening.md` and `.ai/security-notes.md`.
+
 # AI workspace (`.ai/`)
 
 All AI-generated working artifacts live in `.ai/`. Using this structure is mandatory — do not keep specs, run logs or lessons anywhere else (no ad-hoc notes in the repo root, `docs/`, or private memory only).
