@@ -1,6 +1,6 @@
 # Security review — installed agent skills (lesson 09, scope item 6)
 
-Date: 2026-11-15 · Spec: `.ai/specs/2026-11-15-agent-workshop-hardening.md` (scope item 6) · Mode: read-only audit, nothing executed from skill content, nothing committed.
+Date: 2026-11-15 · Spec: `.ai/specs/implemented/2026-11-15-agent-workshop-hardening.md` (scope item 6) · Mode: read-only audit, nothing executed from skill content, nothing committed.
 
 ## Summary
 

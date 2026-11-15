@@ -1,6 +1,6 @@
 # Agent workshop hardening (lesson 09)
 
-Status: in-progress
+Status: implemented
 Source: course lesson 09 "Security of AI tools" (local copy `C:\AI techleaders\Lekcja 9`, lab `lekcja-09-laboratorium`) · Branch: `chore/lesson-09-workshop-hardening`
 
 ## Goal
