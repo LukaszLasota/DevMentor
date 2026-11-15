@@ -67,7 +67,7 @@ Project moved to a secret manager: **postponed** by the owner (2026-11-15); `.en
 
 - Blocks (exit 2, reason to the model): pipe-to-shell (`curl|wget … | sh/bash/zsh/python/node/perl/ruby`, also via `<(…)`, `$(…)`, backticks), recursive `rm` except build artefacts and `/tmp/…`, credential paths (`.ssh`, `.aws`, `.config/gh`, `.qodo`, `.kube`, `.gnupg`, `.claude/projects`, `~/.npmrc`, `~/.pypirc`), any `.env*` / `.envrc` except `.env.example` / `.env.template`. Fails closed (missing `jq`, invalid input → exit 2). 91 tests in `scripts/hooks/pre-tool-use.test.mjs`, executable bit checked.
 - Bypass attempts: `node -e "…readFileSync('.' + 'env')"` passes the hook (exit 0) — stopped by the sandbox `denyRead`; obfuscated names, `find -delete`, `git clean`, `rsync --delete`, download-then-run pass by design (pinned as known gaps in the tests).
-- Where it is incomplete or too broad: it does not see file edits (a `postinstall` added with the Edit tool is not caught); it blocks harmless commands that only mention a protected word (e.g. adding `/.qodo/` to `.gitignore` with `printf`) — use the Edit tool for such changes.
+- Where it is incomplete or too broad: it does not see file edits (a `postinstall` added with the Edit tool is not caught); it blocks harmless commands that only mention a protected word (e.g. adding `/.qodo/` to `.gitignore` with `printf`) — use the Edit tool for such changes; the pipe-to-shell rule matches `sh` anywhere after `curl … |`, so `curl … ; echo "$SHA" | jq` is blocked too (false positive seen 2026-11-15) — tighten the rule to a shell word in a later change.
 
 ## 7. Prompt-injection tests
 
