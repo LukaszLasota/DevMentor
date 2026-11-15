@@ -38,7 +38,9 @@
       "npm run dev",
       "npm run test:integration",
       "git push",
-      "git push *"
+      "git push *",
+      "qodo review *",
+      "qodo read *"
     ],
     "filesystem": {
       "denyRead": [
