@@ -1,6 +1,6 @@
 # Agent workshop hardening (lesson 09)
 
-Status: approved
+Status: in-progress
 Source: course lesson 09 "Security of AI tools" (local copy `C:\AI techleaders\Lekcja 9`, lab `lekcja-09-laboratorium`) · Branch: `chore/lesson-09-workshop-hardening`
 
 ## Goal
@@ -43,3 +43,14 @@ Before agents start working autonomously on DevMentor (lesson 10+), make sure no
 
 ## Open questions
 - None blocking. Branch protection with code-owner review: owner decides after reading the PR note.
+
+## Implementation notes (scope 1–4, 8)
+- **Dotenv deny list is explicit, not `.env.*`.** In Claude Code, deny beats allow (`deny → ask → allow`, first match wins), so `allow: Read(./.env.example)` cannot carve it out of `Read(./.env.*)`. A `Read(!.env.example)` negation exists, but how it reaches the sandbox `denyRead` (Read deny rules are copied there) is undocumented; a miss would hide `.env.example` from `npm run setup`. So the rules name `.env`, `.env.local`, `.env.*.local`, `.env.development`, `.env.production`, `.env.test`, `.envrc` (bare names match at any depth under the cwd). A dotenv file with another name (`.env.bak`) is not covered by Read deny or the sandbox; the hook still blocks any mention of it.
+- **`Write(...)` rules are not used**: Claude Code does not match them; `Edit(...)` deny covers Edit/Write/NotebookEdit and becomes sandbox `denyWrite`. Edit rules use literal paths only (Linux `denyWrite` supports no wildcard other than a trailing `/**`).
+- **Session history**: `Read(~/.claude/projects/**/*.jsonl)` (transcripts) instead of `/**`, so the Read tool still reaches auto-memory (`memory/`) and the session's `tool-results/`; the sandbox `denyRead` covers the whole `~/.claude/projects` for Bash.
+- **Qodo**: only `~/.qodo/auth.key` is in `denyRead`. Denying the whole `~/.qodo` hid the CLI binary (`~/.local/bin/qodo` is a symlink into `~/.qodo/bin/`), so `qodo` was "command not found" in the sandbox. Commands that need the key (`qodo review`, `qodo read whoami`) are R2 items.
+- **`failIfUnavailable: true`**: without it Claude Code silently runs commands unsandboxed when bubblewrap/socat are missing.
+- **`excludedCommands`** (run outside the sandbox, still under deny rules and the hook), forced by Linux/WSL2 sandbox limits per the sandboxing docs: `docker compose *` (Docker socket; on Linux Unix sockets open only all-or-nothing), `npm run test:integration` (Docker socket for testcontainers; Chromium needs user namespaces), `npm run dev` (a sandboxed command's localhost is private: no host Postgres, no browser from the host), `git push` / `git push *` (SSH ignores the HTTP proxy). Risk: the agent can edit what these run (package.json scripts, next.config.ts, git hooks) and then run it unsandboxed; R2 decides whether to add `ask` rules for them.
+- **Allowed domains**: `github.com`, `api.github.com`, `codeload.github.com` (git over HTTPS, `gh`, npm git dependencies); `objects.githubusercontent.com`, `release-assets.githubusercontent.com` (GitHub release downloads, e.g. agent-browser's postinstall fallback); `registry.npmjs.org` (`npm install`, `npm audit`); `sdk.qodo.ai`, `get.qodo.ai` (Qodo CLI). Left out on purpose: Docker Hub (images are pulled by the Docker daemon, outside the sandbox), Chrome for Testing (`googlechromelabs.github.io`, `storage.googleapis.com` — a shared bucket host is an exfiltration channel; `agent-browser install` is a one-off owner action), Next telemetry. Denied: `169.254.169.254`, `[fd00:ec2::254]` (AWS IPv6 metadata), `metadata.google.internal`.
+- **`gh`** runs in the sandbox; with `~/.config/gh` hidden it authenticates only through `GH_TOKEN`. Residual risk: `GH_TOKEN` reaches sandboxed commands and `github.com`/`api.github.com` are allowed, so a gist or issue is still an exfiltration path (credential masking needs `network.tlsTerminate`, user settings only).
+- **Hook** (`.claude/hooks/pre-tool-use.sh`, tests `scripts/hooks/pre-tool-use.test.mjs`): fails closed on missing `jq` or bad input; reads stdin with the `read` builtin (`$(</dev/stdin)` fails on the socket stdin of Node's `spawnSync`). Known gaps are listed in the script header and pinned by tests. The hook also matches paths in the agent's own config edits done through Bash (heredocs naming credential paths): edit such files with the Edit tool.
