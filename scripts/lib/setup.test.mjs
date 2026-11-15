@@ -13,6 +13,7 @@ const {
   StepError,
   checkNode,
   createEnv,
+  generateSecret,
   installDependencies,
   postgresContainers,
   main,
@@ -192,6 +193,33 @@ describe('createEnv', () => {
     expect(readFileSync(join(root, '.env'), 'utf8')).toBe(EXAMPLE);
   });
 
+  it('fills an empty SESSION_SECRET placeholder in a fresh .env', () => {
+    writeFileSync(join(root, '.env.example'), `${EXAMPLE}SESSION_SECRET=\nSESSION_SECRET_PREVIOUS=\n`);
+
+    expect(createEnv({ root, generateSecret: () => 'f'.repeat(64) }).status).toBe('done');
+    expect(readFileSync(join(root, '.env'), 'utf8')).toBe(
+      `${EXAMPLE}SESSION_SECRET=${'f'.repeat(64)}\nSESSION_SECRET_PREVIOUS=\n`,
+    );
+  });
+
+  it("fills the repository's own .env.example with a session secret (fresh install can sign in)", () => {
+    writeFileSync(join(root, '.env.example'), readFileSync(join(ROOT, '.env.example'), 'utf8'));
+
+    createEnv({ root });
+
+    const env = parseEnv(readFileSync(join(root, '.env'), 'utf8'));
+    expect(env.get('SESSION_SECRET')).toMatch(/^[0-9a-f]{64}$/);
+    expect(env.get('SESSION_SECRET_PREVIOUS')).toBe('');
+  });
+
+  it('generates the secret with the default generator', () => {
+    writeFileSync(join(root, '.env.example'), 'SESSION_SECRET=\n');
+
+    createEnv({ root });
+
+    expect(readFileSync(join(root, '.env'), 'utf8')).toMatch(/^SESSION_SECRET=[0-9a-f]{64}\n$/);
+  });
+
   it('never overwrites an existing .env and warns about missing keys', () => {
     writeFileSync(join(root, '.env'), 'DATABASE_URL=postgres://me@db/x\n');
 
@@ -203,10 +231,26 @@ describe('createEnv', () => {
     expect(readFileSync(join(root, '.env'), 'utf8')).toBe('DATABASE_URL=postgres://me@db/x\n');
   });
 
+  it('warns about an empty SESSION_SECRET in an existing .env without changing it', () => {
+    writeFileSync(join(root, '.env'), `${EXAMPLE}SESSION_SECRET=\n`);
+
+    expect(createEnv({ root }).warnings).toEqual([
+      'SESSION_SECRET in .env is empty — sign-in fails closed; set it to the output of `openssl rand -hex 32`',
+    ]);
+    expect(readFileSync(join(root, '.env'), 'utf8')).toBe(`${EXAMPLE}SESSION_SECRET=\n`);
+  });
+
   it('has no warning when every key is present', () => {
     writeFileSync(join(root, '.env'), EXAMPLE);
 
     expect(createEnv({ root }).warnings).toEqual([]);
+  });
+});
+
+describe('generateSecret', () => {
+  it('returns 32 random bytes as hex', () => {
+    expect(generateSecret()).toMatch(/^[0-9a-f]{64}$/);
+    expect(generateSecret()).not.toBe(generateSecret());
   });
 });
 

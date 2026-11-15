@@ -1,8 +1,18 @@
 import { asClass, asFunction, asValue, createContainer, InjectionMode, type AwilixContainer } from 'awilix';
 import { getOrm } from '@devmentor/db';
-import { getEnv } from '../config/env';
+import { assertProductionEnv, getEnv } from '../config/env';
+import { EventBus } from '../events/events';
+import { createFetchJson } from '../http/outbound';
 import { logger } from '../logger';
+import { createMailSender } from '../mail/mail-sender';
+import { PasswordHasher } from '../security/password';
+import { RateLimiter } from '../security/rate-limit';
+import { AccountService } from '../services/auth/account.service';
+import { GithubOAuthService } from '../services/auth/github-oauth.service';
 import { HealthService } from '../services/health/health.service';
+import { InvitationService } from '../services/invitations/invitation.service';
+import { MentorProfileService } from '../services/mentors/mentor-profile.service';
+import { systemClock } from '../time/clock';
 import type { Cradle } from './cradle';
 
 const globalForContainer = globalThis as typeof globalThis & {
@@ -11,6 +21,7 @@ const globalForContainer = globalThis as typeof globalThis & {
 
 async function buildContainer(): Promise<AwilixContainer<Cradle>> {
   const env = getEnv();
+  assertProductionEnv(env);
   const orm = await getOrm({
     clientUrl: env.DATABASE_URL,
     pool: { min: env.DATABASE_POOL_MIN, max: env.DATABASE_POOL_MAX },
@@ -27,9 +38,26 @@ async function buildContainer(): Promise<AwilixContainer<Cradle>> {
     env: asValue(env),
     logger: asValue(logger),
     orm: asValue(orm),
+    clock: asValue(systemClock),
+    fetchJson: asFunction(({ logger }: Cradle) => createFetchJson({ logger })).singleton(),
+    events: asClass(EventBus).singleton(),
+    mailSender: asFunction(createMailSender).singleton(),
+    // Singleton: its concurrency gate must be shared by every request in the process.
+    passwordHasher: asFunction(
+      ({ env }: Cradle) =>
+        new PasswordHasher({ concurrency: env.PASSWORD_HASH_CONCURRENCY, waitMs: env.PASSWORD_HASH_WAIT_MS }),
+    ).singleton(),
     em: asFunction(({ orm }: Cradle) => orm.em.fork()).scoped(),
+    rateLimiter: asClass(RateLimiter).scoped(),
     healthService: asClass(HealthService).scoped(),
+    githubOAuthService: asClass(GithubOAuthService).scoped(),
+    accountService: asClass(AccountService).scoped(),
+    invitationService: asClass(InvitationService).scoped(),
+    mentorProfileService: asClass(MentorProfileService).scoped(),
   });
+
+  // Resolved eagerly so the log mailer's "not delivered" warning appears at boot, not at the first mail.
+  void container.cradle.mailSender;
 
   return container;
 }

@@ -20,7 +20,7 @@ Implementation plan and progress: [2026-10-20-engineering-standards-plan.md](202
 - **Paths:** `packages/app/src/app`, routes `src/app/api/<concept>/route.ts`. `(site)` is now `(marketing)`; `(admin)` remains for the shadcn panel.
 - **Error hierarchy** also has `ServiceUnavailableError` (503) for infrastructure checks.
 - **`makeCrudRoute`** takes the record id as `?id=<uuid>`; `CrudForm` takes an explicit `fields` config next to the schema (explicit over implicit).
-- **Client-safe imports:** `@devmentor/core` and `@devmentor/core/http` are server-only; shared validators will get a separate client-safe entry `@devmentor/core/validators`.
+- **Client-safe imports:** `@devmentor/core` and `@devmentor/core/http` are server-only; shared Zod schemas live in the client-safe entry `@devmentor/core/validators` (imports only `zod` and its own files).
 - **`npm audit`** runs through `scripts/audit.mjs`; advisories without a patched release are accepted only via `audit-allowlist.json` (reason + review date).
 - References to `.ai/specs/engineering-standards.md` mean this file.
 
@@ -198,11 +198,16 @@ explicit**, not the one that looks more "enterprise."
 
 ### Security & Validation — Minimum Requirements
 
-- **Password hashing:** `bcrypt`/`bcryptjs`, cost factor **≥ 12** (OWASP's floor is
-  10; raise it since this is a small user base and the extra ~50ms per login is free).
-  If a faster/stronger option becomes desirable later, the documented upgrade path is
-  `argon2id` (memory ≥ 19 MiB, iterations ≥ 2, parallelism 1) — don't switch without a
-  reason, but don't invent a third option either.
+- **Password hashing:** `scrypt` from `node:crypto` (no dependency), N = 2^17, r = 8,
+  p = 1, `maxmem` raised explicitly, 16-byte random salt; the stored string carries its
+  parameters (`$scrypt$ln=17,r=8,p=1$<salt>$<key>`) so the cost can be raised later
+  without breaking old hashes. Compare in constant time and run the same work against a
+  dummy hash for unknown accounts. Every hash runs behind a process-wide concurrency gate
+  (`PASSWORD_HASH_CONCURRENCY`, `PASSWORD_HASH_WAIT_MS`; over the wait → 503, not counted
+  by the rate limiter), since each hash takes ~128 MiB. Implemented in
+  `packages/core/src/security/password.ts`. (Amended 2026-11-14 from `bcrypt` cost ≥ 12 by
+  the sign-in spec, phase 2 step 2; `argon2id` stays the upgrade path if a native
+  dependency becomes acceptable — don't invent a third option.)
 - **JWT:** signed with `HS256` minimum, using a secret ≥ 32 random bytes loaded from
   `env.ts` (zod-validated) — never hardcoded, never committed. Short expiry (e.g. 24h);
   there is no refresh-token flow in MVP scope — document that as a known limitation,
@@ -336,7 +341,7 @@ When asked to scaffold a new domain concept (e.g., "add reviews"):
    - Never write a bare `try/catch` + manual `NextResponse.json` — that's what
      `apiHandler`/`makeCrudRoute` exist to remove.
 6. Add the page(s) under the matching persona route group
-   (`(student)/`, `(mentor)/`, `(auth)/`, `(marketing)/`):
+   (`(mentee)/`, `(mentor)/`, `(auth)/`, `(marketing)/`):
    - Fetch through `apiCall`/`apiCallOrThrow` — never a raw `fetch`.
    - Create/edit UI → `CrudForm` bound to the same schema from step 3.
    - List UI → `DataTable`.
@@ -426,7 +431,7 @@ packages/
       (auth)/
         login/page.tsx                             # S04
         register/page.tsx
-      (student)/
+      (mentee)/
         book/[mentorId]/page.tsx                   # S05 booking flow
         checkout/[bookingId]/page.tsx               # S06 checkout
         dashboard/page.tsx                          # S07

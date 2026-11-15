@@ -1,0 +1,17 @@
+// Client-safe entry `@devmentor/core/validators`: shared Zod schemas only. Nothing here may import
+// `server-only`, Node built-ins or other core modules (guarded by `index.test.ts` and ESLint).
+export {
+  EMAIL_MAX_LENGTH,
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  RETURN_TO_MAX_LENGTH,
+  TOKEN_MAX_LENGTH,
+} from './auth/fields';
+export {
+  registerSchema,
+  resendVerificationSchema,
+  type RegisterInput,
+  type ResendVerificationInput,
+} from './auth/account-register.schema';
+export { signInSchema, type SignInInput } from './auth/account-sign-in.schema';
+export { setPasswordSchema, type SetPasswordInput } from './auth/password-set.schema';

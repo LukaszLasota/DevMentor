@@ -126,6 +126,7 @@
   --container-dialog: var(--dm-dialog-width);
   --container-dialog-confirm: var(--dm-dialog-width-confirm);
   --container-menu: var(--dm-menu-min-width);
+  --container-sidebar: var(--dm-sidebar-width);
 }
 
 /* Clear focus outline (focus-visible:focus-ring). */

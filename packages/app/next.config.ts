@@ -11,8 +11,29 @@ updateInitialEnv(parsedEnv ?? {});
 const nextConfig: NextConfig = {
   experimental: {
     agentFeedback: true,
+    // MikroORM finds entity metadata by class, falling back to the class name. Route handlers and
+    // pages are separate server bundles, each with its own copy of the entity classes, while the ORM
+    // is one per process (globalThis): with minified names a page's `User` ("l") is unknown to the
+    // ORM that a route handler initialised ("Metadata for entity l not found"). Keep names intact.
+    serverMinification: false,
   },
   cacheComponents: true,
+  // /verify-email carries the link token in the URL fragment (never sent to servers); no-referrer also
+  // keeps the page URL out of any Referer (sign-in spec, UI/UX). The page sets the same policy as a meta tag.
+  // /invitation/<token> carries the token in the path: no Referer and no stored copy (invitations spec);
+  // the API routes send the same headers through apiHandler.
+  async headers() {
+    return [
+      { source: "/verify-email", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] },
+      {
+        source: "/invitation/:token",
+        headers: [
+          { key: "Cache-Control", value: "no-store" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+        ],
+      },
+    ];
+  },
   partialPrefetching: true,
   // Workspace packages (@devmentor/*) are transpiled by Turbopack automatically.
   serverExternalPackages: ["@mikro-orm/postgresql", "@mikro-orm/sql"],

@@ -40,3 +40,9 @@ export const NarrowScreen: Story = {
   args: { error: "github_account_conflict" },
   decorators: [(Story) => <div className="w-phone">{Story()}</div>],
 };
+export const GitHubOnly: Story = {
+  name: "GitHub only (phase 1, no email form)",
+  args: { emailForm: undefined, registerLink: undefined },
+};
+export const SessionEnded: Story = { args: { sessionEnded: true } };
+export const GitHubStateInvalid: Story = { args: { error: "github_state_invalid" } };

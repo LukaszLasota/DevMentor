@@ -18,7 +18,10 @@ async function loadContainer() {
 }
 
 describe('DI container', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Only ENV and the per-test stubs count: a runner's or developer's environment must not leak in.
+    const { ENV_KEYS } = await import('../config/env');
+    for (const key of ENV_KEYS) vi.stubEnv(key, undefined);
     for (const [key, value] of Object.entries(ENV)) vi.stubEnv(key, value);
     getOrm.mockClear();
     orm.em.fork.mockClear();
@@ -46,13 +49,66 @@ describe('DI container', () => {
     expect(typeof container.cradle.logger.info).toBe('function');
   });
 
+  it('registers the clock, fetchJson and the event bus as singletons', async () => {
+    const { getContainer, createRequestScope } = await loadContainer();
+    const { systemClock } = await import('../time/clock');
+    const { EventBus } = await import('../events/events');
+    const container = await getContainer();
+    const scope = await createRequestScope();
+
+    expect(container.cradle.clock).toBe(systemClock);
+    expect(typeof container.cradle.fetchJson).toBe('function');
+    expect(scope.cradle.fetchJson).toBe(container.cradle.fetchJson);
+    expect(container.cradle.events).toBeInstanceOf(EventBus);
+    expect(scope.cradle.events).toBe(container.cradle.events);
+  });
+
+  it('registers one process-wide PasswordHasher with the production scrypt cost and the env gate', async () => {
+    vi.stubEnv('PASSWORD_HASH_CONCURRENCY', '3');
+    const { getContainer, createRequestScope } = await loadContainer();
+    const { PasswordHasher, PASSWORD_SCRYPT_PARAMS } = await import('../security/password');
+    const container = await getContainer();
+    const scope = await createRequestScope();
+
+    expect(container.cradle.passwordHasher).toBeInstanceOf(PasswordHasher);
+    expect(scope.cradle.passwordHasher).toBe(container.cradle.passwordHasher);
+    expect(container.cradle.passwordHasher.params).toBe(PASSWORD_SCRYPT_PARAMS);
+    expect(container.cradle.passwordHasher['gate']).toMatchObject({ options: { concurrency: 3, waitMs: 3000 } });
+  });
+
+  it('registers the mail sender chosen by MAIL_PROVIDER as a singleton, resolved at boot', async () => {
+    const { getContainer, createRequestScope } = await loadContainer();
+    const { LogMailer } = await import('../mail/log-mailer');
+    const { logger } = await import('../logger');
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    const container = await getContainer();
+    const scope = await createRequestScope();
+
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('MAIL_PROVIDER=log'));
+    expect(container.cradle.mailSender).toBeInstanceOf(LogMailer);
+    expect(scope.cradle.mailSender).toBe(container.cradle.mailSender);
+    warn.mockRestore();
+  });
+
   it('disables ORM debug outside development', async () => {
     vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('SESSION_SECRET', 'a'.repeat(64));
+    vi.stubEnv('APP_URL', 'https://devmentor.test');
+    vi.stubEnv('MAIL_API_KEY', 're_test');
+    vi.stubEnv('MAIL_FROM', 'noreply@devmentor.test');
     const { getContainer } = await loadContainer();
 
     await getContainer();
 
     expect(getOrm).toHaveBeenCalledWith(expect.objectContaining({ debug: false }));
+  });
+
+  it('refuses to start in production without SESSION_SECRET, APP_URL and the Resend key and sender', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    const { getContainer } = await loadContainer();
+
+    await expect(getContainer()).rejects.toThrow('SESSION_SECRET, APP_URL, MAIL_API_KEY, MAIL_FROM must be set in production');
+    expect(getOrm).not.toHaveBeenCalled();
   });
 
   it('does not cache a failed build, so the next call retries', async () => {
@@ -74,6 +130,16 @@ describe('DI container', () => {
     expect(first.cradle.em).not.toBe(second.cradle.em);
     expect(orm.em.fork).toHaveBeenCalledTimes(2);
     expect(first.cradle.healthService).not.toBe(second.cradle.healthService);
+    expect(first.cradle.githubOAuthService).toBe(first.cradle.githubOAuthService);
+    expect(first.cradle.githubOAuthService).not.toBe(second.cradle.githubOAuthService);
+    expect(first.cradle.accountService).toBe(first.cradle.accountService);
+    expect(first.cradle.accountService).not.toBe(second.cradle.accountService);
+    expect(first.cradle.invitationService).toBe(first.cradle.invitationService);
+    expect(first.cradle.invitationService).not.toBe(second.cradle.invitationService);
+    expect(first.cradle.mentorProfileService).toBe(first.cradle.mentorProfileService);
+    expect(first.cradle.mentorProfileService).not.toBe(second.cradle.mentorProfileService);
+    expect(first.cradle.rateLimiter).toBe(first.cradle.rateLimiter);
+    expect(first.cradle.rateLimiter).not.toBe(second.cradle.rateLimiter);
   });
 
   it('withScope runs the callback with the scoped cradle and disposes the scope', async () => {

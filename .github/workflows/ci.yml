@@ -74,6 +74,11 @@ jobs:
   integration:
     name: Integration tests (PostgreSQL + agent-browser)
     runs-on: ubuntu-latest
+    # Test values only. integration/global-setup.ts also sets them for the app it starts, together with a per-run
+    # SESSION_SECRET, APP_URL and the GitHub stub URLs/credentials.
+    env:
+      OPERATOR_EMAILS: mock-operator@devmentor.test
+      ALLOW_TEST_OVERRIDES: "1"
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

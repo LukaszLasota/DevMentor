@@ -1,7 +1,7 @@
 # Sign in with GitHub, email and password as fallback
 
-Status: approved
-Issue: #21 (E01-S01) · Epic: #16 · Source: `.ai/specs/product-brief.md` (R11, D12) · Primitives: `.ai/specs/2026-10-21-platform-primitives.md` · Follows the course reference spec `2026-09-04-accounts-and-roles.md` (lesson 05), adapted to this repository
+Status: implemented
+Issue: #21 (E01-S01) · Epic: #16 · Source: `.ai/specs/product-brief.md` (R11, D12) · Primitives: `.ai/specs/implemented/2026-10-21-platform-primitives.md` · Follows the course reference spec `2026-09-04-accounts-and-roles.md` (lesson 05), adapted to this repository
 Prototypes: `prototypes/konta-i-role/` (clickable, Epic 01; local lesson-07 work, not in git) · `.ai/prototypes/discovery/mentor-onboarding/revision-001/` (grey, mentor onboarding) · Screen map: `lekcja-07/mapa-ekranow.md` (s01–s10, approved 2026-10-23; local)
 
 ## 📝 TLDR
@@ -15,9 +15,9 @@ Hand-written GitHub OAuth (authorization code flow with `state` and PKCE, `fetch
 
 ## 📝 Architecture
 - `packages/db/src/entities/auth/user.entity.ts`, `email-verification-token.entity.ts`, `auth-rate-limit.entity.ts` — registered in `entities/index.ts`; one migration per phase (`up` and `down`).
-- `packages/core/src/services/auth/github-oauth.service.ts` — builds the authorize URL (forwards GitHub's `login` hint), exchanges the code, reads `/user` and `/user/emails` through `fetchJson` with `GITHUB_OAUTH_URL` / `GITHUB_API_URL`.
+- `packages/core/src/services/auth/github-oauth.service.ts` — builds the authorize URL (forwards GitHub's `login` hint), exchanges the code, reads `/user` and `/user/emails` through `fetchJson` with `DEVMENTOR_GITHUB_OAUTH_URL` / `DEVMENTOR_GITHUB_API_URL`.
 - `packages/core/src/services/auth/account.service.ts` — find-or-create by GitHub id, link by verified email, operator reconciliation, start registration, set the password from a verification link, verify password, sign-out (bump `session_version`). `users.email` is never updated after creation.
-- `packages/core/src/validators/auth/{register,set-password,sign-in}.schema.ts` — shared with the forms through the new `@devmentor/core/validators` entry.
+- `packages/core/src/validators/auth/{account-register,password-set,account-sign-in}.schema.ts` (shared fields in `fields.ts`) — shared with the forms through the new `@devmentor/core/validators` entry.
 - `packages/app/src/app/api/auth/**/route.ts` — thin `apiHandler` routes; the GitHub start and callback routes use `redirectHandler` (see API). No `export const dynamic`.
 - `packages/app/src/lib/session.ts` — page guards (`requirePageSession`, `requirePageRole`, `homeFor`) over the core session operation.
 - `packages/app/src/app/(auth)/` — new route group with its own root layout, using `@devmentor/ui` (shadcn) as agreed in the course: `sign-in/page.tsx`, `register/page.tsx`, `verify-email/page.tsx`.
@@ -46,16 +46,16 @@ No personal data beyond email, GitHub login and avatar URL; passwords, tokens an
 | Route | Behavior |
 |---|---|
 | `GET /api/auth/github?returnTo=&login=` | GitHub credentials or `SESSION_SECRET` missing → 302 `/sign-in?error=github_unavailable`. Else sets short-lived `dm_oauth` cookie (`jose` JWT, `aud: 'oauth-state'`, carrying state, PKCE verifier, safe returnTo; 10 min, HttpOnly, `SameSite=Lax` so the callback receives it), 302 to GitHub with scope `read:user user:email` and a validated `login` hint (`[A-Za-z0-9-]{1,39}`) |
-| `GET /api/auth/github/callback?code&state` | `?state` must equal the cookie's state claim and the cookie must verify, before any outbound call; exchanges the code, resolves the account (below), reconciles operator, sets `dm_session`, clears `dm_oauth`, 302 to `safeReturnTo(returnTo, homeFor(roles))`; any failure → 302 `/sign-in?error=<code>`. Both GitHub routes use `redirectHandler` (no envelope, no CSRF header, no route-level try/catch) |
-| `POST /api/auth/register` `{ email }` | always 202 `{ status: 'check-inbox' }` (no account enumeration): a new email gets an unverified mentee without a password and a link to set one; an existing email gets a "someone tried to register" mail; nothing else changes; rate limited; mail delivery failure → 503 |
-| `POST /api/auth/sign-in` `{ email, password }` | 200 `{ user }` + `dm_session`; wrong email or password, or no password set → 401 `UNAUTHORIZED` "Invalid email or password."; rate limited |
-| `POST /api/auth/verify-email` `{ token, password }` | sets the password, marks the email verified, consumes the token, bumps `session_version` (password change) and issues a fresh `dm_session`; invalid/expired/used token → 400 |
-| `POST /api/auth/verify-email/resend` `{ email }` | always 202; sends a new link only to an existing account that has no password yet; rate limited |
+| `GET /api/auth/github/callback?code&state` | `?state` must equal the cookie's state claim and the cookie must verify, before any outbound call; exchanges the code, resolves the account (below), reconciles operator, sets `dm_session`, clears `dm_oauth`, 302 to `safeReturnTo(returnTo, homeFor(roles))`; any failure → 302 `/sign-in?error=<code>` plus the safe `returnTo` when it is trusted (start: its query; callback: the cookie's, only after `state` matched), so a retry continues to the requested page. Both GitHub routes use `redirectHandler` (no envelope, no CSRF header, no route-level try/catch) |
+| `POST /api/auth/register` `{ email, returnTo? }` | always 202 `{ status: 'check-inbox' }` (no account enumeration): a new email gets an unverified mentee without a password and a link to set one (user + token in one transaction, the mail after the commit); an existing email (GitHub-only, with a password, or pending) gets a "someone tried to register" mail that points to sign-in and to "Send a new link"; nothing else changes; rate limited; mail delivery failure → 503 (a pending account created before the failure stays; resend or GitHub completes it). A safe `returnTo` (`safeReturnTo`) travels in the link's fragment (L02) |
+| `POST /api/auth/sign-in` `{ email, password, returnTo? }` | 200 `{ user, redirectTo }` + `dm_session` (`redirectTo` = `safeReturnTo(returnTo, homeFor(roles))`, so the redirect rule stays on the server, as for verify-email; amended in phase 2 step 6); wrong email or password, or no password set → 401 `UNAUTHORIZED` "Invalid email or password."; rate limited |
+| `POST /api/auth/verify-email` `{ token, password, returnTo? }` | sets the password, marks the email verified, consumes the token, bumps `session_version` (password change) and issues a fresh `dm_session`; responds with the target `safeReturnTo(returnTo, homeFor(roles))`; invalid/expired/used/superseded token, a session of another account (L13), or an account that already has a password (a link only sets the first password; reset is out of scope) → 400 `VERIFICATION_LINK_INVALID`, nothing changed. The link is checked before hashing; the token is consumed by one conditional UPDATE in the same transaction as the user change, after the hashing slot, so a saturated gate (503) does not burn it; that transaction locks the user row (`FOR UPDATE`) before the password check and retires the user's other live links |
+| `POST /api/auth/verify-email/resend` `{ email, returnTo? }` | always 202; sends a new link only to an existing account that has no password yet (incl. a GitHub-only account); older unused links of that user stop working (`expires_at` set to now); the password check, the retirement and the insert run in one transaction holding the user row `FOR UPDATE` (the lock verify-email takes), so parallel resends leave one live link and a resend never issues a link after a password is set; rate limited; mail failure → 503 |
 | `POST /api/auth/sign-out` | CSRF header only, never a valid session: with a live session bumps `session_version` (global logout, every device); always clears `dm_session`; 200 |
 | `GET /api/auth/me` | `{ user }` or 401 |
 `user` = `{ id, email, roles, githubLogin, avatarUrl, emailVerified }`. Password: 12–128 characters, no other composition rules. POST routes keep `apiHandler`'s central CSRF check.
 
-GitHub account resolution: (1) a user with this `github_id` → sign in, refresh login/avatar; (2) else a user whose email equals GitHub's **verified primary** email and whose `github_id` is null → link `github_id`, set `email_verified_at`, sign in (a pending registration without a password is completed this way too: it holds no password anyone could know); (3) a matching email that already has a different `github_id` → `/sign-in?error=github_account_conflict`, nothing changed; (4) else create a mentee with that email, verified. If GitHub returns no verified primary email → `/sign-in?error=github_email_unverified`. `users.email` is never rewritten.
+GitHub account resolution: (1) a user with this `github_id` → sign in, refresh login/avatar; (2) else a user whose email equals GitHub's **verified primary** email and whose `github_id` is null → link `github_id` (one conditional update `WHERE github_id IS NULL`; a parallel callback that loses re-reads and falls under rule 1 or 3), set `email_verified_at`, sign in (a pending registration without a password is completed this way too: it holds no password anyone could know); (3) a matching email that already has a different `github_id` → `/sign-in?error=github_account_conflict`, nothing changed; (4) else create a mentee with that email, verified. If GitHub returns no verified primary email → `/sign-in?error=github_email_unverified`. `users.email` is never rewritten.
 
 Session check (every route via `requireSession`, every page via `requirePageSession`): verify the token (`aud: 'session'`, current or previous secret) → load the user → 401 when missing or `session_version ≠ sv` → `operator` effective iff the verified email is in `OPERATOR_EMAILS` → when the stored set disagrees, reconcile it (idempotent, keeps other roles, emits `auth.user.roles_changed`, no `session_version` bump).
 
@@ -64,13 +64,35 @@ Why the password is set from the link: if registration accepted a password, some
 ## 📝 UI/UX
 - `/sign-in`: "Continue with GitHub" as the primary button; below it the email/password form (`CrudForm`, `sign-in.schema`); link to `/register`. `?error=` codes map to plain messages.
 - `/register`: email field only; after submit, "Check your inbox to finish registration" with a resend action.
-- `/verify-email#token=`: the token travels in the URL fragment (never sent to servers or in `Referer`); the page asks for the new password, posts both, signs in; expired or used links show a resend action. `Referrer-Policy: no-referrer`.
+- `/verify-email#token=…[&returnTo=…]`: the token (and the optional safe `returnTo`) travel in the URL fragment (never sent to servers or in `Referer`); the page asks for the new password, posts both, signs in; expired or used links show a resend action. `Referrer-Policy: no-referrer`. There is no lookup endpoint: the link is checked when the password is posted (a malformed or missing token shows the resend view at once).
 - Guards: every guarded layout and every guarded `page.tsx` calls `requirePageRole`; no session → `/sign-in?returnTo=<current>`; wrong role → `homeFor(roles)` (`operator → /admin`, `mentor → /mentor`, else `/mentors`) with a short message (L03). Nothing of the user's renders before the check.
 - States: submitting (button disabled), field errors from `fieldErrors`, 429 message with retry time, GitHub cancelled.
 
+### App shell (added 2026-11-14, course parity)
+Lesson 08 ends with an app shell: header, sidebar and a place for further features. Every signed-in root layout (`(mentee)`, `(admin)`, later `(mentor)`) renders the same shell: the account bar on top, a sidebar with role-based links next to the page.
+- Account bar stays minimal: logo, area name, email (GitHub avatar), "Sign out". The role links ("Mentor", "Admin") move from the bar into the sidebar, so navigation lives in one place and the bar does not grow with every feature.
+- Sidebar (`nav` "Main"), only links to pages that exist: "Mentors" (`/mentors`, every signed-in user, the mentee home); "Mentor workspace" (`/mentor`, only for `mentor`; the page arrives in phase 3); section "Admin" with "Dashboard" (`/admin`, only for `operator`). "Users", "My sessions" and further items are added with their pages.
+- The current item has `aria-current="page"` (longest matching path prefix) and a visible non-colour cue (weight + background). The session is read on the server; only the active-item check runs on the client (`usePathname`).
+- When the shell is narrower than 48rem (a container query on the shell, so stories show it too) the sidebar becomes a wrapping row under the account bar (no menu button, no JavaScript needed, no horizontal scroll at 320–360 px). With three links at most, a drawer would add a click and a focus trap for nothing; revisit when the list outgrows one row.
+- No shadcn `sidebar` primitive: it brings a provider, cookie state, sheet, tooltip and a mobile hook for a list of three links. The shell is two small panel components in `@devmentor/ui` (`AppShell`, `SideNav`) plus the role-to-links mapping (`accountNavSections`).
+- Links are plain `<a>`: every target lives in another root layout, so a full page load is the right navigation (as for the account bar).
+
+### Dev seed (added 2026-11-14 at the user's request; supersedes the 1.10 no-seed decision)
+Course parity with lesson 08 ("migrations and test data from the seed"). `npm run db:seed` creates or restores demo accounts in the local database; development only.
+- Accounts (password `mock-password-not-a-secret`, published in the README):
+  - `mock-mentee@devmentor.test` — mentee, verified, password + GitHub identity of the stub persona `mock-mentee` (both sign-in methods work);
+  - `mock-operator@devmentor.test` — mentee, verified, password + stub identity `mock-operator`; `operator` comes from `OPERATOR_EMAILS` as for any account (the seed stores only the effective roles, never an operator the allowlist does not grant);
+  - `mock-github-only@devmentor.test` — mentee, verified, stub identity `mock-github-only`, no password (password sign-in refused);
+  - `mock-pending@example.com` — pending registration: unverified, no password, no GitHub (usable with neither; a reserved domain the stub never produces).
+- The GitHub id is the stub's own `githubIdFor(login)` (passed in by the entry script, not re-implemented).
+- Matched by email, in one transaction. Re-running changes nothing; a demo account changed since (password, link, verification, roles) is put back to its demo state and its sessions end (`session_version` + 1). Other rows are never touched; a demo GitHub id linked to another account stops the seed with nothing changed.
+- Refuses to run with `NODE_ENV=production` (no override): production must never get a known password.
+- Also refuses a `DATABASE_URL` whose host is not local (`localhost`, `127.0.0.1`, `::1`), because `NODE_ENV` defaults to development and alone would not stop a seed of a live database; `--allow-remote-database` opts in for a disposable database elsewhere (never overrides the production refusal). Added after the final Qodo review (2026-11-14).
+- No `mentor` until phase 3 ships `/mentor`; phase 3 adds a `mock-mentor` persona.
+
 ## 📝 Edge Cases & Failure Scenarios
 - User cancels on GitHub → callback with `error=access_denied` → `/sign-in?error=github_cancelled`.
-- `state` missing or mismatched (CSRF on the callback, expired `dm_oauth`) → refuse before any outbound call, no account touched.
+- `state` missing or mismatched (CSRF on the callback, expired `dm_oauth`) → refuse before any outbound call, no account touched → `/sign-in?error=github_state_invalid`.
 - GitHub down, slow or token exchange fails → `fetchJson` 10 s timeout / 503 → `/sign-in?error=github_unavailable`; logged without the code or token.
 - GitHub login renamed → matched by `github_id`, login refreshed. GitHub primary email changed → nothing changes; `users.email` is not rewritten, so operator authority is unaffected.
 - GitHub verified email already used by a password account → linked (rule 2); an unverified GitHub email never links.
@@ -84,7 +106,7 @@ Why the password is set from the link: if registration accepted a password, some
 - Stored roles empty despite the `CHECK` → 500 logged, never a 401 loop.
 - Rate limit hit → 429 with `Retry-After`; hashing gate saturated → 503, not counted; GitHub path is not rate limited by us.
 - Mail delivery fails → register/resend 503; no success reported without delivery.
-- `returnTo` off-site, `//x`, `/api/…`, `/_next/…` → replaced by the fallback.
+- `returnTo` off-site, `//x`, `/api/…`, `/_next/…`, or an auth page (`/sign-in`, `/register`, `/verify-email`: they bounce a signed-in user on) → replaced by the fallback.
 - Forgotten password → no recovery path in this spec; accepted until the password-reset story (out of scope). GitHub users are unaffected.
 - Email matching uses lower-casing only; no alias or dot stripping, so `a+x@` and `a@` are different accounts.
 - Pages that read the session cookie run at request time under `cacheComponents`: the reading component sits inside `<Suspense>`, and `npm run build` with no database must still pass.
@@ -134,7 +156,7 @@ Moved from issue #21 and extended with the screen-map decisions of 2026-10-23 (L
 - (s05) Given a user who holds only `mentee`, when they sign in without `returnTo`, then they land on `/mentors` (L01).
 - (s04) Given a registration started from a page with `returnTo` (e.g. an invitation), when the password is set from the link, then the user lands on that page, otherwise on `homeFor(roles)` (L02).
 - (s01, s09) Given an expired session, when the user is sent to `/sign-in`, then it says "Your session ended. Sign in again."; given a signed-in user without the role, when they open a role page, then the page they land on says "This page is for mentors." (or operators) (L03).
-- (s05, s06, s07) Given a signed-in user, then every signed-in page shows their email (GitHub avatar when present) and "Sign out"; a user with `mentor` and `operator` sees "Mentor" and "Admin" links (L04, L09).
+- (s05, s06, s07) Given a signed-in user, then every signed-in page shows their email (GitHub avatar when present) and "Sign out"; a user with `mentor` and `operator` sees "Mentor workspace" and "Admin → Dashboard" in the sidebar, a mentee sees "Mentors" only (L04, L09; links moved from the account bar to the sidebar on 2026-11-14, see App shell).
 - (s04) Given the set-password page, then it has one password field with "Show password" (L05).
 - (s03) Given the mail provider fails, when the user registers or resends, then they see "We could not send the email. Try again later, or continue with GitHub." (L06).
 - (s01) Given the sign-in page, then it says "Forgot your password? Use GitHub with the same email." (L12).

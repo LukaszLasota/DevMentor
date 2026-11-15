@@ -13,6 +13,8 @@ export interface ApiFailure {
     code: string;
     message: string;
     fieldErrors?: FieldErrors;
+    /** Set on 429 `TOO_MANY_REQUESTS`; the same value as the `Retry-After` header. */
+    retryAfterSeconds?: number;
   };
 }
 

@@ -41,6 +41,24 @@ const eslintConfig = defineConfig([
     ]),
   },
   {
+    // Client-safe entry `@devmentor/core/validators`: Zod schemas only (also guarded by validators/index.test.ts).
+    // Repeats the core patterns because a later block replaces the rule instead of merging it.
+    files: ["packages/core/src/validators/**"],
+    ignores: ["**/*.test.ts"],
+    rules: restrict([
+      ...NEXT_AND_REACT,
+      ...MIKRO_ORM,
+      pkg("app", "core must not depend on app."),
+      pkg("ui", "core must not depend on ui."),
+      pkg("db", "validators are client-safe; they must not import the database package."),
+      pkg("core", "validators are client-safe; import nothing else from core."),
+      {
+        group: ["server-only", "node:*", "pino", "jose", "awilix", "../../*", "../../../*"],
+        message: "validators are client-safe: import only zod and files inside validators/.",
+      },
+    ]),
+  },
+  {
     files: ["packages/db/**"],
     rules: restrict([
       ...NEXT_AND_REACT,

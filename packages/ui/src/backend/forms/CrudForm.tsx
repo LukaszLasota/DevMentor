@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "../../components/ui/alert";
 import { Textarea } from "../../components/ui/textarea";
 import { FORM_ERRORS_KEY, type ApiResult, type FieldErrors } from "../api/types";
 import { Field } from "./Field";
+import { PasswordField } from "./PasswordField";
 
 export type CrudFormFieldType = "text" | "email" | "password" | "number" | "textarea" | "checkbox" | "multiselect";
 
@@ -32,6 +33,10 @@ export interface CrudFormField<Name extends string> {
   /** Options of a "multiselect" checkbox group (spec #23, stack tags). */
   options?: CrudFormOption[];
   required?: boolean;
+  /** Browser autofill hint, e.g. "email", "current-password" (password managers fill the right field). */
+  autoComplete?: string;
+  /** "password" fields only: adds a "Show password" checkbox (`PasswordField`, DS-02). */
+  revealable?: boolean;
 }
 
 type FieldValue = string | boolean | string[];
@@ -47,6 +52,8 @@ export interface CrudFormProps<S extends z.ZodObject> {
   onSuccess?: (data: unknown) => void;
   onCancel?: () => void;
   submitLabel?: string;
+  /** Announced on the submit button while `onSubmit` runs, e.g. "Signing in…". */
+  submittingLabel?: string;
   cancelLabel?: string;
 }
 
@@ -99,6 +106,7 @@ export function CrudForm<S extends z.ZodObject>({
   onSuccess,
   onCancel,
   submitLabel = "Save",
+  submittingLabel = "Saving…",
   cancelLabel = "Cancel",
 }: CrudFormProps<S>) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -255,6 +263,24 @@ export function CrudForm<S extends z.ZodObject>({
           );
         }
 
+        if (type === "password" && field.revealable) {
+          return (
+            <div key={field.name} data-field={field.name}>
+              <PasswordField
+                label={field.label}
+                hint={field.description}
+                error={error}
+                required={field.required}
+                name={field.name}
+                autoComplete={field.autoComplete}
+                value={String(value)}
+                onChange={(next) => changeText(field.name, next)}
+                onBlur={() => validateField(field.name)}
+              />
+            </div>
+          );
+        }
+
         return (
           <div key={field.name} data-field={field.name}>
             <Field
@@ -287,6 +313,7 @@ export function CrudForm<S extends z.ZodObject>({
                       name={field.name}
                       type={type}
                       inputMode={field.inputMode}
+                      autoComplete={field.autoComplete}
                       value={String(value)}
                       placeholder={field.placeholder}
                       className={field.inputMode === "decimal" ? "font-mono tabular-nums" : undefined}
@@ -309,7 +336,7 @@ export function CrudForm<S extends z.ZodObject>({
             {cancelLabel}
           </Button>
         ) : null}
-        <Button type="submit" intent="primary" appearance="filled" loading={isSubmitting} loadingLabel="Saving…">
+        <Button type="submit" intent="primary" appearance="filled" loading={isSubmitting} loadingLabel={submittingLabel}>
           {submitLabel}
         </Button>
       </div>

@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ROLE_NOTICES, RoleNotice } from "./auth/RoleNotice";
 import { SIGN_IN_ERRORS, SignInPanel } from "./auth/SignInPanel";
 import { InvitationPanel } from "./invitations/InvitationPanel";
 import { CopyShareLink } from "./mentors/CopyShareLink";
@@ -115,6 +116,10 @@ describe("E01 product components", () => {
     expect(screen.getByRole("link", { name: "Continue with GitHub" }).getAttribute("href")).toBe("/api/auth/github");
     expect(screen.getByRole("alert").textContent).toBe(SIGN_IN_ERRORS.github_cancelled);
     expect(screen.getByText("Try again in 2 min.")).toBeTruthy();
+    expect(screen.getByText("Use GitHub, or your email and password.")).toBeTruthy();
+    expect(screen.getByRole("form", { name: "Email sign-in" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Create an account" })).toBeTruthy();
+    expect(screen.getByText("Forgot your password? Use GitHub with the same email.")).toBeTruthy();
   });
 
   it("SignInPanel without errors shows no alert", () => {
@@ -123,26 +128,94 @@ describe("E01 product components", () => {
     expect(screen.queryByRole("status")).toBeNull();
   });
 
-  it("InvitationPanel covers signed-out, match, mismatch and invalid", () => {
+  it("SignInPanel without an email form offers GitHub only and still explains a forgotten password (L12)", () => {
+    render(<SignInPanel githubHref="/g" />);
+    expect(screen.getByText("Use your GitHub account.")).toBeTruthy();
+    expect(screen.queryByText("or with email")).toBeNull();
+    expect(screen.queryByText(/No account yet/)).toBeNull();
+    expect(screen.getByText("Forgot your password? Use GitHub with the same email.")).toBeTruthy();
+    expect(screen.getAllByRole("link").map((a) => a.textContent)).toEqual(["Continue with GitHub"]);
+  });
+
+  it("SignInPanel says the session ended (L03) and explains an interrupted GitHub sign-in", () => {
+    render(<SignInPanel githubHref="/g" sessionEnded error="github_state_invalid" />);
+    expect(screen.getByRole("status").textContent).toBe("Your session ended. Sign in again.");
+    expect(screen.getByRole("alert").textContent).toBe(SIGN_IN_ERRORS.github_state_invalid);
+  });
+
+  it.each(Object.entries(ROLE_NOTICES))("RoleNotice %s says %s", (notice, text) => {
+    render(<RoleNotice notice={notice} />);
+    expect(screen.getByRole("status").textContent).toBe(text);
+  });
+
+  it.each([
+    ["missing", undefined],
+    ["unknown", "admin_only"],
+    ["inherited key", "toString"],
+    ["repeated", ["mentor_only", "mentor_only"]],
+  ])("RoleNotice renders nothing when the notice is %s", (_case, notice) => {
+    const { container } = render(<RoleNotice notice={notice} />);
+    expect(container.innerHTML).toBe("");
+  });
+
+  it("InvitationPanel covers signed-out, match, mismatch, already-mentor and invalid", () => {
     const { rerender } = render(
       <InvitationPanel
         state={{ kind: "signed-out", email: "marta@example.com", tags: ["typescript"], githubHref: "/g", emailHref: "/e" }}
       />,
     );
-    expect(screen.getAllByRole("link").map((a) => a.textContent)).toEqual(["Sign in with GitHub", "Sign in with email"]);
+    expect(screen.getAllByRole("link").map((a) => [a.textContent, a.getAttribute("href")])).toEqual([
+      ["Sign in with GitHub", "/g"],
+      ["Sign in with email", "/e"],
+    ]);
+    expect(screen.queryByRole("button")).toBeNull();
 
-    rerender(
-      <InvitationPanel acceptAction="/api/invitations/accept" state={{ kind: "match", email: "m@x.io", tags: [], accountEmail: "m@x.io" }} />,
-    );
+    rerender(<InvitationPanel state={{ kind: "match", email: "m@x.io", tags: [], accountEmail: "m@x.io" }} />);
+    expect(screen.getByText("m@x.io", { selector: ".text-foreground" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Accept invitation" })).toBeTruthy();
 
-    rerender(<InvitationPanel state={{ kind: "mismatch", email: "m@x.io", accountEmail: "other@x.io", signOutHref: "/out" }} />);
+    rerender(
+      <InvitationPanel
+        state={{ kind: "mismatch", email: "m@x.io", accountEmail: "other@x.io" }}
+        signOut={<button type="button">Sign out</button>}
+      />,
+    );
     expect(screen.queryByRole("button", { name: "Accept invitation" })).toBeNull();
-    expect(screen.getByRole("link", { name: "Sign out" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sign out" })).toBeTruthy();
+    expect(screen.getByText(/You are signed in as/).textContent).toBe(
+      "You are signed in as other@x.io. Sign out, then sign in with m@x.io to accept.",
+    );
+
+    rerender(<InvitationPanel state={{ kind: "already-mentor", mentorHref: "/mentor" }} />);
+    expect(screen.getByRole("heading", { name: "You are already a mentor." })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Go to your mentor page" }).getAttribute("href")).toBe("/mentor");
 
     rerender(<InvitationPanel state={{ kind: "invalid" }} />);
     expect(screen.getByRole("heading", { name: "This invitation is not valid" })).toBeTruthy();
     expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("InvitationPanel accept: calls onAccept, busy while accepting, error with Try again (L07)", async () => {
+    const user = userEvent.setup();
+    const onAccept = vi.fn();
+    const state = { kind: "match", email: "m@x.io", tags: ["react"], accountEmail: "m@x.io" } as const;
+    const { rerender } = render(<InvitationPanel state={state} onAccept={onAccept} />);
+
+    await user.click(screen.getByRole("button", { name: "Accept invitation" }));
+    expect(onAccept).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    rerender(<InvitationPanel state={state} onAccept={onAccept} accepting acceptError="Network error." />);
+    const busy = screen.getByRole("button", { name: "Accepting…" });
+    expect(busy.hasAttribute("disabled")).toBe(true);
+    expect(busy.getAttribute("aria-busy")).toBe("true");
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    rerender(<InvitationPanel state={state} onAccept={onAccept} acceptError="Network error." />);
+    expect(screen.getByRole("alert").textContent).toBe("Network error. Nothing changed.");
+    expect(screen.getByRole("button", { name: "Accept invitation" }).getAttribute("aria-busy")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+    expect(onAccept).toHaveBeenCalledTimes(2);
   });
 
   it("PayoutStatusPanel shows one state at a time with Refresh status", async () => {

@@ -60,12 +60,16 @@ export { Label } from "./components/ui/label";
 export { Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "./components/ui/table";
 export { Textarea } from "./components/ui/textarea";
 export { cn } from "./lib/utils";
+export { formatInstant, LocalTime, type LocalTimeProps } from "./time/LocalTime";
 
 // Panel building blocks
 export { apiCall, apiCallOrThrow, ApiError, readJsonSafe, type ApiCallInit, type ApiPath } from "./backend/api/apiCall";
 export type { ApiFailure, ApiResult, ApiSuccess, FieldErrors } from "./backend/api/types";
 export { Field, type FieldControlProps, type FieldProps } from "./backend/forms/Field";
+export { PasswordField, type PasswordFieldProps } from "./backend/forms/PasswordField";
 export { TextLink, type TextLinkProps } from "./backend/navigation/TextLink";
+export { AppShell, type AppShellProps } from "./backend/shell/AppShell";
+export { currentHref, SideNav, type SideNavItem, type SideNavProps, type SideNavSection } from "./backend/shell/SideNav";
 export { CrudForm, type CrudFormField, type CrudFormFieldType, type CrudFormProps } from "./backend/forms/CrudForm";
 export { DataTable, type DataTableColumn, type DataTableProps } from "./backend/tables/DataTable";
 export { EmptyState, type EmptyStateProps } from "./backend/feedback/EmptyState";
@@ -73,7 +77,12 @@ export { ErrorMessage, type ErrorMessageProps } from "./backend/feedback/ErrorMe
 export { LoadingMessage, type LoadingMessageProps } from "./backend/feedback/LoadingMessage";
 
 // Product components (panel surfaces: /mentor, /sign-in, /mentor/payouts)
+export { AccountBar, type AccountBarProps, type AccountBarUser } from "./components/auth/AccountBar";
+export { ACCOUNT_NAV_LABEL, accountNavSections, type AccountRole } from "./components/auth/accountNav";
+export { CheckInboxNotice, type CheckInboxNoticeProps } from "./components/auth/CheckInboxNotice";
+export { ROLE_NOTICES, RoleNotice, type RoleNoticeCode, type RoleNoticeProps } from "./components/auth/RoleNotice";
 export { SIGN_IN_ERRORS, SignInPanel, type SignInErrorCode, type SignInPanelProps } from "./components/auth/SignInPanel";
+export { SignOutButton, type SignOutButtonProps } from "./components/auth/SignOutButton";
 export { CopyShareLink } from "./components/mentors/CopyShareLink";
 export { ProfileActions, type ProfileActionsProps } from "./components/mentors/ProfileActions";
 export { ReadinessChecklist, type ReadinessChecklistProps, type ReadinessItem } from "./components/mentors/ReadinessChecklist";

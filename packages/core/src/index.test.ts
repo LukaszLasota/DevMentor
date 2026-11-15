@@ -7,7 +7,50 @@ describe('public entries', () => {
     const core = await import('./index');
 
     expect(Object.keys(core).sort()).toEqual(
-      ['HealthService', 'createRequestScope', 'getContainer', 'getEnv', 'logger', 'parseEnv', 'withScope'].sort(),
+      [
+        'EventBus',
+        'GithubEmailUnverifiedError',
+        'GithubOAuthService',
+        'HealthService',
+        'MAIL_SENT_MESSAGE',
+        'PasswordHasher',
+        'REGISTER_RATE_LIMITS',
+        'RESEND_RATE_LIMITS',
+        'RateLimiter',
+        'SESSION_TTL_SECONDS',
+        'SIGN_IN_RATE_LIMITS',
+        'clientIp',
+        'guardPasswordAttempt',
+        'rateLimitChecks',
+        'createRequestScope',
+        'getContainer',
+        'getEnv',
+        'getSessionUser',
+        'homeFor',
+        'logger',
+        'parseEnv',
+        'requireSessionSecrets',
+        'signSession',
+        'systemClock',
+        'verifySession',
+        'withScope',
+      ].sort(),
+    );
+  });
+
+  it('@devmentor/core/cli exposes the command-line entries', async () => {
+    const cli = await import('./cli/index');
+
+    expect(Object.keys(cli).sort()).toEqual(
+      [
+        'DEMO_ACCOUNTS',
+        'DEMO_PASSWORD',
+        'SEED_REFUSED_IN_PRODUCTION',
+        'formatSeedReport',
+        'runInviteCli',
+        'runSeedCli',
+        'seedDemoAccounts',
+      ].sort(),
     );
   });
 
@@ -20,9 +63,31 @@ describe('public entries', () => {
         'CSRF_HEADER',
         'CSRF_HEADER_VALUE',
         'ConflictError',
+        'DEFAULT_OUTBOUND_TIMEOUT_MS',
+        'GITHUB_SIGN_IN_REDIRECT',
+        'GithubSignInCancelledError',
+        'GithubStateInvalidError',
+        'OAUTH_STATE_COOKIE',
+        'SESSION_COOKIE',
+        'completeGithubSignIn',
+        'endSession',
+        'isAppError',
+        'isTooManyRequestsError',
+        'isValidationError',
+        'startGithubSignIn',
+        'clearSessionCookie',
+        'createFetchJson',
+        'readSessionCookie',
+        'requireRole',
+        'requireSession',
+        'redirectHandler',
+        'safeReturnTo',
+        'sessionCookie',
+        'withCookies',
         'ForbiddenError',
         'NotFoundError',
         'ServiceUnavailableError',
+        'TooManyRequestsError',
         'UnauthorizedError',
         'ValidationError',
         'apiHandler',
@@ -30,6 +95,19 @@ describe('public entries', () => {
         'parseJsonBody',
         'parseSearchParams',
         'parseWith',
+        'CHECK_INBOX',
+        'CHECK_INBOX_RESPONSE',
+        'INVALID_CREDENTIALS_MESSAGE',
+        'VERIFY_EMAIL_RESPONSE',
+        'VerificationLinkInvalidError',
+        'registerWithEmail',
+        'resendVerificationLink',
+        'signInWithPassword',
+        'verifyEmailAndSetPassword',
+        'INVITATION_RESPONSE',
+        'MENTOR_HOME',
+        'acceptInvitation',
+        'lookupInvitation',
       ].sort(),
     );
   });

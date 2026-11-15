@@ -1,13 +1,13 @@
-import { HealthPanel } from "./HealthPanel";
+import { Suspense } from "react";
+import { LoadingMessage } from "@devmentor/ui";
+import { AdminContent } from "./AdminContent";
 
-export default function AdminPage() {
+export default function AdminPage({ searchParams }: PageProps<"/admin">) {
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">Admin</h1>
-        <p className="text-muted-foreground">System status.</p>
-      </div>
-      <HealthPanel />
+    <main className="mx-auto flex max-w-5xl flex-col gap-component px-paragraph py-section">
+      <Suspense fallback={<LoadingMessage />}>
+        <AdminContent searchParams={searchParams} />
+      </Suspense>
     </main>
   );
 }

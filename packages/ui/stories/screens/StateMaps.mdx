@@ -15,9 +15,9 @@ Which story shows which state of each key screen. Copy in quotes comes from the 
 | | 429 with retry time | `/sign-in — too many attempts` |
 | | GitHub error codes (*ours*) | Product/E01/Sign-in panel |
 | `/register` | email only | `/register` |
-| | "Check your inbox to finish registration" + resend | `/register — check your inbox` |
+| | "Check your inbox to finish registration" + "Send a new link" + "Use a different email" | `/register — check your inbox`; Product/E01/Check inbox |
 | `/verify-email` | link expired/used/wrong (*ours*) | `/verify-email — link not valid` |
-| | set password | not built: the password form is a `CrudForm` like `/register` |
+| | set password: one field with "Show password" (L05, DS-02) | Primitives/Password field; the page is a `CrudForm` with a `revealable` password field |
 | `/invitation/[token]` | signed out, invited account, other account, not valid | Product/E01/Invitation panel; `/invitation/[token]` stories |
 | `/mentor` | checklist with deadline | `/mentor — onboarding` |
 | | out-of-bounds price named | Product/E01/Readiness checklist/Mentor home |

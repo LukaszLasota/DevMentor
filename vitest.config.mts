@@ -38,8 +38,8 @@ export default defineConfig({
     ],
     coverage: {
       provider: 'v8',
-      include: ['packages/*/src/**/*.{ts,tsx}', 'packages/app/next.config.ts', 'scripts/**/*.mjs'],
-      exclude: ['**/*.test.{ts,tsx,mjs}', '**/*.d.ts', 'packages/db/src/migrations/**'],
+      include: ['packages/*/src/**/*.{ts,tsx}', 'packages/app/next.config.ts', 'scripts/**/*.{mjs,mts}'],
+      exclude: ['**/*.test.{ts,tsx,mjs,mts}', '**/*.d.ts', 'packages/db/src/migrations/**'],
       // AGENTS.md: every feature ships with 100% unit test coverage.
       thresholds: { statements: 100, branches: 100, functions: 100, lines: 100 },
       reporter: ['text', 'html', 'json-summary'],

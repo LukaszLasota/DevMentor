@@ -12,7 +12,7 @@ Next.js-specific agent rules live in `packages/app/AGENTS.md` — that file is m
 - Tailwind CSS 4 — public pages; shadcn/ui — admin (backend) pages.
 - Vitest + `@vitest/coverage-v8` (jsdom + Testing Library for React) — unit tests; testcontainers (PostgreSQL) + `agent-browser` — integration tests; GitHub Actions — CI.
 - Monorepo on npm workspaces; packages live in `packages/`, named `@devmentor/<name>`, consumed as TypeScript source (no build step; Turbopack transpiles them).
-- Root scripts: `npm run setup` (idempotent local setup), `npm run dev | build | lint | typecheck | test | test:coverage | test:integration | audit`, `npm run validate` (all gates except integration), `npm run db:migrate`, `npm run db -- <mikro-orm command>`. Install deps into a package with `npm install <dep> -w @devmentor/<name>`.
+- Root scripts: `npm run setup` (idempotent local setup), `npm run dev | build | lint | typecheck | test | test:coverage | test:integration | audit`, `npm run validate` (all gates except integration), `npm run db:migrate`, `npm run db:seed` (dev demo accounts), `npm run db -- <mikro-orm command>`. Install deps into a package with `npm install <dep> -w @devmentor/<name>`.
 
 ## Packages and dependency direction
 
@@ -27,7 +27,7 @@ Next.js-specific agent rules live in `packages/app/AGENTS.md` — that file is m
 
 - Only `db` imports `@mikro-orm/*`; others use the types `@devmentor/db` re-exports (`EntityManager`, `MikroORM`).
 - `core` and `db` never import `next`/`react`. `ui` never imports `core` — shared shapes (API envelope, CSRF header) are mirrored in `ui/src/backend/api/types.ts`; keep both in sync. A shared package for them is an Ask First change.
-- Import packages through their public entries (`@devmentor/core`, `@devmentor/core/http`, `@devmentor/ui`), never relative paths into another package. The `@devmentor/core` entries are server-only; client-safe code (shared Zod schemas) will get its own entry `@devmentor/core/validators` with the first schema.
+- Import packages through their public entries (`@devmentor/core`, `@devmentor/core/http`, `@devmentor/ui`), never relative paths into another package. The `@devmentor/core` and `@devmentor/core/http` entries are server-only; client-safe shared Zod schemas live in `@devmentor/core/validators` (`packages/core/src/validators/`), which client components in `app` may import — it imports only `zod` and its own files (ESLint + `validators/index.test.ts`). `ui` still never imports it: `CrudForm` takes the schema as a prop.
 
 ## Domain concept convention
 
@@ -46,11 +46,11 @@ Create a concept folder only when its first file is added — never scaffold emp
 Every route and page reuses these instead of re-implementing fetch/validation/auth/error handling:
 
 - `packages/core/src/http/` (`@devmentor/core/http`):
-  - `errors.ts` — `AppError` + `ValidationError`, `UnauthorizedError`, `ForbiddenError`, `NotFoundError`, `ConflictError`, `ServiceUnavailableError`. Services throw these; they never build responses.
-  - `apiHandler.ts` — wraps every route handler: CSRF header check on POST/PUT/PATCH/DELETE (`csrf: false` only for third-party webhooks), request scope (`cradle`), JSON envelope `{ ok: true, data }` / `{ ok: false, error: { code, message, fieldErrors? } }`, maps `AppError`/`ZodError`, logs unexpected errors without leaking them. No route writes its own `try/catch` or `NextResponse.json`.
+  - `errors.ts` — `AppError` + `ValidationError`, `UnauthorizedError`, `ForbiddenError`, `NotFoundError`, `ConflictError`, `TooManyRequestsError` (429; its `headers` — `Retry-After` — and `retryAfterSeconds` reach the response), `ServiceUnavailableError`. Services throw these; they never build responses. Recognise them with `isAppError`/`isValidationError`, never `instanceof` — server bundles have separate copies of the classes while the container is shared.
+  - `apiHandler.ts` — wraps every route handler: CSRF header check on POST/PUT/PATCH/DELETE (`csrf: false` only for third-party webhooks), request scope (`cradle`), JSON envelope `{ ok: true, data }` / `{ ok: false, error: { code, message, fieldErrors? } }`, maps `AppError`/`ZodError`, logs unexpected errors without leaking them. `headers` option: extra headers on every response (e.g. `Cache-Control: no-store`). No route writes its own `try/catch` or `NextResponse.json`.
   - `makeCrudRoute.ts` — plain CRUD resource: `export const { GET, POST, PUT, DELETE } = makeCrudRoute({ service, createSchema, updateSchema })`; record id as `?id=<uuid>`. Workflow endpoints (booking, payment, reschedule) use `apiHandler` directly.
   - `parse.ts` — `parseJsonBody`, `parseSearchParams`, `parseWith`: always pass the schema's parsed output to services, never the raw body (no mass assignment).
-  - `auth.ts` (`requireSession`, `requireRole`, ownership assertions) arrives with the auth concept; until then `makeCrudRoute` is for public resources only.
+  - `auth.ts` — `requireSession(req, cradle)` (401 unless the live session check in `core/src/auth/session-user.ts` passes: token, `session_version`, stored roles, `OPERATOR_EMAILS`) and `requireRole(user, ...roles)` (403, fail closed). Pages use `packages/app/src/lib/session.ts` (`requirePageSession(path)`, `requirePageRole(path, ...roles)`, `homeFor`) in every guarded layout **and** page. Ownership assertions arrive with the first owned resource; `makeCrudRoute` has no auth hook yet, so it is for public resources only.
 - `packages/ui/src/backend/` (`@devmentor/ui`): `api/apiCall.ts` (`apiCall`/`apiCallOrThrow` — the only sanctioned `fetch()` to `/api/*`), `forms/CrudForm.tsx` (schema-driven form, every create/edit form), `tables/DataTable.tsx` (every list), `feedback/{LoadingMessage,ErrorMessage,EmptyState}.tsx` (the only loading/error/empty renderers). Reference usage: `packages/app/src/app/(admin)/admin/HealthPanel.tsx`.
 
 New reusable components have one home each:
@@ -78,7 +78,9 @@ New reusable components have one home each:
 ## UI
 
 - **Design system:** read `docs/design-system.md` before building any screen; components, tokens and rules are documented in the Storybook in `packages/ui` (`npm run storybook -w @devmentor/ui`). Use semantic tokens only (`npm run check:tokens`). Interface language: English.
-- `packages/app/src/app/(marketing)` — public pages, Tailwind only (no shadcn). `(admin)` — admin panel, shadcn/ui via `@devmentor/ui`. Persona groups `(auth)`, `(student)`, `(mentor)` are created with their first page. Each group that needs its own `<html>` has its own root layout; there is no `src/app/layout.tsx`.
+- `packages/app/src/app/(marketing)` — public pages, Tailwind only (no shadcn). `(auth)` (sign-in, register, verify email), `(admin)` and the persona groups `(mentee)` and `(mentor)` — panel surface, shadcn/ui via `@devmentor/ui`. A group is created with its first page; the mentee persona group is `(mentee)`, not `(student)`. Each group that needs its own `<html>` has its own root layout; there is no `src/app/layout.tsx`.
+- Guarded pages: the layout and every `page.tsx` of a guarded group call `requirePageSession(path)` / `requirePageRole(path, ...roles)` (`packages/app/src/lib/session.ts`) inside `<Suspense>`; the session read lives in a colocated async component, not in `page.tsx` (Next allows only its own exports there). Role homes render `RoleNotice` with the `notice` search param.
+- Signed-in shell: every signed-in root layout (`(mentee)`, `(mentor)`, `(admin)`) renders `AppShell` of `@devmentor/ui` with `header={<AccountHeader />}` and `nav={<AccountNav />}` (`packages/app/src/components/account/`: the `AccountBar`, and the role sidebar `SideNav` + `accountNavSections`), each inside `<Suspense>` — behind the layout guard where there is one; both render nothing without a session. The session is read on the server; only the current-item check runs in the client `ShellNav` (`usePathname`). Sidebar links go only to pages that exist — a new area page adds its item to `accountNavSections`. Session reads are memoized per request, so guards, header and sidebar share one check.
 - Admin theme: `packages/ui/src/styles.css`, imported by the admin root layout.
 
 ## Quality gates

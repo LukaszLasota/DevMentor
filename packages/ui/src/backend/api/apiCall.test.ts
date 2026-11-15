@@ -127,4 +127,15 @@ describe("apiCallOrThrow", () => {
 
     await expect(apiCallOrThrow("/api/notes")).rejects.toEqual(new ApiError("NOT_FOUND", "Gone"));
   });
+
+  it("carries retryAfterSeconds of a 429 on the ApiError", async () => {
+    mockFetch(() =>
+      json({ ok: false, error: { code: "TOO_MANY_REQUESTS", message: "Too many attempts.", retryAfterSeconds: 60 } }, 429),
+    );
+
+    const error = await apiCallOrThrow("/api/auth/sign-in").catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ code: "TOO_MANY_REQUESTS", retryAfterSeconds: 60 });
+  });
 });
