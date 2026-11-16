@@ -11,6 +11,11 @@ Cut what every agent session pays for at start-up and point the agent to the rig
 - Top finding: S-01 instruction chain oversized (high); S-06 no rules scoping; S-09 MCP server unused (`settings.local.json`); S-04 invalid frontmatter in a global Qodo skill (not ours).
 - Session findings (fat tool results, long sessions, compaction) are about how sessions were run, not about the files; recorded, not in scope.
 
+## TO BE (so far)
+- First cut (2026-11-16, owner's Context Scope scan): root `AGENTS.md` 8,867 → 6,093 tokens (Claude-calibrated), 143 → 102 lines.
+- Second cut (2026-11-16, owner decision: `.ai/` workflow details and working principles → `.ai/README.md`): root `AGENTS.md` 102 → 70 lines, 3,166 → 2,159 est. tokens (`analyze.py`, ≈ chars/4, −32%); Claude-calibrated ≈ 4,155 (estimate, scaled from 6,093). `.ai/README.md` 31 lines / ≈ 985 est. tokens, read on demand via the router. Details: `.ai/context/2026-11-16-no-op-report.md` § Second cut.
+- Start-up 19.8k tokens: unchanged until new sessions exist. Context Scope re-measure after new sessions: owner.
+
 ## Scope
 1. **No-op audit** of `AGENTS.md`, `CLAUDE.md`, `packages/app/AGENTS.md` following `eliminate-no-op` (mechanical pass with its `analyze.py`, then directive-by-directive verdicts KEEP / TRIM / MERGE / MOVE / CUT); report kept in `.ai/context/2026-11-16-no-op-report.md` with every cut line verbatim. Stale or wrong rules fixed against the code.
 2. **Task router** following `task-router`: root `AGENTS.md` = short summary, hard rules every task needs (commands, dependency direction, security boundaries, `.ai/` workflow essentials), and a `| Task | Read |` table (at least: bug fix, new feature, refactor, review, spec writing, UI screen, database change, auth/security, agent config, tests/CI). Every routed target is a concrete existing file.

@@ -176,3 +176,59 @@ Trimmed fragments (information removed while the directive stayed), for the same
 ## Applied rewrite
 
 Applied in place (not as `AGENTS.rewrite.md`): spec `.ai/specs/2026-11-16-agent-context-routing.md` (approved) asks for the restructure. Undo buffer: this report + `git show <commit>^:AGENTS.md`. Files: `AGENTS.md`, `CLAUDE.md`, `packages/{app,core,db,ui}/AGENTS.md`, `packages/{core,db,ui}/CLAUDE.md`, `README.md` § For AI agents, `.github/CODEOWNERS` (package agent files owned).
+
+## Second cut (2026-11-16)
+
+Owner decision 2026-11-16 (answers the "Working principles" open question): the detailed `.ai/` workflow and the working principles leave the root file; it keeps one short block with what nearly every task needs. Test per line: "would the agent do it differently without it"; per section: "for what share of tasks is it needed" — under ~50% moves out to a routed file.
+
+| Root `AGENTS.md` | Before | After | Δ |
+|---|---|---|---|
+| Lines | 102 | 70 | −32 |
+| Directives (analyzer) | 86 | 61 | −25 |
+| Est. tokens (`analyze.py`, ≈ chars/4) | 3,166 | 2,159 | −32% |
+| Claude-calibrated tokens (Context Scope) | 6,093 (owner's scan after the first cut) | ≈ 4,155 (estimate: 6,093 × 2,159 / 3,166) | ≈ −32% |
+| Project-noun ratio | 0.83 | 0.85 | ≈ |
+
+New on-demand file `.ai/README.md` ("AI workspace and workflow"): 31 lines, est. 985 tokens, read only through the router rows (Spec writing/updating, Lessons/run logs, Workflow/process). Context Scope re-measure after new sessions: owner.
+
+### Moved to `.ai/README.md`
+
+- § AI workspace: the `.ai/` layout bullets (`specs/` + `implemented/` + `archive/`, `runs/`, `context/`, `lessons.md` + `lessons/`) and the `YYYY-MM-DD-slug.md` naming rule — verbatim.
+- § Mandatory workflow steps 1–6 (before any task, specs with statuses, after implementing a spec, autonomous run logs, lessons, before reporting done) — verbatim.
+- § Working principles: plan first / re-plan, verify with evidence, review before PR, turn corrections into rules, use subagents, automate repeats (`.agents/skills` + symlink, `om-*` installed with `npx skills add`, customized via `.ai/skills/<name>/SKILL.md`) — trimmed as listed below. "Fix bugs from evidence" was already cut in the first pass (model default) and is not re-added.
+
+Root keeps one paragraph (§ AI workspace): artifacts live in `.ai/` (skills' specs go to `.ai/specs/`), read `.ai/lessons.md` before any task, non-trivial changes start from an approved spec, autonomous runs keep a log in `.ai/runs/`, update lessons and spec status before done, details in `.ai/README.md`. Router: `.ai/README.md` added to Spec writing/updating and Lessons/run logs; new row "Workflow/process (specs lifecycle, run logs, skills)".
+
+### Other root sections re-checked
+
+Stack, Packages, Domain concepts, the 100% coverage / tests-next-to-code / integration-test rules and the whole security section (lesson 09, spec R2) pass the test and stay. Trimmed or cut:
+
+> **AGENTS.md L13 (clause, trimmed)** — every `AGENTS.md` within its line budget (root 150, package 120), every path it names exists, every `CLAUDE.md` is only `@AGENTS.md`.
+
+Now "budgets and paths of every `AGENTS.md`/`CLAUDE.md`"; the exact limits are in the script output and the spec.
+
+> **AGENTS.md L40 (clause, trimmed)** — : lint + typecheck, unit tests with coverage, build without a DB, audit, integration tests, values outside tokens, Storybook tests.
+
+The job list is in `.github/workflows/ci.yml`; the rule "all jobs must be green before merging" stays.
+
+> **AGENTS.md L49 (moved to router)** — - Decisions, allowlist reasons, audit results and known hook gaps: `.ai/specs/implemented/2026-11-15-agent-workshop-hardening.md` and `.ai/security-notes.md`.
+
+A pointer, not a rule; both files are already in the "Agent config/skills/security" router row.
+
+> **AGENTS.md L99–102 (cut)** — | `packages/app` | `packages/app/AGENTS.md` | · | `packages/core` | `packages/core/AGENTS.md` | · | `packages/db` | `packages/db/AGENTS.md` | · | `packages/ui` | `packages/ui/AGENTS.md`, `docs/design-system.md` |
+
+Duplicates the router sentence "for code in a package, also that package's `AGENTS.md`"; `docs/design-system.md` is in the "UI screen/component" row.
+
+### Cut from the moved text, verbatim
+
+> **AGENTS.md L73 (clause)** — `npm run validate`, and
+
+Duplicate of § Commands ("Run it before review"). Principle renamed "Verify with evidence"; `npm run dev` now notes owner approval (it is in `permissions.ask`).
+
+> **AGENTS.md L75 (clause)** — update this file instead.
+
+Reworded: "update the root `AGENTS.md` (or the package `AGENTS.md` it concerns) instead" — "this file" would now point at `.ai/README.md`.
+
+> **AGENTS.md L76 (clause)** — to keep the main context focused
+
+Rationale, not a directive.
