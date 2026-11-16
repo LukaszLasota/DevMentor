@@ -42,7 +42,7 @@ Domain code is not organized into `modules/`. Each concept (`auth`, `mentors`, `
 
 ## Agent workshop security
 
-- **Agent config is code.** `.claude/`, `.agents/`, `.codex/`, `.mcp.json`, every `AGENTS.md` and `CLAUDE.md`, `skills-lock.json` and `.github/workflows/` are owned in `.github/CODEOWNERS`; changes to them go through the owner's review like any other code.
+- **Agent config is code.** `.claude/`, `.agents/`, `.mcp.json`, every `AGENTS.md` and `CLAUDE.md`, `skills-lock.json` and `.github/workflows/` are owned in `.github/CODEOWNERS` (full list there); changes to them go through the owner's review like any other code.
 - **Never read secrets.** Do not open `.env` / `.env.*` (only `.env.example` is readable), `*.pem`, `~/.ssh`, `~/.aws`, `~/.config/gh`, `~/.qodo`, `~/.kube` or session history in `~/.claude/projects` — not with Read, not through any command. Do not try to work around a block: ask the user.
 - **The sandbox and the hook are quality gates.** `.claude/settings.json` (`permissions.deny`, `sandbox` with the network allowlist and `denyRead`, `PreToolUse` hook) and `.claude/hooks/pre-tool-use.sh` (tests: `scripts/hooks/pre-tool-use.test.mjs`) apply to every session. Never weaken them (remove a deny rule, widen `allowedDomains`, add `excludedCommands`, turn the sandbox off, edit the hook to let more through) without the owner's explicit approval; a new domain or excluded command is added deliberately, with its reason recorded.
 - **Owner-run and approved commands.** `npm run setup`, `npm run db:migrate`, `npm run db:seed` and `npm run invite` read `.env`, which the sandbox hides: ask the owner to run them (`!` prefix). `npm run dev`, `npm run test:integration`, `docker compose …` and `git push` run outside the sandbox and need the owner's approval each time (`permissions.ask`), because they execute code the agent may have changed.
@@ -66,7 +66,7 @@ Read the files in the row before starting; for code in a package, also that pack
 | Database/entity/migration | `packages/db/AGENTS.md`, `packages/core/AGENTS.md` § Services and DI (transactions) |
 | API route | `packages/core/AGENTS.md` § HTTP layer, `packages/app/AGENTS.md`, `.ai/specs/2026-09-01-engineering-standards.md` §1 (Reusable API & UI Layer) |
 | Auth/session/roles | `packages/core/src/http/auth.ts`, `packages/core/src/auth/session-user.ts`, `packages/app/src/lib/session.ts`, `.ai/specs/implemented/2026-10-21-sign-in-github-and-email.md`, `.ai/specs/2026-09-01-engineering-standards.md` §1 (Security & Validation) |
-| Agent config/skills/security | `.ai/security-notes.md`, `.ai/specs/implemented/2026-11-15-agent-workshop-hardening.md`, `.github/CODEOWNERS`, `skills-lock.json`, `.ai/context/2026-11-16-no-op-report.md` |
+| Agent config/skills/security | `.ai/security-notes.md`, `.ai/specs/implemented/2026-11-15-agent-workshop-hardening.md`, `.github/CODEOWNERS`, `skills-lock.json`, `.ai/context/2026-11-16-no-op-report.md`, `.ai/context/2026-11-16-context-budget.md` |
 | Tests/CI/coverage | `vitest.config.mts`, `.github/workflows/ci.yml`, `.ai/lessons/2026-10-20-ci-and-coverage-gotchas.md`, `packages/app/AGENTS.md` § Integration tests |
 | Lessons/run logs | `.ai/README.md`, `.ai/lessons.md`, example run log: `.ai/runs/2026-10-26-epic-01-track.md` |
 | Local setup/env | `README.md` § Getting started, `.env.example`, `packages/core/src/config/env.ts`, `.ai/lessons/2026-10-20-monorepo-tooling-gotchas.md` |

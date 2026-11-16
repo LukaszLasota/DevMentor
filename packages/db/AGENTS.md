@@ -11,7 +11,7 @@ Leaf package: imports nothing internal, never `next`/`react`. The only package t
 ## Connection and config
 
 - Local database: `docker compose up -d postgres` (needs the owner's approval; credentials match `.env.example`).
-- `db` receives options explicitly (`getOrm(options)`); only its CLI config (`packages/db/src/mikro-orm.config.ts`) reads `process.env` itself.
+- `db` receives options explicitly (`getOrm(options)`); only its CLI config (`packages/db/src/mikro-orm.config.ts`) reads environment variables itself.
 - One `MikroORM` instance per process (cached on `globalThis`, `packages/db/src/orm.ts`); never use the global `EntityManager`.
 
 ## Reference implementations
