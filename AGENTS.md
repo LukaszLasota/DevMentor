@@ -68,3 +68,4 @@ Read the files in the row before starting; for code in a package, also that pack
 | Local setup/env | `README.md` § Getting started, `.env.example`, `packages/core/src/config/env.ts`, `.ai/lessons/2026-10-20-monorepo-tooling-gotchas.md` |
 | Workflow/process (specs lifecycle, run logs, skills) | `.ai/README.md`, `SDLC.md` § Ticket lifecycle |
 | Release/PR process | `SDLC.md`, `.ai/agentic.config.json` |
+| Any change inside a package | that package's file: `packages/app/AGENTS.md`, `packages/core/AGENTS.md`, `packages/db/AGENTS.md`, `packages/ui/AGENTS.md` |
