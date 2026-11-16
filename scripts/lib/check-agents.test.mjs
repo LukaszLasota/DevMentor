@@ -7,11 +7,15 @@ import {
   checkAgentsFile,
   checkClaudeFiles,
   countedLines,
+  expandBraces,
+  findPackageNames,
   findReferences,
   hasHeading,
   listAgentsFiles,
   listClaudeFiles,
   main,
+  packageHasName,
+  packageNamesOf,
   pathOf,
   routingRows,
 } from './check-agents.mjs';
@@ -40,7 +44,7 @@ describe('pathOf', () => {
     ['.env.example', true, null],
     ['packages/app/.env.local', true, null],
     ['.codex/', true, null],
-    ['.mcp.json', true, null],
+    ['.mcp.json', true, '.mcp.json'],
     ['packages/app/src/app/layout.tsx', true, null],
     ['2026-10-20-user-login.md', true, null],
     ['@devmentor/core', true, null],
@@ -48,6 +52,65 @@ describe('pathOf', () => {
     ['/api/health', true, null],
   ])('%s (root: %s) → %s', (token, isRoot, expected) => {
     expect(pathOf(token, isRoot)).toBe(expected);
+  });
+});
+
+describe('expandBraces', () => {
+  it.each([
+    ['feedback/{A, B}.tsx', ['feedback/A.tsx', 'feedback/B.tsx']],
+    ['forms/CrudForm.tsx', ['forms/CrudForm.tsx']],
+  ])('%s → %j', (token, expected) => {
+    expect(expandBraces(token)).toEqual(expected);
+  });
+});
+
+describe('packageNamesOf', () => {
+  it.each([
+    ['errors.ts', ['errors.ts']],
+    ['api/apiCall.ts', ['api/apiCall.ts']],
+    ['backend/', ['backend/']],
+    ['(auth)/sign-in/SignInForm.tsx', ['(auth)/sign-in/SignInForm.tsx']],
+    ['feedback/{LoadingMessage,EmptyState}.tsx', ['feedback/LoadingMessage.tsx', 'feedback/EmptyState.tsx']],
+    ['packages/ui/src/backend/', null],
+    ['node_modules/next/dist/docs/', null],
+    ['@devmentor/core/http', null],
+    ['/api/*', null],
+    ['.env', null],
+    ['.codex/', null],
+    ['src/app/layout.tsx', null],
+    ['<concept>/<name>.ts', null],
+    ['{a,<b>}.ts', null],
+    ['try/catch', null],
+    ['process.env', null],
+    ['NextResponse.json()', null],
+    ['npm run dev', null],
+  ])('%s → %j', (token, expected) => {
+    expect(packageNamesOf(token)).toEqual(expected);
+  });
+});
+
+describe('findPackageNames', () => {
+  it('returns each package file name with its line, braces expanded', () => {
+    expect(findPackageNames('- `errors.ts` and `packages/core/x.ts`\n- `f/{A,B}.tsx`, `npm test`')).toEqual([
+      { line: 1, name: 'errors.ts' },
+      { line: 2, name: 'f/A.tsx' },
+      { line: 2, name: 'f/B.tsx' },
+    ]);
+  });
+});
+
+describe('packageHasName', () => {
+  const files = ['packages/ui/src/backend/api/apiCall.ts', 'packages/ui/src/myerrors.ts'];
+
+  it.each([
+    ['apiCall.ts', true],
+    ['api/apiCall.ts', true],
+    ['backend/', true],
+    ['errors.ts', false],
+    ['forms/CrudForm.tsx', false],
+    ['forms/', false],
+  ])('%s → %s', (name, expected) => {
+    expect(packageHasName(files, name)).toBe(expected);
   });
 });
 
@@ -110,7 +173,8 @@ describe('hasHeading', () => {
 
 describe('checkAgentsFile', () => {
   const files = { 'SDLC.md': '# SDLC\n## Definition of Ready\n', 'docs/a.md': '# A\n' };
-  const fs = { exists: (path) => path in files, read: (path) => files[path] };
+  const packageFiles = vi.fn(() => ['packages/ui/src/backend/forms/CrudForm.tsx']);
+  const fs = { exists: (path) => path in files, read: (path) => files[path], packageFiles };
 
   it('passes a root file within budget whose routes exist', () => {
     const text = `# Root\n${table('| Feature | `SDLC.md` § Definition of Ready |')}\n`;
@@ -154,6 +218,27 @@ describe('checkAgentsFile', () => {
       errors: ['packages/ui/AGENTS.md:1: missing path docs/missing.md'],
       warnings: ['packages/ui/AGENTS.md:1: docs/a.md has no heading "Nowhere"'],
     });
+  });
+
+  it('reports a file name in a package file that the package does not have', () => {
+    const text = '## Panel layer\n- `forms/CrudForm.tsx`, `tables/DataTable.tsx`\n- `feedback/{A,B}.tsx`';
+    expect(checkAgentsFile('packages/ui/AGENTS.md', text, fs)).toEqual({
+      summary: 'packages/ui/AGENTS.md  3/120 lines  0 paths, 4 package names',
+      errors: [
+        'packages/ui/AGENTS.md:2: missing file tables/DataTable.tsx in packages/ui',
+        'packages/ui/AGENTS.md:3: missing file feedback/A.tsx in packages/ui',
+        'packages/ui/AGENTS.md:3: missing file feedback/B.tsx in packages/ui',
+      ],
+      warnings: [],
+    });
+    expect(packageFiles).toHaveBeenCalledWith('ui');
+  });
+
+  it('checks bare file names only in package files', () => {
+    packageFiles.mockClear();
+    expect(checkAgentsFile('docs/AGENTS.md', 'See `errors.ts`.', fs).errors).toEqual([]);
+    expect(checkAgentsFile('packages/db/AGENTS.md', 'See `npm test`.', fs).errors).toEqual([]);
+    expect(packageFiles).not.toHaveBeenCalled();
   });
 
   it('requires the routing table and a repo path in every route', () => {
@@ -221,7 +306,8 @@ describe('file discovery', () => {
 describe('main', () => {
   const okFiles = {
     'AGENTS.md': `# Root\n${table('| Package | `packages/db/AGENTS.md` |')}\n`,
-    'packages/db/AGENTS.md': '# db\nSee `docs/a.md` § Missing.\n',
+    'packages/db/AGENTS.md': '# db\nSee `docs/a.md` § Missing, then `src/orm.ts`.\n',
+    'packages/db/src/orm.ts': '',
     'docs/a.md': '# A\n',
     'CLAUDE.md': CLAUDE_CONTENT,
     'packages/db/CLAUDE.md': CLAUDE_CONTENT,
@@ -234,6 +320,7 @@ describe('main', () => {
       claudeFiles: () => ['CLAUDE.md', 'packages/db/CLAUDE.md'],
       exists: (path) => path in files,
       read: (path) => files[path],
+      packageFiles: (pkg) => Object.keys(files).filter((path) => path.startsWith(`packages/${pkg}/`)),
       log,
       logError,
       ...overrides,
@@ -247,7 +334,7 @@ describe('main', () => {
     expect(code).toBe(0);
     expect(log.mock.calls.map(([line]) => line)).toEqual([
       '  AGENTS.md  4/150 lines  1 paths ok',
-      '  packages/db/AGENTS.md  2/120 lines  1 paths ok',
+      '  packages/db/AGENTS.md  2/120 lines  1 paths, 1 package names ok',
       '  2 CLAUDE.md files → @AGENTS.md ok',
       'warning: packages/db/AGENTS.md:2: docs/a.md has no heading "Missing"',
       'check:agents: 2 AGENTS.md files, 2 CLAUDE.md files, all ok (1 warning(s)).',

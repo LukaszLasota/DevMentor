@@ -20,7 +20,7 @@ Standalone React components: shadcn primitives, the panel layer `backend/`, conc
 1. shadcn primitive → `packages/ui/src/components/ui/` via `npx shadcn@latest add <name>` (run in `packages/ui`), never hand-written.
 2. Generic, concept-agnostic panel pattern → `packages/ui/src/backend/<category>/`.
 3. Component tied to one concept's domain shape → `packages/ui/src/components/<concept>/`.
-4. Used by exactly one page → colocate next to that `page.tsx` in `app` until a second consumer appears.
+4. Used by exactly one page → colocate it in that page's folder under `packages/app/src/app/` until a second consumer appears.
 
 ## Reference implementations
 

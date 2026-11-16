@@ -5,7 +5,9 @@
 //    packages/app/AGENTS.md counts only our part below the last `<!-- END:… -->` marker: the blocks
 //    above it are written by `next dev` and are not ours to trim.
 // 2. Routes: every backticked repo path in an AGENTS.md must exist, and every row of the root
-//    `| Task | Read |` table must route to at least one such path.
+//    `| Task | Read |` table must route to at least one such path. In a package file, a bare or
+//    section-relative file name (`errors.ts`, `forms/CrudForm.tsx`, `invitation/`) must match a file of
+//    that package whose path ends with `/<name>` (brace groups `{a,b}` are expanded, each must exist).
 // 3. Sections: `path.md § Name` (or `§2`) after a markdown path must match a heading (warning only).
 // 4. Every CLAUDE.md is exactly `@AGENTS.md\n` next to an AGENTS.md; every packages/*/AGENTS.md has one.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
@@ -26,10 +28,12 @@ const ROOT_FILE_PATTERN = /^[\w.-]+\.(?:md|json|mjs|mts|ts)$/;
 const PLACEHOLDER_PATTERN = /[<>{}*…]|YYYY|\.\.\./;
 /** A dated example name such as `2026-10-20-user-login.md` (naming rule); real references carry their folder. */
 const NAMING_EXAMPLE_PATTERN = /^\d{4}-\d{2}-\d{2}-[a-z0-9-]+\.md$/;
-/** Paths mentioned on purpose although they do not exist (each with its reason). */
+/** A package file name: ends in a source/doc extension or `/` (`try/catch`, `process.env` are not names). */
+const PACKAGE_NAME_PATTERN = /^[\w([-][\w.()[\]-]*(?:\/[\w.()[\]-]+)*(?:\/|\.(?:ts|tsx|mts|mjs|js|json|md|css|ya?ml))$/;
+/** Paths mentioned on purpose although they do not exist (each with its reason). Not listed because no
+ * check ever reaches them: `.codex/` (no checked prefix, not a root file name); `.mcp.json` exists and is
+ * checked as a root file name. */
 export const ALLOWLIST = new Map([
-  ['.codex/', 'preventive CODEOWNERS entry; no Codex config yet'],
-  ['.mcp.json', 'preventive CODEOWNERS entry; no project MCP config yet'],
   ['src/app/layout.tsx', 'named as not existing (one root layout per route group)'],
   ['packages/app/src/app/layout.tsx', 'named as not existing (one root layout per route group)'],
 ]);
@@ -52,6 +56,41 @@ export function pathOf(token, isRoot) {
   if (PATH_PREFIXES.some((prefix) => token.startsWith(prefix))) return token;
   if (isRoot && ROOT_FILE_PATTERN.test(token) && !NAMING_EXAMPLE_PATTERN.test(token)) return token;
   return null;
+}
+
+/** Expands one `{a,b}` brace group (`f/{A,B}.tsx` → `f/A.tsx`, `f/B.tsx`); other tokens are returned as is. */
+export function expandBraces(token) {
+  const match = token.match(/^([^{}]*)\{([^{}]+)\}([^{}]*)$/);
+  return match ? match[2].split(',').map((part) => `${match[1]}${part.trim()}${match[3]}`) : [token];
+}
+
+/**
+ * The package-relative file names of one backticked token in a package AGENTS.md, or null. Repo paths
+ * (handled by `pathOf`), dependency paths (`node_modules/…`), scoped imports (`@devmentor/core/http`),
+ * dot names, URLs (`/api/*`), calls (`NextResponse.json()`) and placeholders are not package file names.
+ */
+export function packageNamesOf(token) {
+  if (/\s/.test(token) || token.startsWith('node_modules/') || pathOf(token, false) || isEnvFile(token)) return null;
+  if (ALLOWLIST.has(token)) return null;
+  const names = expandBraces(token);
+  if (names.some((name) => PLACEHOLDER_PATTERN.test(name) || !PACKAGE_NAME_PATTERN.test(name))) return null;
+  return names;
+}
+
+/** Every package file name in a package AGENTS.md text, with its line. */
+export function findPackageNames(text) {
+  const names = [];
+  text.split('\n').forEach((line, index) => {
+    for (const match of line.matchAll(/`([^`]+)`/g)) {
+      for (const name of packageNamesOf(match[1]) ?? []) names.push({ line: index + 1, name });
+    }
+  });
+  return names;
+}
+
+/** True when one of the package files (repo-relative paths) ends with `/<name>`, or lies in directory `<name>`. */
+export function packageHasName(files, name) {
+  return name.endsWith('/') ? files.some((file) => file.includes(`/${name}`)) : files.some((file) => file.endsWith(`/${name}`));
 }
 
 /** Every checkable path in a markdown text, with its line and an optional `§` section reference. */
@@ -101,7 +140,7 @@ export function hasHeading(text, name) {
 }
 
 /** Checks one AGENTS.md: budget, existing paths, section headings and (root only) the routing table. */
-export function checkAgentsFile(path, text, { exists, read }) {
+export function checkAgentsFile(path, text, { exists, read, packageFiles }) {
   const isRoot = path === ROOT_FILE;
   const budget = isRoot ? ROOT_BUDGET : PACKAGE_BUDGET;
   const errors = [];
@@ -121,6 +160,15 @@ export function checkAgentsFile(path, text, { exists, read }) {
     }
   }
 
+  const pkg = path.match(/^packages\/([^/]+)\/AGENTS\.md$/)?.[1];
+  const names = pkg ? findPackageNames(text) : [];
+  if (names.length > 0) {
+    const files = packageFiles(pkg);
+    for (const { line, name } of names) {
+      if (!packageHasName(files, name)) errors.push(`${path}:${line}: missing file ${name} in packages/${pkg}`);
+    }
+  }
+
   if (isRoot) {
     const rows = routingRows(text);
     if (rows === null) errors.push(`${path}: no | Task | Read | routing table`);
@@ -129,7 +177,8 @@ export function checkAgentsFile(path, text, { exists, read }) {
     }
   }
 
-  return { summary: `${path}  ${lines}  ${references.length} paths`, errors, warnings };
+  const counted = `${references.length} paths${names.length ? `, ${names.length} package names` : ''}`;
+  return { summary: `${path}  ${lines}  ${counted}`, errors, warnings };
 }
 
 /** Checks the CLAUDE.md files: bare `@AGENTS.md` import next to an AGENTS.md, and one per package AGENTS.md. */
@@ -158,18 +207,23 @@ export function listAgentsFiles(cwd, fs = { existsSync, readdirSync }) {
   return [ROOT_FILE, ...packages];
 }
 
-/** Every CLAUDE.md below `dir` (repo-relative), skipping dependencies, build output and course material. */
-export function listClaudeFiles(cwd, dir = '', fs = { readdirSync }) {
+/** Every file below `dir` (repo-relative) accepted by `accept`, skipping dependencies, build output and course material. */
+export function listFiles(cwd, dir, accept, fs = { readdirSync }) {
   const out = [];
   for (const entry of fs.readdirSync(join(cwd, dir), { withFileTypes: true })) {
     const child = dir ? `${dir}/${entry.name}` : entry.name;
     if (entry.isDirectory()) {
-      if (!SKIP_DIRS.has(entry.name) && !SKIP_DIR_PATTERN.test(entry.name)) out.push(...listClaudeFiles(cwd, child, fs));
-    } else if (entry.name === 'CLAUDE.md') {
+      if (!SKIP_DIRS.has(entry.name) && !SKIP_DIR_PATTERN.test(entry.name)) out.push(...listFiles(cwd, child, accept, fs));
+    } else if (accept(entry.name)) {
       out.push(child);
     }
   }
   return out.sort();
+}
+
+/** Every CLAUDE.md below `dir` (repo-relative). */
+export function listClaudeFiles(cwd, dir = '', fs = { readdirSync }) {
+  return listFiles(cwd, dir, (name) => name === 'CLAUDE.md', fs);
 }
 
 /** Runs the gate and returns the process exit code (0 ok, possibly with warnings; 1 errors). */
@@ -179,6 +233,7 @@ export function main({
   claudeFiles = () => listClaudeFiles(cwd),
   exists = (path) => existsSync(join(cwd, path)),
   read = (path) => readFileSync(join(cwd, path), 'utf8'),
+  packageFiles = (pkg) => listFiles(cwd, `packages/${pkg}`, () => true),
   log = console.log,
   logError = console.error,
 } = {}) {
@@ -191,7 +246,7 @@ export function main({
       errors.push(`${path}: missing`);
       continue;
     }
-    const result = checkAgentsFile(path, read(path), { exists, read });
+    const result = checkAgentsFile(path, read(path), { exists, read, packageFiles });
     log(`  ${result.summary}${result.errors.length ? '' : ' ok'}`);
     errors.push(...result.errors);
     warnings.push(...result.warnings);

@@ -12,7 +12,7 @@ Token estimates are `analyze.py` estimates (≈ chars/4), not Claude-calibrated 
 | | Before | After | Δ |
 |---|---|---|---|
 | Directives (root `AGENTS.md`, analyzer count) | 110 | 85 | −25 |
-| Lines, root `AGENTS.md` | 143 | 101 | −42 |
+| Lines, root `AGENTS.md` | 143 | 102 | −41 |
 | Est. tokens, root `AGENTS.md` | 4,578 | 3,115 | −32% |
 | Est. tokens, `CLAUDE.md` | 120 | 2 | −118 |
 | Est. tokens loaded at Claude Code start-up (`CLAUDE.md` → root `AGENTS.md` + `packages/app/AGENTS.md`) | 5,207 | 3,117 | −40% |
@@ -170,7 +170,7 @@ Trimmed fragments (information removed while the directive stayed), for the same
 ## Observations
 
 - `README.md` § Tech stack ("shadcn/ui (admin pages)") and § Architecture route groups (lists only `(marketing)` and `(admin)`) are stale in the same way as findings 3–4; not changed here (README content outside the agent files).
-- Root `AGENTS.md` is 101 lines (limit 150), package files 20–57 lines (limit 120); room for growth without a new file.
+- Root `AGENTS.md` is 102 lines (limit 150), package files 20–57 lines (limit 120); room for growth without a new file.
 - `npm run check:agents` (spec item 6, separate task) should guard routes and budgets; see the spec.
 
 ## Applied rewrite
