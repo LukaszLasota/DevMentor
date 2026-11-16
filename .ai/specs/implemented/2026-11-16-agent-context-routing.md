@@ -1,6 +1,6 @@
 # Agent context routing (lesson 10)
 
-Status: in-progress (items 1–6 implemented 2026-11-16; 7 open)
+Status: implemented (2026-11-16; item 7: first-cut Context Scope measurement recorded, start-up re-measure after new sessions is an owner follow-up)
 Source: course lesson 10 "Context engineering" (local copy `C:\AI techleaders\Lekcja 10`) · Skills used from `pat-lewczuk/skills` (`eliminate-no-op`, `task-router`, read and checked 2026-11-16, not installed) · Measurement: Context Scope 0.11.0 (`open-mercato/context-scope`, local, read 2026-11-16)
 
 ## Goal

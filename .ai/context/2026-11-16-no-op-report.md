@@ -2,7 +2,7 @@
 
 **Audited:** 2026-11-16 · **Mode:** full (repo access; every path, script, command and symbol checked against the code)
 **Also read for cross-file duplication:** `CLAUDE.md`, `packages/app/AGENTS.md`, `packages/app/CLAUDE.md`, `README.md`, `CODE_REVIEW.md`, `SDLC.md`, `docs/design-system.md`, `.ai/specs/2026-09-01-engineering-standards.md`, `.github/CODEOWNERS`, `.github/workflows/ci.yml`, `package.json` (root + packages), `eslint.config.mjs`, `vitest.config.mts`
-**Spec:** `.ai/specs/2026-11-16-agent-context-routing.md` (scope items 1–5) · **Method:** `eliminate-no-op` (mechanical pass with its `analyze.py`, then directive-by-directive verdicts) and `task-router`
+**Spec:** `.ai/specs/implemented/2026-11-16-agent-context-routing.md` (scope items 1–5) · **Method:** `eliminate-no-op` (mechanical pass with its `analyze.py`, then directive-by-directive verdicts) and `task-router`
 **Calibration:** root `AGENTS.md` / `CLAUDE.md` — strictest budget (loaded at every session start); package `AGENTS.md` — on demand (Claude Code loads a nested `CLAUDE.md` when it reads files in that directory; other agents read the nearest `AGENTS.md`).
 
 ## Summary
@@ -175,7 +175,7 @@ Trimmed fragments (information removed while the directive stayed), for the same
 
 ## Applied rewrite
 
-Applied in place (not as `AGENTS.rewrite.md`): spec `.ai/specs/2026-11-16-agent-context-routing.md` (approved) asks for the restructure. Undo buffer: this report + `git show <commit>^:AGENTS.md`. Files: `AGENTS.md`, `CLAUDE.md`, `packages/{app,core,db,ui}/AGENTS.md`, `packages/{core,db,ui}/CLAUDE.md`, `README.md` § For AI agents, `.github/CODEOWNERS` (package agent files owned).
+Applied in place (not as `AGENTS.rewrite.md`): spec `.ai/specs/implemented/2026-11-16-agent-context-routing.md` (approved) asks for the restructure. Undo buffer: this report + `git show <commit>^:AGENTS.md`. Files: `AGENTS.md`, `CLAUDE.md`, `packages/{app,core,db,ui}/AGENTS.md`, `packages/{core,db,ui}/CLAUDE.md`, `README.md` § For AI agents, `.github/CODEOWNERS` (package agent files owned).
 
 ## Second cut (2026-11-16)
 
