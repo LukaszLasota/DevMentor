@@ -6,6 +6,7 @@ import {
   CLAUDE_CONTENT,
   checkAgentsFile,
   checkClaudeFiles,
+  checkPackages,
   countedLines,
   expandBraces,
   findPackageNames,
@@ -13,7 +14,9 @@ import {
   hasHeading,
   listAgentsFiles,
   listClaudeFiles,
+  listPackages,
   main,
+  normalizeEol,
   packageHasName,
   packageNamesOf,
   pathOf,
@@ -45,6 +48,12 @@ describe('pathOf', () => {
     ['packages/app/.env.local', true, null],
     ['.codex/', true, null],
     ['.mcp.json', true, '.mcp.json'],
+    ['docker-compose.yml', true, 'docker-compose.yml'],
+    ['pnpm-workspace.yaml', true, 'pnpm-workspace.yaml'],
+    ['commitlint.config.cjs', true, 'commitlint.config.cjs'],
+    ['next.config.js', true, 'next.config.js'],
+    ['netlify.toml', true, 'netlify.toml'],
+    ['docker-compose.yml', false, null],
     ['packages/app/src/app/layout.tsx', true, null],
     ['2026-10-20-user-login.md', true, null],
     ['@devmentor/core', true, null],
@@ -146,14 +155,48 @@ describe('routingRows', () => {
   });
 });
 
+describe('normalizeEol', () => {
+  it('turns CRLF and lone CR into LF', () => {
+    expect(normalizeEol('a\r\nb\rc\n')).toBe('a\nb\nc\n');
+  });
+});
+
 describe('countedLines', () => {
+  const app = 'packages/app/AGENTS.md';
+  const managed = [
+    '<!-- BEGIN:nextjs-agent-rules -->',
+    'managed',
+    '<!-- END:nextjs-agent-rules -->',
+    '',
+    '<!-- BEGIN:nextjs-agent-feedback -->',
+    '<!-- END:nextjs-agent-feedback -->',
+  ].join('\n');
+
   it('counts every line of a plain file, ignoring the final newline', () => {
     expect(countedLines('a\nb\nc\n')).toEqual({ count: 3, ownPart: false });
   });
 
-  it('counts only the lines after the last managed-block marker', () => {
-    const text = '<!-- BEGIN:x -->\nmanaged\n<!-- END:x -->\n<!-- BEGIN:y -->\n<!-- END:y -->\n\n## Ours\nrule\n';
-    expect(countedLines(text)).toEqual({ count: 3, ownPart: true });
+  it('skips the leading next dev blocks of packages/app/AGENTS.md', () => {
+    expect(countedLines(`${managed}\n\n## Ours\nrule\n`, app)).toEqual({ count: 3, ownPart: true });
+  });
+
+  it('skips the managed blocks of a CRLF file', () => {
+    expect(countedLines(`${managed}\n\n## Ours\nrule\n`.replaceAll('\n', '\r\n'), app)).toEqual({ count: 3, ownPart: true });
+  });
+
+  it('counts an END marker in any other file like ordinary text', () => {
+    const text = `${lines(5)}\n<!-- END:nextjs-agent-rules -->\nrule\n`;
+    expect(countedLines(text, 'packages/ui/AGENTS.md')).toEqual({ count: 7, ownPart: false });
+    expect(countedLines(text, 'AGENTS.md')).toEqual({ count: 7, ownPart: false });
+  });
+
+  it('counts own text before a block, unknown block names and unclosed blocks in packages/app/AGENTS.md', () => {
+    const own = `${lines(5)}\n${managed}\n`;
+    expect(countedLines(own, app)).toEqual({ count: 11, ownPart: false });
+    const unknown = `<!-- BEGIN:x -->\n${lines(5)}\n<!-- END:x -->\n`;
+    expect(countedLines(unknown, app)).toEqual({ count: 7, ownPart: false });
+    const unclosed = `<!-- BEGIN:nextjs-agent-rules -->\n${lines(5)}\n<!-- END:nextjs-agent-feedback -->\n`;
+    expect(countedLines(unclosed, app)).toEqual({ count: 7, ownPart: false });
   });
 });
 
@@ -204,7 +247,7 @@ describe('checkAgentsFile', () => {
   });
 
   it('marks the own-part count of a file with managed blocks', () => {
-    const text = `<!-- BEGIN:x -->\n${lines(200)}\n<!-- END:x -->\n## Ours`;
+    const text = `<!-- BEGIN:nextjs-agent-rules -->\n${lines(200)}\n<!-- END:nextjs-agent-rules -->\n## Ours`;
     expect(checkAgentsFile('packages/app/AGENTS.md', text, fs)).toEqual({
       summary: 'packages/app/AGENTS.md  1/120 lines (own part)  0 paths',
       errors: [],
@@ -241,6 +284,21 @@ describe('checkAgentsFile', () => {
     expect(packageFiles).not.toHaveBeenCalled();
   });
 
+  it('cannot hide a package file behind an END marker', () => {
+    const text = `${lines(200)}\n<!-- END:nextjs-agent-rules -->\n## Ours`;
+    expect(checkAgentsFile('packages/ui/AGENTS.md', text, fs).errors).toEqual(['packages/ui/AGENTS.md: 202 lines, budget 120']);
+  });
+
+  it('parses a CRLF file like an LF one', () => {
+    const text = `# Root\n${table('| Feature | `SDLC.md` § Definition of Ready |')}\n`.replaceAll('\n', '\r\n');
+    const crlf = { ...fs, read: (path) => files[path].replaceAll('\n', '\r\n') };
+    expect(checkAgentsFile('AGENTS.md', text, crlf)).toEqual({
+      summary: 'AGENTS.md  4/150 lines  1 paths',
+      errors: [],
+      warnings: [],
+    });
+  });
+
   it('requires the routing table and a repo path in every route', () => {
     expect(checkAgentsFile('AGENTS.md', '# Root', fs).errors).toEqual(['AGENTS.md: no | Task | Read | routing table']);
     expect(checkAgentsFile('AGENTS.md', table('| Review | the review checklist |'), fs).errors).toEqual([
@@ -252,6 +310,12 @@ describe('checkAgentsFile', () => {
 describe('checkClaudeFiles', () => {
   it('accepts bare imports next to every AGENTS.md', () => {
     const fs = { exists: () => true, read: () => CLAUDE_CONTENT };
+    expect(checkClaudeFiles(['CLAUDE.md', 'packages/db/CLAUDE.md'], ['AGENTS.md', 'packages/db/AGENTS.md'], fs)).toEqual([]);
+  });
+
+  it('accepts a CRLF import and an import without the final newline', () => {
+    const files = { 'CLAUDE.md': '@AGENTS.md\r\n', 'packages/db/CLAUDE.md': '@AGENTS.md' };
+    const fs = { exists: () => true, read: (path) => files[path] };
     expect(checkClaudeFiles(['CLAUDE.md', 'packages/db/CLAUDE.md'], ['AGENTS.md', 'packages/db/AGENTS.md'], fs)).toEqual([]);
   });
 
@@ -267,13 +331,22 @@ describe('checkClaudeFiles', () => {
   });
 });
 
+describe('checkPackages', () => {
+  it('warns about a package without AGENTS.md', () => {
+    const fs = { exists: (path) => path === 'packages/db/AGENTS.md' };
+    expect(checkPackages(['db', 'new'], fs)).toEqual([
+      'packages/new: no package rules — add packages/new/AGENTS.md if it has package-specific rules',
+    ]);
+  });
+});
+
 describe('file discovery', () => {
   let dir;
   afterEach(() => dir && rmSync(dir, { recursive: true, force: true }));
 
   function repo() {
     dir = mkdtempSync(join(tmpdir(), 'agents-'));
-    for (const sub of ['packages/app', 'packages/empty', 'packages/db/src', 'node_modules/x', 'lekcja-06', 'prototypes/p', '.agents/skills/s']) {
+    for (const sub of ['packages/app', 'packages/empty', 'packages/new', 'packages/db/src', 'node_modules/x', 'lekcja-06', 'prototypes/p', '.agents/skills/s']) {
       mkdirSync(join(dir, sub), { recursive: true });
     }
     for (const file of [
@@ -284,6 +357,8 @@ describe('file discovery', () => {
       'packages/db/AGENTS.md',
       'packages/db/src/CLAUDE.md',
       'packages/README.md',
+      'packages/app/package.json',
+      'packages/new/package.json',
       'node_modules/x/CLAUDE.md',
       'lekcja-06/CLAUDE.md',
       'prototypes/p/CLAUDE.md',
@@ -296,6 +371,10 @@ describe('file discovery', () => {
 
   it('lists the root and package AGENTS.md files', () => {
     expect(listAgentsFiles(repo())).toEqual(['AGENTS.md', 'packages/app/AGENTS.md', 'packages/db/AGENTS.md']);
+  });
+
+  it('lists the packages: directories with a package.json', () => {
+    expect(listPackages(repo())).toEqual(['app', 'new']);
   });
 
   it('lists CLAUDE.md files outside dependencies, installed skills and course material', () => {
@@ -318,6 +397,7 @@ describe('main', () => {
     const code = main({
       agentsFiles: () => ['AGENTS.md', 'packages/db/AGENTS.md'],
       claudeFiles: () => ['CLAUDE.md', 'packages/db/CLAUDE.md'],
+      packages: () => ['db'],
       exists: (path) => path in files,
       read: (path) => files[path],
       packageFiles: (pkg) => Object.keys(files).filter((path) => path.startsWith(`packages/${pkg}/`)),
@@ -364,6 +444,27 @@ describe('main', () => {
     expect(logError).toHaveBeenCalledWith('error: packages/db/AGENTS.md: missing');
   });
 
+  it('warns about a new package without AGENTS.md', () => {
+    const { code, log } = run(okFiles, { packages: () => ['db', 'new'] });
+
+    expect(code).toBe(0);
+    expect(log).toHaveBeenCalledWith(
+      'warning: packages/new: no package rules — add packages/new/AGENTS.md if it has package-specific rules',
+    );
+    expect(log).toHaveBeenLastCalledWith('check:agents: 2 AGENTS.md files, 2 CLAUDE.md files, all ok (2 warning(s)).');
+  });
+
+  it('fails a new package with CLAUDE.md but no AGENTS.md', () => {
+    const files = { ...okFiles, 'packages/new/CLAUDE.md': CLAUDE_CONTENT };
+    const { code, logError } = run(files, {
+      packages: () => ['db', 'new'],
+      claudeFiles: () => ['CLAUDE.md', 'packages/db/CLAUDE.md', 'packages/new/CLAUDE.md'],
+    });
+
+    expect(code).toBe(1);
+    expect(logError).toHaveBeenCalledWith('error: packages/new/CLAUDE.md: imports packages/new/AGENTS.md, which does not exist');
+  });
+
   it('prints no warning suffix when there are no warnings', () => {
     const { log } = run({ ...okFiles, 'packages/db/AGENTS.md': '# db\n' });
     expect(log).toHaveBeenLastCalledWith('check:agents: 2 AGENTS.md files, 2 CLAUDE.md files, all ok.');
@@ -371,7 +472,7 @@ describe('main', () => {
 
   it('reads the real file system by default', () => {
     const dir = mkdtempSync(join(tmpdir(), 'agents-'));
-    for (const [path, text] of Object.entries(okFiles)) {
+    for (const [path, text] of Object.entries({ ...okFiles, 'packages/db/package.json': '{}' })) {
       mkdirSync(join(dir, path, '..'), { recursive: true });
       writeFileSync(join(dir, path), text);
     }

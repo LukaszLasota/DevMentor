@@ -2,14 +2,18 @@
 // instruction files small, their routes valid and every CLAUDE.md a bare import of its AGENTS.md.
 //
 // 1. Budgets: root AGENTS.md <= 150 lines, each packages/*/AGENTS.md <= 120 lines (warning at 80%).
-//    packages/app/AGENTS.md counts only our part below the last `<!-- END:… -->` marker: the blocks
-//    above it are written by `next dev` and are not ours to trim.
+//    packages/app/AGENTS.md counts only our part below the leading `next dev` blocks
+//    (`<!-- BEGIN:nextjs-agent-… -->` … `<!-- END:… -->`, see MANAGED_BLOCKS): they are not ours to trim.
+//    Any other marker, in any file, is counted like ordinary text.
 // 2. Routes: every backticked repo path in an AGENTS.md must exist, and every row of the root
 //    `| Task | Read |` table must route to at least one such path. In a package file, a bare or
 //    section-relative file name (`errors.ts`, `forms/CrudForm.tsx`, `invitation/`) must match a file of
 //    that package whose path ends with `/<name>` (brace groups `{a,b}` are expanded, each must exist).
 // 3. Sections: `path.md § Name` (or `§2`) after a markdown path must match a heading (warning only).
-// 4. Every CLAUDE.md is exactly `@AGENTS.md\n` next to an AGENTS.md; every packages/*/AGENTS.md has one.
+// 4. Every CLAUDE.md is exactly `@AGENTS.md` (one trailing newline optional) next to an AGENTS.md; every
+//    packages/*/AGENTS.md has one. A package (`packages/<x>/package.json`) without AGENTS.md is a warning:
+//    a unit gets a file only when it has package-specific rules (task-router), but it must not go unnoticed.
+// Line endings are normalised (CRLF → LF) before any text is compared, counted or parsed.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -18,12 +22,16 @@ export const ROOT_BUDGET = 150;
 export const PACKAGE_BUDGET = 120;
 export const WARN_RATIO = 0.8;
 export const CLAUDE_CONTENT = '@AGENTS.md\n';
+/** The only file with managed blocks, and the block names `next dev` writes into it
+ * (`node_modules/next/dist/server/lib/generate-agent-files.js`). */
+export const MANAGED_FILE = 'packages/app/AGENTS.md';
+export const MANAGED_BLOCKS = ['nextjs-agent-rules', 'nextjs-agent-feedback'];
 
 /** Backticked tokens with these prefixes are repo paths and must exist. */
 export const PATH_PREFIXES = ['.ai/', '.github/', '.claude/', '.agents/', 'packages/', 'docs/', 'scripts/'];
 /** Bare file names with these extensions are root files — checked in the root AGENTS.md only (in package
  * files a bare name like `errors.ts` is relative to the section that lists it). */
-const ROOT_FILE_PATTERN = /^[\w.-]+\.(?:md|json|mjs|mts|ts)$/;
+const ROOT_FILE_PATTERN = /^[\w.-]+\.(?:md|json|mjs|cjs|mts|ts|js|ya?ml|toml)$/;
 /** Placeholders and patterns, not paths: `<concept>`, `YYYY-MM-DD`, `{a,b}`, globs, ellipses. */
 const PLACEHOLDER_PATTERN = /[<>{}*…]|YYYY|\.\.\./;
 /** A dated example name such as `2026-10-20-user-login.md` (naming rule); real references carry their folder. */
@@ -40,6 +48,11 @@ export const ALLOWLIST = new Map([
 /** Directories never searched for CLAUDE.md: dependencies, build output, installed skills, course material. */
 const SKIP_DIRS = new Set(['node_modules', '.git', '.next', '.agents', 'coverage', 'storybook-static', 'prototypes']);
 const SKIP_DIR_PATTERN = /^lekcja-/;
+
+/** The text with CRLF (and lone CR) line endings turned into LF. */
+export function normalizeEol(text) {
+  return text.replace(/\r\n?/g, '\n');
+}
 
 /** Dotenv files are never read and may be named without existing (`.env`, `.env.local`, `.env.example`…). */
 function isEnvFile(token) {
@@ -122,16 +135,30 @@ export function routingRows(text) {
   return rows;
 }
 
-/** Lines that count against the budget: all of them, or only those after the last managed-block marker. */
-export function countedLines(text) {
-  const lines = text.replace(/\n$/, '').split('\n');
-  const lastMarker = lines.findLastIndex((line) => /^<!-- END:.*-->$/.test(line.trim()));
-  return { count: lines.length - lastMarker - 1, ownPart: lastMarker !== -1 };
+/**
+ * Lines that count against the budget: all of them, except in `MANAGED_FILE`, where the `next dev`
+ * blocks at its top (known names only, each closed by its own END marker, blank lines between) are skipped.
+ */
+export function countedLines(text, path = '') {
+  const lines = normalizeEol(text).replace(/\n$/, '').split('\n');
+  let start = 0;
+  if (path === MANAGED_FILE) {
+    for (let i = 0; i < lines.length; i += 1) {
+      const name = lines[i].trim().match(/^<!-- BEGIN:([\w-]+) -->$/)?.[1];
+      if (lines[i].trim() === '') continue;
+      if (!MANAGED_BLOCKS.includes(name)) break;
+      const end = lines.findIndex((line, j) => j > i && line.trim() === `<!-- END:${name} -->`);
+      if (end === -1) break;
+      i = end;
+      start = end + 1;
+    }
+  }
+  return { count: lines.length - start, ownPart: start > 0 };
 }
 
 /** True when a markdown heading of `text` matches the section name (`2` matches `## 2. …`). */
 export function hasHeading(text, name) {
-  const headings = text
+  const headings = normalizeEol(text)
     .split('\n')
     .filter((line) => /^#{1,6}\s/.test(line))
     .map((line) => line.replace(/^#+\s*/, ''));
@@ -140,12 +167,13 @@ export function hasHeading(text, name) {
 }
 
 /** Checks one AGENTS.md: budget, existing paths, section headings and (root only) the routing table. */
-export function checkAgentsFile(path, text, { exists, read, packageFiles }) {
+export function checkAgentsFile(path, rawText, { exists, read, packageFiles }) {
+  const text = normalizeEol(rawText);
   const isRoot = path === ROOT_FILE;
   const budget = isRoot ? ROOT_BUDGET : PACKAGE_BUDGET;
   const errors = [];
   const warnings = [];
-  const { count, ownPart } = countedLines(text);
+  const { count, ownPart } = countedLines(text, path);
   const lines = `${count}/${budget} lines${ownPart ? ' (own part)' : ''}`;
 
   if (count > budget) errors.push(`${path}: ${count} lines, budget ${budget}`);
@@ -185,7 +213,7 @@ export function checkAgentsFile(path, text, { exists, read, packageFiles }) {
 export function checkClaudeFiles(claudeFiles, agentsFiles, { exists, read }) {
   const errors = [];
   for (const path of claudeFiles) {
-    if (read(path) !== CLAUDE_CONTENT) errors.push(`${path}: must contain exactly "@AGENTS.md" and a newline`);
+    if (normalizeEol(read(path)).replace(/\n$/, '') !== CLAUDE_CONTENT.trimEnd()) errors.push(`${path}: must contain exactly "@AGENTS.md" and a newline`);
     const sibling = path.replace(/CLAUDE\.md$/, 'AGENTS.md');
     if (!exists(sibling)) errors.push(`${path}: imports ${sibling}, which does not exist`);
   }
@@ -194,6 +222,22 @@ export function checkClaudeFiles(claudeFiles, agentsFiles, { exists, read }) {
     if (!claudeFiles.includes(sibling)) errors.push(`${path}: no sibling ${sibling} (Claude Code reads AGENTS.md through it)`);
   }
   return errors;
+}
+
+/** Warnings for packages (`packages/<x>/package.json`) without an AGENTS.md. */
+export function checkPackages(packages, { exists }) {
+  return packages
+    .filter((pkg) => !exists(`packages/${pkg}/AGENTS.md`))
+    .map((pkg) => `packages/${pkg}: no package rules — add packages/${pkg}/AGENTS.md if it has package-specific rules`);
+}
+
+/** Every directory under packages/ with a package.json (a workspace package). */
+export function listPackages(cwd, fs = { existsSync, readdirSync }) {
+  return fs
+    .readdirSync(join(cwd, 'packages'), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && fs.existsSync(join(cwd, 'packages', entry.name, 'package.json')))
+    .map((entry) => entry.name)
+    .sort();
 }
 
 /** The root AGENTS.md plus every packages/<name>/AGENTS.md. */
@@ -231,6 +275,7 @@ export function main({
   cwd = process.cwd(),
   agentsFiles = () => listAgentsFiles(cwd),
   claudeFiles = () => listClaudeFiles(cwd),
+  packages = () => listPackages(cwd),
   exists = (path) => existsSync(join(cwd, path)),
   read = (path) => readFileSync(join(cwd, path), 'utf8'),
   packageFiles = (pkg) => listFiles(cwd, `packages/${pkg}`, () => true),
@@ -256,6 +301,8 @@ export function main({
   const claudeErrors = checkClaudeFiles(claude, agents.filter(exists), { exists, read });
   log(`  ${claude.length} CLAUDE.md files → @AGENTS.md${claudeErrors.length ? '' : ' ok'}`);
   errors.push(...claudeErrors);
+
+  warnings.push(...checkPackages(packages(), { exists }));
 
   for (const warning of warnings) log(`warning: ${warning}`);
   for (const error of errors) logError(`error: ${error}`);
