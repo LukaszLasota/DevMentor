@@ -207,4 +207,4 @@ With `MAIL_PROVIDER=log` (the default outside production) no email is sent: the 
 
 ## For AI agents
 
-Rules for coding agents are in [AGENTS.md](AGENTS.md) (loaded by Claude Code via [CLAUDE.md](CLAUDE.md)). Specs, run logs and lessons learned live in [.ai/](.ai/).
+Rules for coding agents start in [AGENTS.md](AGENTS.md): the rules every task needs and a task routing table ("when doing X, read Y"). Rules that apply to one package live next to it: [app](packages/app/AGENTS.md), [core](packages/core/AGENTS.md), [db](packages/db/AGENTS.md), [ui](packages/ui/AGENTS.md). Each `AGENTS.md` has a `CLAUDE.md` beside it that only imports it (`@AGENTS.md`), so Claude Code loads the same rules; other agents read `AGENTS.md` directly. Specs, run logs and lessons learned live in [.ai/](.ai/).
