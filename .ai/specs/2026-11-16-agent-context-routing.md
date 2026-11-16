@@ -1,6 +1,6 @@
 # Agent context routing (lesson 10)
 
-Status: in-progress (items 1–5 implemented 2026-11-16; 6–7 open)
+Status: in-progress (items 1–6 implemented 2026-11-16; 7 open)
 Source: course lesson 10 "Context engineering" (local copy `C:\AI techleaders\Lekcja 10`) · Skills used from `pat-lewczuk/skills` (`eliminate-no-op`, `task-router`, read and checked 2026-11-16, not installed) · Measurement: Context Scope 0.11.0 (`open-mercato/context-scope`, local, read 2026-11-16)
 
 ## Goal
@@ -38,6 +38,13 @@ Cut what every agent session pays for at start-up and point the agent to the rig
 - No-op report with before/after token estimates and the cut lines.
 - `npm run validate` green incl. `check:agents`; CI green.
 - Baseline and TO BE recorded in this spec.
+
+## Implementation notes (item 6)
+- `scripts/check-agents.mjs` (thin entry) → `scripts/lib/check-agents.mjs`; tests next to both (tooling project, 100%). Runs first in `npm run validate` and as its own step of the CI lint job.
+- `packages/app/AGENTS.md` budget counts only our part below the last `<!-- END:… -->` marker (the `next dev` blocks above it are not ours to trim).
+- Paths checked: backticked tokens starting with `.ai/`, `.github/`, `.claude/`, `.agents/`, `packages/`, `docs/`, `scripts/`; bare root file names (`*.md|json|mjs|mts|ts`) only in the root file — in package files a bare `errors.ts` is relative to its section. Skipped: placeholders (`<…>`, `YYYY`, `{…}`, globs, `…`), dotenv names, dated naming examples (`2026-10-20-user-login.md`), and the documented allowlist (`.codex/`, `.mcp.json`, `src/app/layout.tsx`, `packages/app/src/app/layout.tsx`).
+- `§ Name` / `§2` after a markdown path is matched against the target's headings (warning only). Every root routing row must name at least one repo path.
+- First run on the repo: all routes valid; one false-positive section warning (sentence period captured in `§ Reference implementations.`) fixed in the parser.
 
 ## Decisions in play
 - Skills used from a temporary checkout instead of being installed (installing writes to `.claude/skills/`, which the lesson 09 sandbox protects; they are needed once).

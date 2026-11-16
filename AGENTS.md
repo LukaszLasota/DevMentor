@@ -8,8 +8,9 @@ Next.js 16 (App Router, `cacheComponents`), React 19, TypeScript (`strict`, no `
 
 ## Commands
 
-- `npm run validate` — lint, typecheck, unit tests with coverage, build, audit (all gates except integration). Run it before review, plus `npm run test:integration` when HTTP/DB/UI behaviour changes.
+- `npm run validate` — agent files, lint, typecheck, unit tests with coverage, build, audit (all gates except integration). Run it before review, plus `npm run test:integration` when HTTP/DB/UI behaviour changes.
 - `npm run dev | build | lint | typecheck | test | test:coverage | test:integration | audit | check:tokens`; `npm run db -- <mikro-orm command>`.
+- `npm run check:agents` — every `AGENTS.md` within its line budget (root 150, package 120), every path it names exists, every `CLAUDE.md` is only `@AGENTS.md`. Run it after editing agent files.
 - Install a dependency into one package: `npm install <dep> -w @devmentor/<name>`. Packages are consumed as TypeScript source (no build step; Turbopack transpiles them).
 
 ## Packages and dependency direction
