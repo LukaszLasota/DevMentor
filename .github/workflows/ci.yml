@@ -26,6 +26,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
+      # Agent instruction files: line budgets, routed paths exist, every CLAUDE.md is a bare @AGENTS.md import.
+      - run: npm run check:agents
       - run: npm run lint
       - run: npm run typecheck
 

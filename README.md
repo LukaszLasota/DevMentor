@@ -12,7 +12,7 @@ Web application built with Next.js, TypeScript and React, backed by PostgreSQL.
 | Dependency injection | Awilix |
 | Validation / config | Zod 4 (shared schemas, env validation) |
 | Logging | pino (secrets redacted) |
-| Styling | Tailwind CSS 4 (public pages), shadcn/ui (admin pages) |
+| Styling | Tailwind CSS 4 (public pages), shadcn/ui (signed-in panel pages: auth, mentee, mentor, admin) |
 | Tests | Vitest + v8 coverage (100% required), Testing Library, testcontainers, agent-browser |
 | CI | GitHub Actions on every pull request |
 | Repo layout | Monorepo, npm workspaces |
@@ -46,7 +46,12 @@ Domain code is organized by concept (`bookings`, `mentors`, ...) in same-named f
 Route groups in `packages/app/src/app`:
 
 - `(marketing)` — public pages, styled with Tailwind.
-- `(admin)` — admin panel, built with shadcn/ui.
+- `(auth)` — sign-in, register and verify email; panel surface built with shadcn/ui.
+- `(mentee)`, `(mentor)` — persona areas for signed-in users (guarded pages), in the signed-in shell (`AppShell`), built with shadcn/ui.
+- `(admin)` — admin panel for operators (role guard), same shell, built with shadcn/ui.
+- `invitation/` — the public, session-aware mentor invitation link (`/invitation/[token]`), outside the route groups with its own root layout.
+
+Each group has its own root layout; there is no `src/app/layout.tsx`.
 
 ## Getting started
 
@@ -207,4 +212,4 @@ With `MAIL_PROVIDER=log` (the default outside production) no email is sent: the 
 
 ## For AI agents
 
-Rules for coding agents are in [AGENTS.md](AGENTS.md) (loaded by Claude Code via [CLAUDE.md](CLAUDE.md)). Specs, run logs and lessons learned live in [.ai/](.ai/).
+Rules for coding agents start in [AGENTS.md](AGENTS.md): the rules every task needs and a task routing table ("when doing X, read Y"). Rules that apply to one package live next to it: [app](packages/app/AGENTS.md), [core](packages/core/AGENTS.md), [db](packages/db/AGENTS.md), [ui](packages/ui/AGENTS.md). Each `AGENTS.md` has a `CLAUDE.md` beside it that only imports it (`@AGENTS.md`), so Claude Code loads the same rules; other agents read `AGENTS.md` directly. Specs, run logs and lessons learned live in [.ai/](.ai/).

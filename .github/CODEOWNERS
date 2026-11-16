@@ -8,7 +8,8 @@
 /.mcp.json               @LukaszLasota
 /CLAUDE.md               @LukaszLasota
 /AGENTS.md               @LukaszLasota
-/packages/app/AGENTS.md  @LukaszLasota
+/packages/*/AGENTS.md    @LukaszLasota
+/packages/*/CLAUDE.md    @LukaszLasota
 /skills-lock.json        @LukaszLasota
 /.github/workflows/      @LukaszLasota
 /.github/CODEOWNERS      @LukaszLasota
