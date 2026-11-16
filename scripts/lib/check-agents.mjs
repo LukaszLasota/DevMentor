@@ -42,6 +42,9 @@ const PACKAGE_NAME_PATTERN = /^[\w([-][\w.()[\]-]*(?:\/[\w.()[\]-]+)*(?:\/|\.(?:
  * check ever reaches them: `.codex/` (no checked prefix, not a root file name); `.mcp.json` exists and is
  * checked as a root file name. */
 export const ALLOWLIST = new Map([
+  // Not in the repo: a preventive CODEOWNERS entry. Locally the Claude Code sandbox mounts a placeholder at this
+  // path, so an existence check passes on the agent's machine and fails in CI — never trust a local check for it.
+  ['.mcp.json', 'preventive CODEOWNERS entry; no project MCP config'],
   ['src/app/layout.tsx', 'named as not existing (one root layout per route group)'],
   ['packages/app/src/app/layout.tsx', 'named as not existing (one root layout per route group)'],
 ]);

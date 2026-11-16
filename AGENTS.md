@@ -19,6 +19,10 @@ Next.js 16 (App Router, `cacheComponents`), React 19, TypeScript (`strict`, no `
 
 | Package | Contents | May import |
 |---|---|---|
+| `packages/app` | Next.js app (`src/app`): pages, route handlers — HTTP/rendering only | `core`, `ui` |
+| `packages/core` | Services (business rules), DI container, `http/` API layer, env, logger, events, validators | `db` |
+| `packages/db` | MikroORM config, entities, migrations | nothing internal |
+| `packages/ui` | React components: shadcn primitives, panel layer `backend/`, concept components | nothing internal |
 
 - Only `db` imports `@mikro-orm/*`. `core` and `db` never import `next`/`react`. `ui` never imports `core`.
 - Import packages through their public entries (`@devmentor/core`, `@devmentor/core/http`, `@devmentor/core/validators`, `@devmentor/ui`, `@devmentor/ui/mentors`), never relative paths into another package.
