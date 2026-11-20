@@ -83,14 +83,14 @@ describe('session note (agent-browser, two parties)', () => {
     await mentor.open(`${baseUrl}/sessions/${sessionId}`);
     await mentor.waitForText('Session note');
     await mentor.waitForIdle();
-    await mentor.fill('textarea[name="body"]', NOTE_1);
+    await mentor.fill('section[aria-labelledby="note-heading"] textarea[name="body"]', NOTE_1);
     await mentor.clickButton('Send to the mentee');
     await mentor.waitForText("Waiting for the mentee's decision.");
 
     await mentee.open(`${baseUrl}/sessions/${sessionId}`);
     await mentee.waitForText(NOTE_1);
     expect(await mentee.text('main')).toContain('It is not published anywhere.');
-    expect(await mentee.count('textarea[name="body"]')).toBe(0);
+    expect(await mentee.count('section[aria-labelledby="note-heading"] textarea')).toBe(0);
     expect((await waitForMail(`sn-mentee-${run}@devmentor.test`, 2)).subject).toBe('Your session note is ready for review');
     expect((await api(`/api/sessions/${sessionId}/note`, ada.cookie, { method: 'POST', body: { body: NOTE_2 } })).body.error.code).toBe('NOTE_PENDING');
   });
