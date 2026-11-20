@@ -97,6 +97,9 @@ describe('availability slots: publish → public page with lead-time state → r
     });
     expect(page.status).toBe(200);
     expect((await api('/api/mentors/me/publish', cookie, { method: 'POST' })).status).toBe(200);
+    // #24: offer-ready also needs both prices within the bounds (integration env: PLN 50–300 / 100–600).
+    const prices = await api('/api/mentors/me/prices', cookie, { method: 'PUT', body: JSON.stringify({ price25: '150', price50: '300' }) });
+    expect(prices.status).toBe(200);
 
     expect(await (await fetch(`${baseUrl}/m/${SLUG}`)).text()).toContain('Not bookable yet');
     await browser.open(`${baseUrl}/mentor`);
