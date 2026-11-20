@@ -1,6 +1,6 @@
 # Execution plan — mentor prices (E01-S04)
 
-Source spec: .ai/specs/2026-10-21-mentor-prices.md
+Source spec: .ai/specs/implemented/2026-10-21-mentor-prices.md
 Issue: #24 · Epic: #16
 Branch: feat/mentor-prices
 Engine: om-auto-create-pr-loop (forced by the brief, regardless of step count)
