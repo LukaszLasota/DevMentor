@@ -14,3 +14,9 @@
 - Decision: Tasks-table Commit cells resolved at checkpoints (self → SHA), since an amend would change the SHA it records.
 - Decision: `publish` computes GREATEST(last, now) in the service on the row it holds locked (same semantics as SQL GREATEST, no raw SQL).
 - Decision: owner DTO gains `offerReadiness` (for the /mentor slot step); public DTO gains `offerReady` + `slots` (empty unless offer-ready).
+
+## 2026-11-20T10:00:22Z — checkpoint 2 (steps 2.5..3.4)
+- Lint, typecheck, unit 100%, build and Storybook a11y green; app screenshots skipped (no database/Docker here; CI integration is the browser evidence).
+- Decision: reuse the Storybook `SlotsPanel` from `@devmentor/ui` (exists since PR #37) instead of a colocated copy; the page container is `SlotsEditor.tsx`.
+- Decision: the datetime field names no zone in the server render (it cannot know the viewer's) and fills it in after hydration.
+- UI skipped pass: app-level screenshots (reason above).

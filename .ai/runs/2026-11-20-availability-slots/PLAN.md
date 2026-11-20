@@ -16,11 +16,11 @@ Engine: om-auto-create-pr-loop (forced by the brief, regardless of step count)
 | 2 | 2.2 | availability.slot.published event | inline | done | cc6f832 |
 | 2 | 2.3 | SlotService and container registration | inline | done | c28b192 |
 | 2 | 2.4 | hasBookableSlot in mentorOfferReady and slots on the public mentor read | inline | done | 327ba2e |
-| 2 | 2.5 | Slot owner routes and HTTP handlers | inline | done | self |
-| 3 | 3.1 | CrudForm datetime field | inline | done | self |
-| 3 | 3.2 | MentorPageView shows slots when offer-ready without prices | inline | done | self |
-| 3 | 3.3 | /mentor/slots page, sidebar item and the /mentor slot step | inline | done | self |
-| 3 | 3.4 | Slots on the public /m/[slug] page | inline | done | self |
+| 2 | 2.5 | Slot owner routes and HTTP handlers | inline | done | dfb99b6 |
+| 3 | 3.1 | CrudForm datetime field | inline | done | 01e7bff |
+| 3 | 3.2 | MentorPageView shows slots when offer-ready without prices | inline | done | 66cd9ee |
+| 3 | 3.3 | /mentor/slots page, sidebar item and the /mentor slot step | inline | done | 695c1dd |
+| 3 | 3.4 | Slots on the public /m/[slug] page | inline | done | 5d068f3 |
 | 4 | 4.1 | invite-cli D13 columns | dispatch:cheap | todo | — |
 | 4 | 4.2 | Integration tests for slots | inline | todo | — |
 
