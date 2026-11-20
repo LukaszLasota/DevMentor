@@ -23,6 +23,7 @@ Engine: om-auto-create-pr-loop (forced by the brief, regardless of step count)
 | 3 | 3.2 | Set your prices step on /mentor with the out-of-bounds price named | inline | done | self |
 | 3 | 3.3 | Prices on the public /m/[slug] page | inline | done | self |
 | 4 | 4.1 | Integration tests for prices; slot flow sets prices | inline | done | self |
+| 4 | 4.1-review-fix | Public prices only when offer-ready; one amount regex; shared range text; typed keys; tests | inline | done | self |
 
 ## Goal
 

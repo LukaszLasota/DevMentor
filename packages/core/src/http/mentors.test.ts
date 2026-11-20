@@ -213,8 +213,9 @@ describe('PUT /api/mentors/me/prices (#24)', () => {
 
     const anonymous = await routes.prices(await request('PUT', { signedIn: false, body }), noParams);
     const operator = await routes.prices(await request('PUT', { body }), noParams);
-    setup();
+    const { mentorProfileService: csrfCase } = setup();
     const noCsrf = await routes.prices(await request('PUT', { csrf: false, body }), noParams);
+    expect(csrfCase.updatePrices).not.toHaveBeenCalled();
     const { mentorProfileService: withoutProfile } = setup();
     withoutProfile.updatePrices.mockRejectedValueOnce(new NotFoundError('Mentor profile not found.'));
     const missing = await routes.prices(await request('PUT', { body }), noParams);

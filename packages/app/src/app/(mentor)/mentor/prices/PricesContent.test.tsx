@@ -7,7 +7,8 @@ const mocks = vi.hoisted(() => ({ requirePageRole: vi.fn(), findOwn: vi.fn(), tr
 vi.mock("@/lib/session", () => ({ requirePageRole: mocks.requirePageRole }));
 // Money formatting is core's (tested there); a stand-in with the same output keeps this test in app.
 vi.mock("@devmentor/core", () => ({
-  formatMoney: (cents: number, currency: string) => `${currency} ${(cents / 100).toFixed(2)}`,
+  allowedRange: (bounds: { minCents: number; maxCents: number }, currency: string) =>
+    `Allowed: ${currency} ${(bounds.minCents / 100).toFixed(2)}–${currency} ${(bounds.maxCents / 100).toFixed(2)}`,
   toMajorString: (cents: number) => (cents / 100).toFixed(2),
   withScope: <T,>(fn: (cradle: unknown) => Promise<T>) =>
     fn({ mentorProfileService: { findOwn: mocks.findOwn }, platformSettingsService: { tryGet: mocks.tryGet } }),

@@ -73,6 +73,7 @@ describe('mentor prices: bounds, /mentor/prices and the public page (agent-brows
     const html = await (await fetch(`${baseUrl}/m/${SLUG}`)).text();
     expect(html).toContain('Not bookable yet');
     expect(html).not.toContain('Session prices');
+    expect((await (await fetch(`${baseUrl}/api/mentors/${SLUG}`)).json()).data).toMatchObject({ offerReady: false, prices: null });
     await browser.open(`${baseUrl}/mentor`);
     await browser.waitForText('Set your prices');
     expect(await browser.attr('main a[href="/mentor/prices"]', 'href')).toBe('/mentor/prices');
@@ -90,6 +91,20 @@ describe('mentor prices: bounds, /mentor/prices and the public page (agent-brows
 
     const malformed = await putPrices(cookie, '1e3', '-5');
     expect(malformed.status).toBe(400);
+    expect(await storedPrices()).toBe('-/-');
+  });
+
+  it('shows the allowed range under the field when the browser save is out of range', async () => {
+    await browser.open(`${baseUrl}/mentor/prices`);
+    await browser.waitForText('Allowed:');
+    await browser.waitForIdle();
+    await browser.fill('input[name="price25"]', '20');
+    await browser.fill('input[name="price50"]', '300');
+    await browser.clickButton('Save prices');
+    await browser.waitForText('nothing was saved');
+
+    expect(await browser.attr('input[name="price25"]', 'aria-invalid')).toBe('true');
+    expect(await browser.attr('input[name="price50"]', 'aria-invalid')).toBeNull();
     expect(await storedPrices()).toBe('-/-');
   });
 

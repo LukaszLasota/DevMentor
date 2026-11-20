@@ -441,7 +441,7 @@ describe('MentorProfileService.getPublicBySlug', () => {
     slotService.countBookable.mockResolvedValue(1);
     const page = await service.getPublicBySlug('ada-lovelace');
 
-    expect(notReady).toMatchObject({ offerReady: false, slots: [] });
+    expect(notReady).toMatchObject({ offerReady: false, prices: null, slots: [] });
     expectProjectionKeys(page, PUBLIC_KEYS);
     expect(page).toEqual({
       slug: 'ada-lovelace',

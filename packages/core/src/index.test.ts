@@ -20,6 +20,7 @@ describe('public entries', () => {
         'SESSION_TTL_SECONDS',
         'SIGN_IN_RATE_LIMITS',
         'clientIp',
+        'allowedRange',
         'formatMoney',
         'parseMajorAmount',
         'toMajorString',

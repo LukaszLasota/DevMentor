@@ -32,7 +32,9 @@ function outOfBounds(own: MentorOwnerView): string | undefined {
   return undefined;
 }
 
-const isMet = (own: MentorOwnerView | null, ...keys: string[]) =>
+type OfferRequirement = MentorOwnerView["offerReadiness"][number]["key"];
+
+const isMet = (own: MentorOwnerView | null, ...keys: OfferRequirement[]) =>
   keys.every((key) => own?.offerReadiness.some((item) => item.key === key && item.met) === true);
 
 // The onboarding steps of s06, each from `mentorOfferReady` where it has a requirement: the page step

@@ -1,4 +1,4 @@
-import { formatMoney, toMajorString, withScope } from "@devmentor/core";
+import { allowedRange, toMajorString, withScope } from "@devmentor/core";
 import { EmptyState } from "@devmentor/ui";
 import { requirePageRole } from "@/lib/session";
 import { PricesForm } from "./PricesForm";
@@ -37,8 +37,8 @@ export async function PricesContent() {
   }
 
   const { currency, bounds } = settings;
-  const range = (length: "25" | "50") =>
-    `Allowed: ${formatMoney(bounds[length].minCents, currency)}–${formatMoney(bounds[length].maxCents, currency)}`;
+  // The same text the save refusal uses (one helper in core).
+  const range = (length: "25" | "50") => allowedRange(bounds[length], currency);
 
   return (
     <PricesForm

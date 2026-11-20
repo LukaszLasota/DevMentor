@@ -1,10 +1,12 @@
+// The same shape the price schema accepts: one definition, so the schema and the parser never disagree.
+import { MAJOR_AMOUNT } from '../validators/mentors/mentor-prices-update.schema';
+
 // Money helpers. The platform currency is PLN (two decimals, grosze); amounts are held as
 // integer minor units ("cents") and converted from/to major-unit strings without floats.
 
 /** Integer minor units (grosze for PLN). */
 export type Cents = number & { readonly __brand: 'Cents' };
 
-const MAJOR_AMOUNT = /^(0|[1-9]\d*)(\.\d{1,2})?$/;
 
 /**
  * Parses a schema-shaped major-unit string ("20", "20.5", "20.00") into cents using string and
@@ -28,7 +30,7 @@ export function formatMoney(cents: number, currency: string): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(cents / 100);
 }
 
-/** Exact "150.00" string from integer cents (string math), e.g. to prefill a form. */
+/** Exact "150.00" string from non-negative integer cents (string math), e.g. to prefill a form. */
 export function toMajorString(cents: number): string {
   const digits = String(cents).padStart(3, '0');
   return `${digits.slice(0, -2)}.${digits.slice(-2)}`;

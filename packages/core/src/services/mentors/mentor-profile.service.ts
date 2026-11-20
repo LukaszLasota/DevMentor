@@ -54,7 +54,7 @@ export interface MentorPublicView {
   publicWorkUrl: string;
   bio: string;
   stackTags: StackTagKey[];
-  /** Both prices, or `null` unless both are set and settings exist (#24); bounds never cross here. */
+  /** Both prices, or `null` unless the mentor is offer-ready (#24); bounds never cross here. */
   prices: MentorPrices | null;
   /** `mentorOfferReady` at request time (#25). */
   offerReady: boolean;
@@ -146,7 +146,8 @@ export function toPublicDto(
     publicWorkUrl: profile.publicWorkUrl as string,
     bio: profile.bio as string,
     stackTags: [...profile.stackTags],
-    prices: pricesOf(profile, settings),
+    // Like slots: a mentor who is not offer-ready shows only "Not bookable yet" (spec #24, Q4).
+    prices: offerReady ? pricesOf(profile, settings) : null,
     offerReady,
     slots: offerReady ? slots : [],
   };
