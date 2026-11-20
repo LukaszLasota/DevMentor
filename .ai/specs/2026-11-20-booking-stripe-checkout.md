@@ -1,6 +1,6 @@
 # A mentee books a slot at least two hours ahead and pays through Stripe Checkout
 
-Status: approved — Q2 and Q7 confirmed by the owner on 2026-11-20
+Status: implemented — phase 1 in #55, phases 2–3 in #56 (Q2 and Q7 confirmed by the owner on 2026-11-20)
 Issue: #29 (E03-S01) · Epic: #18 · Depends on: #23 (`.ai/specs/2026-10-21-mentor-page.md`), #24 (`.ai/specs/2026-10-21-mentor-prices.md`), #25 (`.ai/specs/2026-10-21-availability-slots.md`), #27 (`.ai/specs/2026-10-21-mentor-list.md`), #28 (`.ai/specs/2026-10-21-mentor-share-link-page.md`) · Shares the Stripe client contract with #26 (`.ai/specs/2026-10-21-stripe-connect-payouts.md`); owns the durable webhook inbox #26 phase 2 and #35 use · Source: `.ai/specs/product-brief.md` (R02, R06, R09, R10, R14, D09, D10, D11, Q04) · No course story spec exists for booking (lesson 05 ends at the bookable mentor)
 
 ## 📝 TLDR
@@ -194,3 +194,14 @@ R02 (25/50 at booking), R06 (Stripe only, paid before the session), R09/D09 (two
 10. UI: `SlotBookingControls` in `@devmentor/ui/mentors` (lengths, price, Book, error under the time, signed-out link) with Storybook stories; `/m/[slug]` wiring and `?checkout=cancelled`; `/bookings/[id]` states; `/mentor/slots` Booked/Held; component tests incl. absent response-time wording.
 11. Integration: mentee books → stub Checkout → Pay → `/bookings/[id]` shows Booked, the time disappears for another visitor, mentor sees Booked, mails logged; Cancel → time open again; two mentees racing → one Checkout; duplicate webhook harmless; Stripe unconfigured → 503. Opt-in Stripe test-mode scenario behind explicit credentials.
 Each step ends with `npm run validate` green at 100% coverage; steps 4, 5 and 11 run `npm run test:integration`.
+
+## Implementation notes (#55, #56)
+- `bookings` stores `starts_at` and `ends_at` snapshots next to `slot_id`, so the overlap query needs no join; the mentee column is `mentee_id`. A CHECK pins `ends_at = starts_at + length`.
+- Cancel on Checkout: `cancel_url` is `/m/<slug>?checkout=cancelled&booking=<id>`; the page calls `POST /api/bookings/[id]/release`, which expires the session at Stripe first (a payment that beat it is confirmed instead). Without it the mentee's own hold would block their retry for up to 36 minutes.
+- `/m/[slug]` stays session-free: **Book** posts, and a 401 sends the visitor to `/sign-in?returnTo=/m/<slug>` (instead of a server-rendered "Sign in to book").
+- Error codes ride an optional `code` on `ConflictError` / `ServiceUnavailableError` (`SLOT_TAKEN`, `NOT_BOOKABLE`, `PAYMENTS_UNAVAILABLE`); the defaults are unchanged.
+- `SlotView` gains `bookableLengths`; the owner list returns `OwnerSlotView` with `booking: 'held' | 'booked' | null`. A slot with no free length is left out of the public read and of every bookable count.
+- Stripe webhook handlers may return an after-commit follow-up (the confirmation event and emails run there, best effort).
+- `apiCall` is also exported from `@devmentor/ui/mentors` (no styles), so public pages that act use the sanctioned fetch.
+- Not built: the opt-in real Stripe test-mode scenario (needs credentials outside the sandbox); "Stripe unconfigured → 503" is unit-tested only, because the integration app always runs with the stub.
+
