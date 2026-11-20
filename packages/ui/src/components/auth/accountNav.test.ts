@@ -9,9 +9,9 @@ describe("accountNavSections", () => {
     expect(links(["mentee"])).toEqual([[null, ["Mentors /mentors"]]]);
   });
 
-  it("adds the mentor workspace and the admin dashboard for those roles (L09)", () => {
+  it("adds the mentor workspace, the mentor page and the admin dashboard for those roles (L09, #23)", () => {
     expect(links(["mentee", "mentor", "operator"])).toEqual([
-      [null, ["Mentors /mentors", "Mentor workspace /mentor"]],
+      [null, ["Mentors /mentors", "Mentor workspace /mentor", "Your page /mentor/profile"]],
       ["Admin", ["Dashboard /admin"]],
     ]);
   });

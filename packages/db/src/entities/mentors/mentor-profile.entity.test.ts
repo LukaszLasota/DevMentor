@@ -3,7 +3,15 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { createConfig } from '../../config';
 import { User } from '../auth/user.entity';
 import { entities } from '../index';
-import { MentorProfile, MentorProfileSchema } from './mentor-profile.entity';
+import {
+  BIO_LENGTH_CHECK,
+  BIO_MAX_LENGTH,
+  MENTOR_PROFILE_SLUG_KEY,
+  MENTOR_STACK_TAGS_CHECK,
+  MentorProfile,
+  MentorProfileSchema,
+  PUBLISHED_SLUG_CHECK,
+} from './mentor-profile.entity';
 
 // Metadata discovery only; the constructor does not open a connection.
 const orm = new MikroORM(
@@ -30,12 +38,24 @@ describe('MentorProfile entity', () => {
     };
 
     expect(Object.keys(meta.properties).sort()).toEqual([
+      'bio',
       'createdAt',
+      'displayName',
       'id',
       'initialPublishDueAt',
+      'publicWorkUrl',
+      'publishedAt',
+      'slug',
+      'stackTags',
       'updatedAt',
       'user',
     ]);
+    expect(column('displayName')).toEqual({ field: 'display_name', type: 'varchar(80)', nullable: true });
+    expect(column('publicWorkUrl')).toEqual({ field: 'public_work_url', type: 'text', nullable: true });
+    expect(column('bio')).toEqual({ field: 'bio', type: 'text', nullable: true });
+    expect(column('stackTags')).toEqual({ field: 'stack_tags', type: 'text[]', nullable: false });
+    expect(column('slug')).toEqual({ field: 'slug', type: 'varchar(60)', nullable: true });
+    expect(column('publishedAt')).toEqual({ field: 'published_at', type: 'timestamptz', nullable: true });
     expect(column('id')).toEqual({ field: 'id', type: 'uuid', nullable: false });
     expect(column('initialPublishDueAt')).toEqual({
       field: 'initial_publish_due_at',
@@ -44,6 +64,28 @@ describe('MentorProfile entity', () => {
     });
     expect(column('createdAt')).toEqual({ field: 'created_at', type: 'timestamptz', nullable: false });
     expect(column('updatedAt')).toEqual({ field: 'updated_at', type: 'timestamptz', nullable: false });
+  });
+
+  it('declares the named slug key and the three CHECKs', () => {
+    expect(meta.uniques).toEqual([{ name: MENTOR_PROFILE_SLUG_KEY, properties: ['slug'] }]);
+    expect(meta.checks.map((check) => [check.name, check.expression])).toEqual([
+      ['mentor_profiles_stack_tags_check', MENTOR_STACK_TAGS_CHECK],
+      ['mentor_profiles_bio_length_check', BIO_LENGTH_CHECK],
+      ['mentor_profiles_published_slug_check', PUBLISHED_SLUG_CHECK],
+    ]);
+    expect(MENTOR_STACK_TAGS_CHECK).toBe(
+      "array_position(stack_tags, null) is null and stack_tags <@ array['typescript', 'react', 'python', 'ai-agents']::text[]",
+    );
+    expect(BIO_LENGTH_CHECK).toBe(`bio is null or char_length(bio) <= ${BIO_MAX_LENGTH}`);
+  });
+
+  it('gives every new profile its own empty tag list', () => {
+    const first = new MentorProfile();
+    const second = new MentorProfile();
+
+    first.stackTags.push('react');
+    expect(second.stackTags).toEqual([]);
+    expect(meta.properties.stackTags.default).toEqual([]);
   });
 
   it('belongs to one user through a unique, cascading foreign key', () => {

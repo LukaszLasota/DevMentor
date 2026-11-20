@@ -151,6 +151,14 @@ Deliberate differences from the course, each because our approved specs or code 
 - `apiHandler` gained a named `headers` option rather than dropping `no-store`: the owner DTO carries private data, and #22 needs the same mechanism.
 - #26 and `backlog.md` updates for Q6 are out of this file's scope (owned by #26's spec).
 
+## 📝 Implementation notes (PR #48, 2026-11-20)
+- **True 404 needs Proxy.** Under `cacheComponents`, `/m/[slug]` is still partially prerendered (`◐` in `next build`) even with `instant = false` and `notFound()` before any `<Suspense>`: the static shell starts the stream with 200, so the page alone gives a soft 404 (`noindex`, status 200). CI's integration run showed it. `packages/app/src/proxy.ts` (matcher `/m/:slug`) asks `GET /api/mentors/[slug]` and rewrites a 404 to an unmatched path, which Next answers with status 404 — the option `next/dist/docs/01-app/03-api-reference/03-file-conventions/loading.md` ("Status codes") documents. The page keeps its own `notFound()`.
+- `apiHandler`'s `headers` option and the step-9 UI components (`MentorPageView`, `ReadinessChecklist`, `ProfileActions`, `CopyShareLink`, CrudForm `multiselect`, `@devmentor/ui/mentors`) already existed (PR #37, #43); `ProfileActions`/`CopyShareLink` stay in `ui` rather than colocated, because Storybook documents them. `CrudForm` gained an `errors` prop for the refused-publish field errors.
+- `mentorProfileUpdateSchema` also accepts `null` as "clear": `CrudForm` posts the schema's parsed output, so the route parses what the schema produced.
+- `slugify` transliterates Latin letters NFKD does not decompose (`ł`, `ø`, `đ`, `ß`, `æ`, `œ`, …): "Łukasz" → `lukasz`, not `ukasz`.
+- The stack-tag literal stays in `@devmentor/db` (`STACK_TAGS`) for the entity type and the invitations CHECK builder; the drift test asserts it, both CHECK literals and `StackTags` keys agree. Validators may import `core/src/domain/**` (ESLint + tests).
+- The migration and its snapshot were written by hand (no database reachable from the agent sandbox for `migration:create`); `integration/mentor-profiles-schema.test.ts` runs `down` and `up` on a scratch database.
+
 ## 📋 Phasing
 One phase, one PR; starts after #22 is merged, ships with Epic 01 by 2026-10-31. Unblocks #24, #25, #27, #28.
 

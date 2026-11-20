@@ -323,4 +323,18 @@ describe("CrudForm", () => {
     resolve({ ok: true, data: null });
     expect(await screen.findByRole("button", { name: "Set password" })).toBeTruthy();
   });
+
+  it("shows errors handed in from outside next to their fields and focuses the first one", () => {
+    const onSubmit = vi.fn(async (): Promise<ApiResult<unknown>> => ({ ok: true, data: null }));
+    const { rerender } = render(<CrudForm schema={schema} fields={fields} onSubmit={onSubmit} />);
+    expect(screen.queryByText("Add a title before publishing.")).toBeNull();
+
+    rerender(<CrudForm schema={schema} fields={fields} onSubmit={onSubmit} errors={{ title: ["Add a title before publishing."] }} />);
+
+    expect(screen.getByText("Add a title before publishing.")).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByLabelText("Title"));
+
+    rerender(<CrudForm schema={schema} fields={fields} onSubmit={onSubmit} errors={undefined} />);
+    expect(screen.queryByText("Add a title before publishing.")).toBeNull();
+  });
 });

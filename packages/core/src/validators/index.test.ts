@@ -19,12 +19,19 @@ function importsOf(file: string): string[] {
 }
 
 describe('@devmentor/core/validators', () => {
-  it('exposes the auth schemas and limits', async () => {
+  it('exposes the auth and mentor schemas, limits and the stack-tag vocabulary', async () => {
     const validators = await import('./index');
 
     expect(Object.keys(validators).sort()).toEqual(
       [
+        'BIO_MAX',
+        'DISPLAY_NAME_MAX',
         'EMAIL_MAX_LENGTH',
+        'MAX_STACK_TAGS',
+        'PUBLIC_WORK_URL_MAX',
+        'StackTags',
+        'isPublicWorkUrl',
+        'mentorProfileUpdateSchema',
         'PASSWORD_MAX_LENGTH',
         'PASSWORD_MIN_LENGTH',
         'RETURN_TO_MAX_LENGTH',
@@ -37,15 +44,17 @@ describe('@devmentor/core/validators', () => {
     );
   });
 
-  it('stays client-safe: imports only zod and files inside validators/', () => {
+  it('stays client-safe: imports only zod, files inside validators/ and the client-safe domain/', () => {
     const files = sourceFiles(root);
     expect(files.length).toBeGreaterThan(1);
 
     for (const file of files) {
       for (const specifier of importsOf(file)) {
-        const inside =
-          specifier.startsWith('.') && !relative(root, resolve(dirname(file), specifier)).startsWith(`..${sep}`);
-        expect({ file: relative(root, file), specifier, allowed: specifier === 'zod' || inside }).toEqual({
+        const target = relative(root, resolve(dirname(file), specifier));
+        const inside = specifier.startsWith('.') && !target.startsWith(`..${sep}`);
+        // domain/ guards its own imports (domain/index.test.ts).
+        const domain = specifier.startsWith('.') && target.startsWith(`..${sep}domain${sep}`);
+        expect({ file: relative(root, file), specifier, allowed: specifier === 'zod' || inside || domain }).toEqual({
           file: relative(root, file),
           specifier,
           allowed: true,

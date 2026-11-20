@@ -29,6 +29,6 @@ Every create/edit form is a `CrudForm` (AGENTS.md). The rules live in the compon
 <Canvas of={Stories.ServerError} />
 <Canvas of={Stories.Offline} />
 
-<Source language="tsx" code={`<CrudForm schema={mentorProfileUpdateSchema} fields={fields} onSubmit={(v) => apiCall("/api/mentor-profile", { method: "PUT", body: v })} onSuccess={() => setSaved(true)} onCancel={back} submitLabel="Save profile" />`} />
+<Source language="tsx" code={`<CrudForm schema={mentorProfileUpdateSchema} fields={fields} onSubmit={(v) => apiCall("/api/mentors/me", { method: "PUT", body: v })} onSuccess={() => setSaved(true)} onCancel={back} submitLabel="Save profile" />`} />
 
 Missing: the `datetime` field for `/mentor/slots` (spec #25) is built with that story.

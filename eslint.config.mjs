@@ -32,6 +32,27 @@ const eslintConfig = defineConfig([
     ]),
   },
   {
+    // Public pages are Tailwind-only: components come from `@devmentor/ui/mentors`, never the admin barrel
+    // (spec 2026-10-21-mentor-page). Repeats the app patterns because a later block replaces the rule.
+    files: ["packages/app/src/app/(marketing)/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          // Exact entries (`paths`): `@devmentor/ui/mentors` and `@devmentor/ui/theme.css` stay allowed.
+          paths: ["@devmentor/ui", "@devmentor/ui/styles.css"].map((name) => ({
+            name,
+            message: "Public (marketing) pages use @devmentor/ui/mentors (Tailwind only), not the panel barrel.",
+          })),
+          patterns: [
+            ...MIKRO_ORM,
+            pkg("db", "app talks to the database through @devmentor/core services, never @devmentor/db directly."),
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ["packages/core/**"],
     rules: restrict([
       ...NEXT_AND_REACT,
@@ -53,8 +74,10 @@ const eslintConfig = defineConfig([
       pkg("db", "validators are client-safe; they must not import the database package."),
       pkg("core", "validators are client-safe; import nothing else from core."),
       {
-        group: ["server-only", "node:*", "pino", "jose", "awilix", "../../*", "../../../*"],
-        message: "validators are client-safe: import only zod and files inside validators/.",
+        // `domain/` is the one client-safe core folder validators may use (spec 2026-10-21-mentor-page:
+        // the stack-tag vocabulary feeds the Zod enum); it guards its own imports in domain/index.test.ts.
+        group: ["server-only", "node:*", "pino", "jose", "awilix", "../../*", "../../../*", "!../../domain", "!../../domain/**"],
+        message: "validators are client-safe: import only zod, files inside validators/ and core/src/domain/.",
       },
     ]),
   },
@@ -66,6 +89,13 @@ const eslintConfig = defineConfig([
       pkg("core", "db is a leaf package; core depends on db, not the other way round."),
       pkg("ui", "db is a leaf package."),
     ]),
+  },
+  {
+    // ui never imports next (it is framework-agnostic), so `next/link` is not an option there; the
+    // app wraps ui links with its router where needed. Without this, every route the app adds
+    // (e.g. /m/[slug]) turns a plain <a> in ui into a lint error.
+    files: ["packages/ui/**"],
+    rules: { "@next/next/no-html-link-for-pages": "off" },
   },
   {
     files: ["packages/ui/**"],

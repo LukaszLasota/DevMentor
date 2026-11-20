@@ -1,11 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ requirePageRole: vi.fn(), publishDueAt: vi.fn() }));
+const mocks = vi.hoisted(() => ({ requirePageRole: vi.fn(), findOwn: vi.fn() }));
 
 vi.mock("@/lib/session", () => ({ requirePageRole: mocks.requirePageRole }));
 vi.mock("@devmentor/core", () => ({
-  withScope: <T,>(fn: (cradle: unknown) => Promise<T>) => fn({ mentorProfileService: { publishDueAt: mocks.publishDueAt } }),
+  withScope: <T,>(fn: (cradle: unknown) => Promise<T>) => fn({ mentorProfileService: { findOwn: mocks.findOwn } }),
 }));
 
 const { MentorContent } = await import("./MentorContent");
@@ -15,7 +15,7 @@ const noQuery = () => Promise.resolve({});
 
 beforeEach(() => {
   mocks.requirePageRole.mockReset().mockResolvedValue({ id: "u1", roles: ["mentee", "mentor"] });
-  mocks.publishDueAt.mockReset().mockResolvedValue(DUE);
+  mocks.findOwn.mockReset().mockResolvedValue({ initialPublishDueAt: DUE.toISOString(), publishedAt: null });
 });
 
 describe("MentorContent", () => {
@@ -23,7 +23,7 @@ describe("MentorContent", () => {
     render(await MentorContent({ searchParams: noQuery() }));
 
     expect(mocks.requirePageRole).toHaveBeenCalledWith("/mentor", "mentor");
-    expect(mocks.publishDueAt).toHaveBeenCalledWith("u1");
+    expect(mocks.findOwn).toHaveBeenCalledWith("u1");
     expect(screen.getByRole("heading", { level: 1, name: "Your mentor page" })).toBeTruthy();
     const title = screen.getByRole("heading", { level: 2 });
     expect(title.textContent).toMatch(/^Publish at least one bookable session by \w{3} \d{1,2} \w{3}$/);
@@ -31,19 +31,30 @@ describe("MentorContent", () => {
     expect(screen.queryByRole("status")).toBeNull();
   });
 
-  it("lists the onboarding steps as to-dos without links (#23–#25 later)", async () => {
+  it("lists the onboarding steps; the page step links to /mentor/profile (#24, #25 later)", async () => {
     render(await MentorContent({ searchParams: noQuery() }));
 
     expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual([
-      "To do: Publish your page",
+      "To do: Publish your pageEdit your page",
       "To do: Set your prices",
       "To do: Publish a slot",
     ]);
-    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.getByRole("link", { name: "Edit your page" }).getAttribute("href")).toBe("/mentor/profile");
   });
 
-  it("without a stored date the heading has no date", async () => {
-    mocks.publishDueAt.mockResolvedValue(null);
+  it("marks the page step done once the page is published", async () => {
+    mocks.findOwn.mockResolvedValue({ initialPublishDueAt: DUE.toISOString(), publishedAt: DUE.toISOString() });
+
+    render(await MentorContent({ searchParams: noQuery() }));
+
+    expect(screen.getAllByRole("listitem")[0]?.textContent).toBe("Done: Publish your page");
+  });
+
+  it.each([
+    ["a profile without a date", { initialPublishDueAt: null, publishedAt: null }],
+    ["no profile (mentor granted by hand)", null],
+  ])("with %s the heading has no date", async (_case, own) => {
+    mocks.findOwn.mockResolvedValue(own);
 
     render(await MentorContent({ searchParams: noQuery() }));
 
@@ -60,6 +71,6 @@ describe("MentorContent", () => {
     mocks.requirePageRole.mockRejectedValueOnce(new Error("NEXT_REDIRECT /mentors?notice=mentor_only"));
 
     await expect(MentorContent({ searchParams: noQuery() })).rejects.toThrow("NEXT_REDIRECT");
-    expect(mocks.publishDueAt).not.toHaveBeenCalled();
+    expect(mocks.findOwn).not.toHaveBeenCalled();
   });
 });
