@@ -1,11 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { ACTIVE_SLOT_UNIQUE, LockMode, MentorProfile, Slot, UniqueConstraintViolationException } from '@devmentor/db';
+import { ACTIVE_SLOT_UNIQUE, Booking, LockMode, MentorProfile, Slot, UniqueConstraintViolationException } from '@devmentor/db';
 import { describe, expect, it, vi } from 'vitest';
 import type { Cradle } from '../../container/cradle';
 import { MAX_ACTIVE_FUTURE_SLOTS, PAST_LIST_LIMIT } from './lead-time';
 import {
   MENTOR_PROFILE_MISSING_MESSAGE,
   SLOT_BEYOND_HORIZON_MESSAGE,
+  SLOT_BOOKED_MESSAGE,
   SLOT_CAP_MESSAGE,
   SLOT_DUPLICATE_MESSAGE,
   SLOT_IN_PAST_MESSAGE,
@@ -25,6 +26,10 @@ type Range = { $gt?: Date; $gte?: Date; $lte?: Date; $in?: string[] };
 function matches(row: object, where: Where): boolean {
   return Object.entries(where).every(([key, expected]) => {
     const actual = (row as Where)[key];
+
+    if (key === '$or') {
+      return (expected as Where[]).some((branch) => matches(row, branch));
+    }
 
     if (expected !== null && typeof expected === 'object' && '$in' in expected) {
       return ((expected as Range).$in as string[]).includes((actual as { id: string }).id);
@@ -62,23 +67,42 @@ function makeSlot(profile: MentorProfile, startsAt: Date, removedAt: Date | null
   return Object.assign(new Slot(), { id: randomUUID(), mentorProfile: profile, startsAt, removedAt });
 }
 
+/** A booking of `slot` for `minutes`; a hold expires 30 minutes from NOW unless `holdExpiresAt` is given. */
+function makeBooking(
+  slot: Slot,
+  minutes: 25 | 50,
+  status: Booking['status'] = 'confirmed',
+  holdExpiresAt: Date = hoursFromNow(0.5),
+): Booking {
+  return Object.assign(new Booking(), {
+    id: randomUUID(),
+    slot,
+    mentorProfile: slot.mentorProfile,
+    startsAt: slot.startsAt,
+    endsAt: new Date(slot.startsAt.getTime() + minutes * 60_000),
+    lengthMinutes: minutes,
+    status,
+    holdExpiresAt,
+  });
+}
+
 /**
  * In-memory stand-in for the scoped `EntityManager`. `transactional` commits created slots and
  * enforces the partial unique index on active starts (mentor + instant, `removed_at is null`) at
  * commit, throwing the driver's named violation like PostgreSQL would.
  */
-function fakeEm(profiles: MentorProfile[], slots: Slot[]) {
+function fakeEm(profiles: MentorProfile[], slots: Slot[], bookings: Booking[] = []) {
   let pending: Slot[] = [];
-  const table = (entity: unknown): object[] => (entity === Slot ? slots : profiles);
+  const table = (entity: unknown): object[] => (entity === Slot ? slots : entity === Booking ? bookings : profiles);
   const em = {
     findOne: vi.fn<(entity: unknown, where: Where, options?: object) => Promise<object | null>>(async (entity, where) =>
       table(entity).find((row) => matches(row, where)) ?? null,
     ),
-    find: vi.fn(async (entity: unknown, where: Where, options: { orderBy: { startsAt: 'asc' | 'desc' }; limit?: number }) =>
+    find: vi.fn(async (entity: unknown, where: Where, options?: { orderBy: { startsAt: 'asc' | 'desc' }; limit?: number }) =>
       (table(entity) as Slot[])
         .filter((row) => matches(row, where))
-        .sort((a, b) => (a.startsAt.getTime() - b.startsAt.getTime()) * (options.orderBy.startsAt === 'asc' ? 1 : -1))
-        .slice(0, options.limit),
+        .sort((a, b) => (a.startsAt.getTime() - b.startsAt.getTime()) * (options?.orderBy.startsAt === 'desc' ? -1 : 1))
+        .slice(0, options?.limit),
     ),
     count: vi.fn(async (entity: unknown, where: Where) => table(entity).filter((row) => matches(row, where)).length),
     create: vi.fn((_entity: unknown, data: Partial<Slot>) => {
@@ -106,8 +130,8 @@ function fakeEm(profiles: MentorProfile[], slots: Slot[]) {
   return em;
 }
 
-function setup(profiles: MentorProfile[] = [], slots: Slot[] = []) {
-  const em = fakeEm(profiles, slots);
+function setup(profiles: MentorProfile[] = [], slots: Slot[] = [], bookings: Booking[] = []) {
+  const em = fakeEm(profiles, slots, bookings);
   const events = { emit: vi.fn(async () => undefined) };
   const service = new SlotService({
     em: em as unknown as Cradle['em'],
@@ -135,7 +159,7 @@ describe('SlotService.publish', () => {
     const view = await service.publish(profile.user.id, { startsAt: '2026-06-23T09:00:00.000Z' });
 
     expect(em.findOne).toHaveBeenCalledWith(MentorProfile, { user: profile.user.id }, LOCK);
-    expect(view).toEqual({ id: slots[0]?.id, startsAt: '2026-06-23T09:00:00.000Z', meetsLeadTime: true });
+    expect(view).toEqual({ id: slots[0]?.id, startsAt: '2026-06-23T09:00:00.000Z', meetsLeadTime: true, bookableLengths: ['25', '50'] });
     expect(profile.lastPublishedAvailabilityAt).toEqual(NOW);
     expect(events.emit).toHaveBeenCalledExactlyOnceWith('availability.slot.published', {
       mentorProfileId: profile.id,
@@ -269,7 +293,37 @@ describe('SlotService.listMine', () => {
       [hoursFromNow(1).toISOString(), false],
       [hoursFromNow(24).toISOString(), true],
     ]);
-    expect(Object.keys(upcoming[0] as object).sort()).toEqual(['id', 'meetsLeadTime', 'startsAt']);
+    expect(Object.keys(upcoming[0] as object).sort()).toEqual(['bookableLengths', 'booking', 'id', 'meetsLeadTime', 'startsAt']);
+    expect(upcoming.map((slot) => slot.bookableLengths)).toEqual([[], ['25', '50']]);
+  });
+
+  it('marks a slot booked or held, ignores an expired hold and other statuses, and narrows lengths next to a booking', async () => {
+    const mine = makeProfile();
+    const booked = makeSlot(mine, hoursFromNow(24));
+    const held = makeSlot(mine, hoursFromNow(30));
+    const staleHold = makeSlot(mine, hoursFromNow(40));
+    const expired = makeSlot(mine, hoursFromNow(50));
+    const nextTo = makeSlot(mine, new Date(hoursFromNow(30).getTime() - 30 * 60_000));
+    const { service } = setup(
+      [mine],
+      [booked, held, staleHold, expired, nextTo],
+      [
+        makeBooking(booked, 25),
+        makeBooking(held, 50, 'pending_payment'),
+        makeBooking(staleHold, 25, 'pending_payment', hoursFromNow(-0.1)),
+        makeBooking(expired, 25, 'expired'),
+      ],
+    );
+
+    const list = await service.listMine(mine.user.id, 'upcoming');
+
+    expect(list.map(({ id, booking, bookableLengths }) => [id, booking, bookableLengths])).toEqual([
+      [booked.id, 'booked', []],
+      [nextTo.id, null, ['25']],
+      [held.id, 'held', []],
+      [staleHold.id, null, ['25', '50']],
+      [expired.id, null, ['25', '50']],
+    ]);
   });
 
   it('lists past slots descending, the last 50', async () => {
@@ -299,8 +353,31 @@ describe('SlotService.remove', () => {
 
     expect(await service.remove(mine.user.id, slot.id)).toEqual({ id: slot.id });
     expect(slot.removedAt).toEqual(NOW);
-    expect(em.flush).toHaveBeenCalledOnce();
+    expect(em.findOne).toHaveBeenCalledWith(MentorProfile, { user: mine.user.id }, LOCK);
+    expect(em.transactional).toHaveBeenCalledOnce();
     expect(mine.lastPublishedAvailabilityAt).toEqual(key);
+  });
+
+  it.each([
+    ['booked', 'confirmed', hoursFromNow(0.5)],
+    ['held for payment', 'pending_payment', hoursFromNow(0.5)],
+  ] as const)('refuses a slot that is %s with 409 and keeps it', async (_case, status, holdExpiresAt) => {
+    const mine = makeProfile();
+    const slot = makeSlot(mine, hoursFromNow(24));
+    const { service } = setup([mine], [slot], [makeBooking(slot, 25, status, holdExpiresAt)]);
+
+    expect(await rejection(service.remove(mine.user.id, slot.id))).toMatchObject({ status: 409, message: SLOT_BOOKED_MESSAGE });
+    expect(slot.removedAt).toBeNull();
+  });
+
+  it('removes a slot whose hold has expired', async () => {
+    const mine = makeProfile();
+    const slot = makeSlot(mine, hoursFromNow(24));
+    const { service } = setup([mine], [slot], [makeBooking(slot, 25, 'pending_payment', hoursFromNow(-0.1))]);
+
+    await service.remove(mine.user.id, slot.id);
+
+    expect(slot.removedAt).toEqual(NOW);
   });
 
   it.each([
@@ -318,7 +395,7 @@ describe('SlotService.remove', () => {
 
     expect(await rejection(service.remove(mine.user.id, id))).toMatchObject({ status: 404, message: SLOT_NOT_FOUND_MESSAGE });
     expect(otherSlot.removedAt).toBeNull();
-    expect(em.flush).not.toHaveBeenCalled();
+    expect(em.find).not.toHaveBeenCalled();
   });
 
   it('answers 404 for a mentor without a profile', async () => {
@@ -351,7 +428,21 @@ describe('SlotService.bookableSummaryFor (#27)', () => {
       [ada.id, { count: 2, nextStartsAt: hoursFromNow(2) }],
       [bob.id, { count: 1, nextStartsAt: hoursFromNow(30) }],
     ]);
-    expect(em.find).toHaveBeenCalledOnce();
+    // One slot query and one booking query, whatever the number of mentors.
+    expect(em.find).toHaveBeenCalledTimes(2);
+  });
+
+  it('skips booked slots and counts a mentor only by slots with a free length', async () => {
+    const ada = makeProfile();
+    const bob = makeProfile();
+    const adaBooked = makeSlot(ada, hoursFromNow(5));
+    const adaFree = makeSlot(ada, hoursFromNow(9));
+    const bobBooked = makeSlot(bob, hoursFromNow(5));
+    const { service } = setup([ada, bob], [adaBooked, adaFree, bobBooked], [makeBooking(adaBooked, 50), makeBooking(bobBooked, 25)]);
+
+    expect([...(await service.bookableSummaryFor([ada.id, bob.id], NOW)).entries()]).toEqual([
+      [ada.id, { count: 1, nextStartsAt: hoursFromNow(9) }],
+    ]);
   });
 
   it('runs no query for no ids', async () => {
@@ -390,5 +481,16 @@ describe('SlotService public reads', () => {
       [hoursFromNow(1).toISOString(), false],
       [hoursFromNow(24).toISOString(), true],
     ]);
+  });
+
+  it('leaves out taken slots and offers only the free lengths of the rest', async () => {
+    const mine = makeProfile();
+    const taken = makeSlot(mine, hoursFromNow(24));
+    const inside = makeSlot(mine, new Date(hoursFromNow(24).getTime() + 30 * 60_000));
+    const before = makeSlot(mine, new Date(hoursFromNow(24).getTime() - 30 * 60_000));
+    const { service } = setup([mine], [taken, inside, before], [makeBooking(taken, 50)]);
+
+    expect((await service.listPublicFor(mine.id, NOW)).map((slot) => [slot.id, slot.bookableLengths])).toEqual([[before.id, ['25']]]);
+    expect(await service.countBookable(mine.id, NOW)).toBe(1);
   });
 });

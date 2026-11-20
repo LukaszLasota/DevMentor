@@ -350,7 +350,7 @@ export class MentorProfileService {
     const now = this.clock.now();
     const settings = this.platformSettingsService.tryGet();
     const slots = await this.slotService.listPublicFor(profile.id, now);
-    const bookableSlots = slots.filter((slot) => slot.meetsLeadTime).length;
+    const bookableSlots = slots.filter((slot) => slot.bookableLengths.length > 0).length;
     const offerReady = mentorOfferReady.isMet(offerState(profile, bookableSlots, settings));
 
     return toPublicDto(profile, owner.avatarUrl ?? null, offerReady, slots, settings);

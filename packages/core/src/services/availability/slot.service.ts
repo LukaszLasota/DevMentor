@@ -1,8 +1,10 @@
-import { ACTIVE_SLOT_UNIQUE, isUniqueViolation, LockMode, MentorProfile, Slot } from '@devmentor/db';
+import { ACTIVE_SLOT_UNIQUE, Booking, isUniqueViolation, LockMode, MentorProfile, Slot } from '@devmentor/db';
 import type { Cradle } from '../../container/cradle';
+import type { SessionLength } from '../../domain/session-lengths';
 import { ConflictError, NotFoundError, ValidationError } from '../../http/errors';
 import type { SlotCreateInput } from '../../validators/availability/slot-create.schema';
-import { BOOKING_LEAD_TIME_MINUTES, horizonFrom, MAX_ACTIVE_FUTURE_SLOTS, meetsLeadTime, PAST_LIST_LIMIT } from './lead-time';
+import { freeLengths, type BusyInterval } from '../bookings/occupancy';
+import { horizonFrom, MAX_ACTIVE_FUTURE_SLOTS, meetsLeadTime, PAST_LIST_LIMIT } from './lead-time';
 
 export const MENTOR_PROFILE_MISSING_MESSAGE = 'Mentor profile not found.';
 export const SLOT_NOT_FOUND_MESSAGE = 'Slot not found.';
@@ -10,9 +12,9 @@ export const SLOT_IN_PAST_MESSAGE = 'Pick a start time in the future.';
 export const SLOT_BEYOND_HORIZON_MESSAGE = 'Pick a start time within the next 365 days.';
 export const SLOT_DUPLICATE_MESSAGE = 'You already have a slot at this time.';
 export const SLOT_CAP_MESSAGE = `You have ${MAX_ACTIVE_FUTURE_SLOTS} upcoming slots, the most allowed. Remove one first.`;
+export const SLOT_BOOKED_MESSAGE = 'This time is booked or held for payment and cannot be removed.';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const LEAD_TIME_MS = BOOKING_LEAD_TIME_MINUTES * 60_000;
 
 /** A slot as its owner and the public page see it: no `removedAt`, nothing private. */
 export interface SlotView {
@@ -20,6 +22,23 @@ export interface SlotView {
   startsAt: string;
   /** Evaluated at read time with the server clock (R09), never stored. */
   meetsLeadTime: boolean;
+  /**
+   * Lengths a mentee can book now (spec #29, Q9): free of every active booking of the mentor, and
+   * empty when the slot is less than two hours away.
+   */
+  bookableLengths: SessionLength[];
+}
+
+/** The owner's view adds whether the slot itself is held for payment or booked (spec #29). */
+export interface OwnerSlotView extends SlotView {
+  booking: 'held' | 'booked' | null;
+}
+
+/** An active booking as occupancy reads it. */
+interface ActiveBooking extends BusyInterval {
+  slotId: string;
+  mentorProfileId: string;
+  status: 'held' | 'booked';
 }
 
 export type SlotScope = 'upcoming' | 'past';
@@ -30,8 +49,28 @@ export interface BookableSummary {
   nextStartsAt: Date;
 }
 
-export function toSlotView(slot: Slot, now: Date): SlotView {
-  return { id: slot.id, startsAt: slot.startsAt.toISOString(), meetsLeadTime: meetsLeadTime(slot.startsAt, now) };
+/** `busy` = the active bookings of the slot's mentor; omitted for a slot that was just created. */
+export function toSlotView(slot: Slot, now: Date, busy: readonly BusyInterval[] = []): SlotView {
+  const lead = meetsLeadTime(slot.startsAt, now);
+
+  return {
+    id: slot.id,
+    startsAt: slot.startsAt.toISOString(),
+    meetsLeadTime: lead,
+    bookableLengths: lead ? freeLengths(slot.startsAt, busy) : [],
+  };
+}
+
+/**
+ * Bookings that occupy time at `now`: confirmed ones, and holds whose payment window has not passed
+ * (spec #29: reads never write — an expired hold is free here, its row is released by the next booking).
+ */
+export function activeBookingsWhere(mentorProfileIds: readonly string[], now: Date) {
+  return {
+    mentorProfile: { $in: [...mentorProfileIds] },
+    endsAt: { $gt: now },
+    $or: [{ status: 'confirmed' as const }, { status: 'pending_payment' as const, holdExpiresAt: { $gt: now } }],
+  };
 }
 
 /** `SELECT … FOR UPDATE` that re-reads the row (lesson 2026-10-26); built at call time. */
@@ -56,8 +95,11 @@ export class SlotService {
     this.events = events;
   }
 
-  /** `upcoming`: future, ascending (at most the cap); `past`: started, descending, the last 50. */
-  async listMine(userId: string, scope: SlotScope): Promise<SlotView[]> {
+  /**
+   * `upcoming`: future, ascending (at most the cap); `past`: started, descending, the last 50. Each
+   * slot says whether it is held for payment or booked (`/mentor/slots`, spec #29).
+   */
+  async listMine(userId: string, scope: SlotScope): Promise<OwnerSlotView[]> {
     const profile = await this.ownProfile(this.em, userId);
     const now = this.clock.now();
     const upcoming = scope === 'upcoming';
@@ -66,8 +108,12 @@ export class SlotService {
       { mentorProfile: profile.id, removedAt: null, startsAt: upcoming ? { $gt: now } : { $lte: now } },
       { orderBy: { startsAt: upcoming ? 'asc' : 'desc' }, limit: upcoming ? MAX_ACTIVE_FUTURE_SLOTS : PAST_LIST_LIMIT },
     );
+    const bookings = await this.activeBookings(this.em, [profile.id], now);
 
-    return slots.map((slot) => toSlotView(slot, now));
+    return slots.map((slot) => ({
+      ...toSlotView(slot, now, bookings),
+      booking: bookings.find((booking) => booking.slotId === slot.id)?.status ?? null,
+    }));
   }
 
   /**
@@ -122,29 +168,37 @@ export class SlotService {
 
   /**
    * Soft-removes the caller's own active slot; unknown, already removed or another mentor's → 404
-   * (no existence leak). `last_published_availability_at` is not touched.
+   * (no existence leak); held for payment or booked → 409 (spec #29). Runs under the profile row lock
+   * that booking takes too, so a removal and a booking of the same time cannot both win.
+   * `last_published_availability_at` is not touched.
    */
   async remove(userId: string, slotId: string): Promise<{ id: string }> {
-    const profile = await this.ownProfile(this.em, userId);
-    const slot = UUID.test(slotId)
-      ? await this.em.findOne(Slot, { id: slotId, mentorProfile: profile.id, removedAt: null })
-      : null;
+    return this.em.transactional(async (em) => {
+      const profile = await this.ownProfile(em, userId, true);
+      const slot = UUID.test(slotId) ? await em.findOne(Slot, { id: slotId, mentorProfile: profile.id, removedAt: null }) : null;
 
-    if (slot === null) {
-      throw new NotFoundError(SLOT_NOT_FOUND_MESSAGE);
-    }
+      if (slot === null) {
+        throw new NotFoundError(SLOT_NOT_FOUND_MESSAGE);
+      }
 
-    slot.removedAt = this.clock.now();
-    await this.em.flush();
+      const now = this.clock.now();
+      const bookings = await this.activeBookings(em, [profile.id], now);
 
-    return { id: slot.id };
+      if (bookings.some((booking) => booking.slotId === slot.id)) {
+        throw new ConflictError(SLOT_BOOKED_MESSAGE);
+      }
+
+      slot.removedAt = now;
+
+      return { id: slot.id };
+    });
   }
 
   /**
-   * Future, non-removed slots that meet the lead time at `now` (inclusive at two hours), per mentor,
-   * for many mentors in **one** query (spec #27); mentors with none are absent from the map; no ids,
-   * no query. The rows are grouped here: core cannot use MikroORM's raw SQL helpers, and 1.0 holds at
-   * most 50 mentors × 200 slots.
+   * Bookable slots — future, non-removed, meeting the lead time at `now` (inclusive at two hours) and
+   * with at least one free length (spec #29) — per mentor, for many mentors in one slot query and one
+   * booking query (spec #27); mentors with none are absent from the map; no ids, no query. Grouped
+   * here: core cannot use MikroORM's raw SQL helpers, and 1.0 holds at most 50 mentors × 200 slots.
    */
   async bookableSummaryFor(mentorProfileIds: readonly string[], now: Date): Promise<Map<string, BookableSummary>> {
     const summary = new Map<string, BookableSummary>();
@@ -155,15 +209,23 @@ export class SlotService {
 
     const slots = await this.em.find(
       Slot,
-      { mentorProfile: { $in: [...mentorProfileIds] }, removedAt: null, startsAt: { $gte: new Date(now.getTime() + LEAD_TIME_MS) } },
+      { mentorProfile: { $in: [...mentorProfileIds] }, removedAt: null, startsAt: { $gt: now } },
       { orderBy: { startsAt: 'asc' } },
     );
+    const bookings = await this.activeBookings(this.em, mentorProfileIds, now);
 
     for (const slot of slots) {
-      const entry = summary.get(slot.mentorProfile.id);
+      const mentorProfileId = slot.mentorProfile.id;
+      const busy = bookings.filter((booking) => booking.mentorProfileId === mentorProfileId);
+
+      if (toSlotView(slot, now, busy).bookableLengths.length === 0) {
+        continue;
+      }
+
+      const entry = summary.get(mentorProfileId);
 
       if (entry === undefined) {
-        summary.set(slot.mentorProfile.id, { count: 1, nextStartsAt: slot.startsAt });
+        summary.set(mentorProfileId, { count: 1, nextStartsAt: slot.startsAt });
       } else {
         entry.count += 1;
       }
@@ -172,27 +234,39 @@ export class SlotService {
     return summary;
   }
 
-  /**
-   * The `hasBookableSlot` and D13 count for one mentor: a `count(*)` with the same slot rule as
-   * `bookableSummaryFor` (no rows hydrated: `/m/[slug]` and its proxy check read it per request).
-   */
+  /** The `hasBookableSlot` and D13 count for one mentor, with the same rule as `bookableSummaryFor`. */
   async countBookable(mentorProfileId: string, now: Date): Promise<number> {
-    return this.em.count(Slot, {
-      mentorProfile: mentorProfileId,
-      removedAt: null,
-      startsAt: { $gte: new Date(now.getTime() + LEAD_TIME_MS) },
-    });
+    return (await this.bookableSummaryFor([mentorProfileId], now)).get(mentorProfileId)?.count ?? 0;
   }
 
-  /** Future, non-removed slots for a public page, ascending, each with its lead-time state at `now`. */
+  /**
+   * Future, non-removed slots for a public page, ascending, each with its lead-time state and free
+   * lengths at `now`. A slot with no free length (booked, held, or inside another booking) is left out.
+   */
   async listPublicFor(mentorProfileId: string, now: Date): Promise<SlotView[]> {
     const slots = await this.em.find(
       Slot,
       { mentorProfile: mentorProfileId, removedAt: null, startsAt: { $gt: now } },
       { orderBy: { startsAt: 'asc' }, limit: MAX_ACTIVE_FUTURE_SLOTS },
     );
+    const bookings = await this.activeBookings(this.em, [mentorProfileId], now);
 
-    return slots.map((slot) => toSlotView(slot, now));
+    return slots
+      .filter((slot) => freeLengths(slot.startsAt, bookings).length > 0)
+      .map((slot) => toSlotView(slot, now, bookings));
+  }
+
+  /** Active bookings of these mentors at `now` (see `activeBookingsWhere`). */
+  private async activeBookings(em: Cradle['em'], mentorProfileIds: readonly string[], now: Date): Promise<ActiveBooking[]> {
+    const rows = await em.find(Booking, activeBookingsWhere(mentorProfileIds, now));
+
+    return rows.map((row) => ({
+      slotId: row.slot.id,
+      mentorProfileId: row.mentorProfile.id,
+      startsAt: row.startsAt,
+      endsAt: row.endsAt,
+      status: row.status === 'confirmed' ? 'booked' : 'held',
+    }));
   }
 
   private async ownProfile(em: Cradle['em'], userId: string, lock = false): Promise<MentorProfile> {

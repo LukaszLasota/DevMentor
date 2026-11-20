@@ -7,8 +7,8 @@ import { SlotsEditor } from "./SlotsEditor";
 const refresh = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 
-const TOMORROW: SlotView = { id: "6f1d0c3a-2b4e-4c5d-8e9f-0a1b2c3d4e5f", startsAt: "2026-06-23T09:00:00.000Z", meetsLeadTime: true };
-const SOON: SlotView = { id: "7a2e1d4b-3c5f-4d6e-9f0a-1b2c3d4e5f60", startsAt: "2026-06-22T17:00:00.000Z", meetsLeadTime: false };
+const TOMORROW: SlotView = { id: "6f1d0c3a-2b4e-4c5d-8e9f-0a1b2c3d4e5f", startsAt: "2026-06-23T09:00:00.000Z", meetsLeadTime: true, bookableLengths: ["25", "50"] };
+const SOON: SlotView = { id: "7a2e1d4b-3c5f-4d6e-9f0a-1b2c3d4e5f60", startsAt: "2026-06-22T17:00:00.000Z", meetsLeadTime: false, bookableLengths: [] };
 
 const respond = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });

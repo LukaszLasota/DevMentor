@@ -11,7 +11,7 @@ const PAGE: MentorPublicView = {
   stackTags: ['python'],
   prices: { price25Cents: 15000, price50Cents: 30000, currency: 'PLN' },
   offerReady: true,
-  slots: [{ id: 's1', startsAt: '2026-06-23T09:00:00.000Z', meetsLeadTime: true }],
+  slots: [{ id: 's1', startsAt: '2026-06-23T09:00:00.000Z', meetsLeadTime: true, bookableLengths: ['25', '50'] }],
 };
 const LIST_KEYS = ['avatarUrl', 'bio', 'displayName', 'nextBookableSlotAt', 'prices', 'publicWorkUrl', 'slug', 'stackTags'];
 
