@@ -80,6 +80,8 @@ describe("public mentor components", () => {
     expect(screen.getByRole("link", { name: "All" }).getAttribute("href")).toBe("/mentors");
     rerender(<MentorTagFilter active={null} />);
     expect(screen.getByRole("link", { name: "All" }).getAttribute("aria-current")).toBe("page");
+    rerender(<MentorTagFilter active={false} />);
+    expect(document.querySelector('[aria-current="page"]')).toBeNull();
     rerender(<MentorTagFilter active={null} basePath="/favorites" />);
     expect(screen.getByRole("link", { name: "Python" }).getAttribute("href")).toBe("/favorites?tag=python");
   });

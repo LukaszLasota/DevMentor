@@ -131,6 +131,14 @@ Choices made in this spec (no product owner input needed, flag in review if wron
 ## ❓ Open Questions
 None. Q10 (does 1.0 record visits to mentor pages or the list for the 2026-11-28 interviews?) stays with founders A and B; if answered yes, it is a separate story.
 
+## 📝 Implementation notes (PR #52, 2026-11-20)
+- **`/mentors` stays in the `(mentee)` route group and is public**, not in `(marketing)`: the mentee home already lives at that URL (one URL, one page), and that layout has no guard and shows the account bar and sidebar only with a session. Signed-in users keep their shell, sign-out and `?notice=` (L03); signed-out visitors (or an ended session) get the list and a "Sign in" link. Consequence: the page uses the panel stylesheet and panel components (`EmptyState`, `RoleNotice`, `TextLink`) next to the Tailwind-only `@devmentor/ui/mentors` cards; the `(marketing)` import rule does not apply here.
+- **`bookableSummaryFor` groups one `find` result in the service** (`$in` on the candidates, removed/lead-time filter, ascending start) instead of a SQL `GROUP BY`: core cannot use MikroORM's raw SQL helpers, and 1.0 holds at most 50 mentors × 200 slots. `countBookable` stays a `count(*)` with the same rule (it runs per `/m/[slug]` request).
+- The unknown-tag state marks no filter link current (`MentorTagFilter active={false}`).
+- `homeFor` already sent mentees to `/mentors` (sign-in implementation), so no change was needed.
+- Prices are present (#24 merged); the list item's `prices` is never null.
+- Integration fixtures live in `packages/app/integration/fixtures/mentors.ts` (`seedBookableMentor`, built through invite → accept → owner API).
+
 ## 📋 Phasing
 One phase, one PR, after #23 and #25 have merged (readiness primitive, public projection, slots, ordering key). #24 is not a hard dependency: if it has not merged, its price requirements are absent from the definition and the card omits prices; #24 adds both. Ships with Epic 02 before #29, which depends on it.
 

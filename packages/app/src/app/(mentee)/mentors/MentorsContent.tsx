@@ -1,4 +1,5 @@
 import { formatMoney, withScope } from "@devmentor/core";
+import { getPageSession } from "@/lib/session";
 import { mentorListQuerySchema } from "@devmentor/core/validators";
 import { EmptyState, RoleNotice, TextLink } from "@devmentor/ui";
 import { MentorCard, MentorTagFilter, stackTagLabel } from "@devmentor/ui/mentors";
@@ -18,20 +19,29 @@ export async function MentorsContent({ searchParams }: { searchParams: Promise<R
     return (
       <>
         <RoleNotice notice={notice} />
-        <MentorTagFilter active={null} />
+        <MentorTagFilter active={false} />
         <p className="text-body-small font-medium">Unknown stack tag.</p>
       </>
     );
   }
 
-  // The list reads the clock (two-hour lead) and the database: request time, never prerendered.
+  // Documents the request-time read (clock for the two-hour lead, database); awaiting searchParams
+  // already keeps this subtree out of the prerender.
   await connection();
   const items = await withScope(({ mentorListService }) => mentorListService.listBookable(query.data));
   const active = query.data.tag ?? null;
+  // Public page in the (mentee) shell: signed out (or with an ended session) there is no account bar,
+  // so offer the way in here (review of #27).
+  const signedIn = (await getPageSession()) !== null;
 
   return (
     <>
       <RoleNotice notice={notice} />
+      {signedIn ? null : (
+        <p className="text-body-small text-muted-foreground">
+          <TextLink href="/sign-in?returnTo=%2Fmentors">Sign in</TextLink> to see your account.
+        </p>
+      )}
       <MentorTagFilter active={active} />
       {items.length > 0 ? (
         <ul>

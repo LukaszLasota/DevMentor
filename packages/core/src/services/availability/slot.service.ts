@@ -172,9 +172,16 @@ export class SlotService {
     return summary;
   }
 
-  /** The `hasBookableSlot` and D13 count: one mentor's `bookableSummaryFor` entry, 0 without one. */
+  /**
+   * The `hasBookableSlot` and D13 count for one mentor: a `count(*)` with the same slot rule as
+   * `bookableSummaryFor` (no rows hydrated: `/m/[slug]` and its proxy check read it per request).
+   */
   async countBookable(mentorProfileId: string, now: Date): Promise<number> {
-    return (await this.bookableSummaryFor([mentorProfileId], now)).get(mentorProfileId)?.count ?? 0;
+    return this.em.count(Slot, {
+      mentorProfile: mentorProfileId,
+      removedAt: null,
+      startsAt: { $gte: new Date(now.getTime() + LEAD_TIME_MS) },
+    });
   }
 
   /** Future, non-removed slots for a public page, ascending, each with its lead-time state at `now`. */

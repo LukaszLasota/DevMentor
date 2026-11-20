@@ -1,7 +1,9 @@
 import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ listBookable: vi.fn(), connection: vi.fn(async () => undefined) }));
+const mocks = vi.hoisted(() => ({ listBookable: vi.fn(), connection: vi.fn(async () => undefined), getPageSession: vi.fn() }));
+
+vi.mock("@/lib/session", () => ({ getPageSession: mocks.getPageSession }));
 
 vi.mock("next/server", () => ({ connection: mocks.connection }));
 vi.mock("@devmentor/core", () => ({
@@ -28,6 +30,7 @@ const noScores = () =>
 beforeEach(() => {
   mocks.listBookable.mockReset().mockResolvedValue([item("ada", ["python"]), item("bob", ["react"])]);
   mocks.connection.mockClear();
+  mocks.getPageSession.mockReset().mockResolvedValue(null);
 });
 
 describe("MentorsContent (/mentors, #27)", () => {
@@ -44,6 +47,15 @@ describe("MentorsContent (/mentors, #27)", () => {
     expect(screen.queryByRole("searchbox")).toBeNull();
     expect(screen.queryByRole("button", { name: /copy/i })).toBeNull();
     noScores();
+  });
+
+  it("offers Sign in to a signed-out visitor, not to a signed-in one", async () => {
+    render(await MentorsContent(query({})));
+    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/sign-in?returnTo=%2Fmentors");
+
+    mocks.getPageSession.mockResolvedValue({ id: "u1", roles: ["mentee"] });
+    render(await MentorsContent(query({ tag: "python" })));
+    expect(screen.getAllByRole("link", { name: "Sign in" })).toHaveLength(1);
   });
 
   it("passes one tag and marks it current", async () => {
@@ -75,7 +87,8 @@ describe("MentorsContent (/mentors, #27)", () => {
     render(await MentorsContent(query({ tag })));
 
     expect(screen.getByText("Unknown stack tag.")).toBeTruthy();
-    expect(screen.getByRole("navigation", { name: "Filter by stack tag" })).toBeTruthy();
+    const filter = screen.getByRole("navigation", { name: "Filter by stack tag" });
+    expect(filter.querySelector('[aria-current="page"]')).toBeNull();
     expect(mocks.listBookable).not.toHaveBeenCalled();
   });
 

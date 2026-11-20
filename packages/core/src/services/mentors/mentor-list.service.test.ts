@@ -150,6 +150,15 @@ describe('MentorListService.listBookable', () => {
     const { service, settings } = setup(fixtures);
 
     const listed = new Set((await service.listBookable()).map((item) => item.displayName));
+    const expected: Record<string, boolean> = {
+      Ready: true,
+      Draft: false,
+      NoSlots: false,
+      NoPrices: false,
+      OutOfBounds: false,
+      Revoked: false,
+      Incomplete: false,
+    };
 
     for (const { name, profile, slots } of fixtures) {
       const owner = profile.user.getEntity();
@@ -159,7 +168,7 @@ describe('MentorListService.listBookable', () => {
         mentorPagePublishable.isMet(pageFields(profile)) &&
         mentorOfferReady.evaluate(offerState(profile, slots, settings.tryGet())).every((item) => item.met);
 
-      expect({ name, listed: listed.has(name) }).toEqual({ name, listed: meetsDefinition });
+      expect({ name, listed: listed.has(name), meetsDefinition }).toEqual({ name, listed: expected[name], meetsDefinition: expected[name] });
     }
     expect([...listed]).toEqual(['Ready']);
   });

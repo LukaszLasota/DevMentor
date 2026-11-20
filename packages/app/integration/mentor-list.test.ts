@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, describe, expect, inject, it } from 'vitest';
 import { createAgentBrowser } from './agent-browser';
-import { seedBookableMentor, type MentorFixture } from './fixtures/mentors';
+import { inHours, seedBookableMentor, type MentorFixture } from './fixtures/mentors';
 import { psql } from './psql';
 
 // The public mentor list end to end (spec 2026-10-21-mentor-list, step 8): three bookable mentors with
@@ -38,6 +38,14 @@ afterAll(async () => {
 describe('mentor list: who is listed, in which order, by tag (agent-browser)', () => {
   it('seeds three bookable mentors published in order, one without a slot and one draft', async () => {
     seeded.first = await seedBookableMentor(browser, { login: `ml-first-${run}`, displayName: `First ${run}`, stackTags: ['python'], batch });
+    // A second slot for First, published right away (before Second exists), so removing one later
+    // keeps First listed: AC2 "removing a slot does not change the order".
+    const extra = await fetch(`${baseUrl}/api/availability/slots`, {
+      method: 'POST',
+      headers: { 'x-devmentor-request': '1', 'content-type': 'application/json', cookie: seeded.first.cookie },
+      body: JSON.stringify({ startsAt: inHours(48) }),
+    });
+    expect(extra.status).toBe(200);
     seeded.second = await seedBookableMentor(browser, { login: `ml-second-${run}`, displayName: `Second ${run}`, stackTags: ['react'], batch });
     seeded.third = await seedBookableMentor(browser, { login: `ml-third-${run}`, displayName: `Third ${run}`, stackTags: ['react', 'ai-agents'], batch });
     seeded.noslot = await seedBookableMentor(browser, { login: `ml-noslot-${run}`, displayName: `Noslot ${run}`, stackTags: ['react'], batch, slotInHours: null });
@@ -99,6 +107,17 @@ describe('mentor list: who is listed, in which order, by tag (agent-browser)', (
     await browser.waitForUrl(`**/m/${seeded.first?.slug}`);
     await browser.waitForText(`First ${run}`);
     expect(await browser.text('main')).not.toContain('Not bookable yet');
+  });
+
+  it('removing one of several slots keeps a mentor in place (the key never moves back)', async () => {
+    const firstSlots = (await (await fetch(`${baseUrl}/api/availability/slots`, { headers: { cookie: seeded.first?.cookie as string } })).json()).data.items;
+    const removed = await fetch(`${baseUrl}/api/availability/slots/${firstSlots[1].id}`, {
+      method: 'DELETE',
+      headers: { 'x-devmentor-request': '1', cookie: seeded.first?.cookie as string },
+    });
+    expect(removed.status).toBe(200);
+
+    expect(ourOrder(await (await fetch(`${baseUrl}/mentors`)).text())).toEqual(['third', 'second', 'first']);
   });
 
   it('removing the only slot takes a mentor off the list; the order of the others stays', async () => {
