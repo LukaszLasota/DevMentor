@@ -52,7 +52,11 @@ export function SlotsPanel({ slots, showPast, onShowPastChange, onRemove }: Slot
       </div>
 
       {slots.length === 0 ? (
-        <EmptyState title="No upcoming slots." description="Publish one so mentees can book you." />
+        showPast ? (
+          <EmptyState title="No past slots." />
+        ) : (
+          <EmptyState title="No upcoming slots." description="Publish one so mentees can book you." />
+        )
       ) : (
         <Table>
           <TableHeader>

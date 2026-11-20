@@ -110,6 +110,20 @@ describe("public mentor components", () => {
     expect(screen.queryByRole("button")).toBeNull();
   });
 
+  it("MentorPageView lists open times of an offer-ready mentor before prices exist (#25 before #24)", () => {
+    render(
+      <MentorPageView
+        {...mentor}
+        prices={null}
+        offerReady
+        slots={[{ id: "a", startsAt: "2026-11-14T18:30:00Z", meetsLeadTime: true }]}
+      />,
+    );
+    expect(screen.getByRole("list", { name: "Open times" }).querySelectorAll("li")).toHaveLength(1);
+    expect(screen.queryByRole("list", { name: "Session prices" })).toBeNull();
+    expect(screen.queryByText("Not bookable yet")).toBeNull();
+  });
+
   it("MentorPageView says only 'Not bookable yet' when the offer is not ready", () => {
     render(<MentorPageView {...mentor} prices={null} offerReady={false} slots={[]} />);
     expect(screen.getByText("Not bookable yet")).toBeTruthy();

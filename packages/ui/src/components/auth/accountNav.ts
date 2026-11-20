@@ -19,6 +19,7 @@ export function accountNavSections(roles: readonly AccountRole[]): SideNavSectio
           ? [
               { href: "/mentor", label: "Mentor workspace" },
               { href: "/mentor/profile", label: "Your page" },
+              { href: "/mentor/slots", label: "Open times" },
             ]
           : []),
       ],

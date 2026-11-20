@@ -60,6 +60,10 @@ export interface InvitationView {
   acceptedAt: Date | null;
   publishDueAt: Date | null;
   revokedAt: Date | null;
+  /** D13 snapshot, only from `list` and only for accepted invitations: bookable slots at list time. */
+  bookableSlots: number | null;
+  /** D13 snapshot: `met` (slots > 0), `pending` (none yet, before the due date), `missed`. */
+  d13: 'met' | 'pending' | 'missed' | null;
 }
 
 export interface CreateInvitationInput {
@@ -142,10 +146,12 @@ function toView(invitation: Invitation, now: Date): InvitationView {
     acceptedAt: invitation.acceptedAt ?? null,
     publishDueAt: invitation.publishDueAt ?? null,
     revokedAt: invitation.revokedAt ?? null,
+    bookableSlots: null,
+    d13: null,
   };
 }
 
-type InvitationServiceDeps = Pick<Cradle, 'em' | 'env' | 'clock' | 'events' | 'logger' | 'accountService'>;
+type InvitationServiceDeps = Pick<Cradle, 'em' | 'env' | 'clock' | 'events' | 'logger' | 'accountService' | 'slotService'>;
 
 /**
  * Mentor invitations (spec 2026-10-21-mentor-invitations): the operator creates, revokes, resends
@@ -160,14 +166,16 @@ export class InvitationService {
   private readonly events: Cradle['events'];
   private readonly logger: Cradle['logger'];
   private readonly accountService: Cradle['accountService'];
+  private readonly slotService: Cradle['slotService'];
 
-  constructor({ em, env, clock, events, logger, accountService }: InvitationServiceDeps) {
+  constructor({ em, env, clock, events, logger, accountService, slotService }: InvitationServiceDeps) {
     this.em = em;
     this.env = env;
     this.clock = clock;
     this.events = events;
     this.logger = logger;
     this.accountService = accountService;
+    this.slotService = slotService;
   }
 
   /**
@@ -386,7 +394,41 @@ export class InvitationService {
       orderBy: { createdAt: 'asc' },
     });
 
-    return rows.map((row) => toView(row, now));
+    const views: InvitationView[] = [];
+
+    // One query at a time: a single EntityManager is not meant for parallel queries.
+    for (const row of rows) {
+      views.push(await this.withD13(row, now));
+    }
+
+    return views;
+  }
+
+  /** The D13 snapshot (bookable slots and met/pending/missed) for an accepted invitation; others keep nulls. */
+  private async withD13(row: Invitation, now: Date): Promise<InvitationView> {
+    const view = toView(row, now);
+
+    if (row.acceptedAt == null) {
+      return view;
+    }
+
+    const profile = row.acceptedBy == null ? null : await this.em.findOne(MentorProfile, { user: row.acceptedBy.id });
+    let bookableSlots = 0;
+
+    if (profile !== null) {
+      bookableSlots = await this.slotService.countBookable(profile.id, now);
+    }
+
+    const due = profile?.initialPublishDueAt ?? row.publishDueAt;
+    let d13: InvitationView['d13'] = 'missed';
+
+    if (bookableSlots > 0) {
+      d13 = 'met';
+    } else if (due != null && now < due) {
+      d13 = 'pending';
+    }
+
+    return { ...view, bookableSlots, d13 };
   }
 
   private async lockUnresolved(em: Cradle['em'], id: string, action: 'revoked' | 'resent'): Promise<Invitation> {

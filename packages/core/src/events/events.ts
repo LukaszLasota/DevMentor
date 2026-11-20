@@ -18,6 +18,11 @@ export interface DomainEvents {
    * the publish transaction commits, only by the call that set `published_at`.
    */
   'mentors.profile.published': { mentorProfileId: string; slug: string };
+  /**
+   * A mentor published a slot (the D13 supply signal). Emitted after the publish transaction
+   * commits; `startsAt` is the UTC instant.
+   */
+  'availability.slot.published': { mentorProfileId: string; slotId: string; startsAt: Date };
 }
 
 export type DomainEventName = keyof DomainEvents;

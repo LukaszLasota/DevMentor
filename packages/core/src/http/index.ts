@@ -51,6 +51,8 @@ export {
   type MentorSlugParams,
 } from './mentors';
 export type { MentorOwnerView, MentorPublicView } from '../services/mentors/mentor-profile.service';
+export { listMySlots, publishSlot, removeSlot, type SlotIdParams } from './availability';
+export type { SlotView } from '../services/availability/slot.service';
 export { INVALID_CREDENTIALS_MESSAGE, VerificationLinkInvalidError } from '../services/auth/account.service';
 export { OAUTH_STATE_COOKIE } from './oauth-state-cookie';
 export { clearSessionCookie, readSessionCookie, SESSION_COOKIE, sessionCookie } from './session-cookie';

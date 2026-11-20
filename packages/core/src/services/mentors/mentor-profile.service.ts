@@ -5,7 +5,15 @@ import type { RequirementResult } from '../../domain/readiness';
 import type { StackTagKey } from '../../domain/vocabularies/stack-tags';
 import { ConflictError, NotFoundError } from '../../http/errors';
 import type { MentorProfileUpdateInput } from '../../validators/mentors/mentor-profile-update.schema';
-import { mentorPagePublishable, type MentorPageFields, type MentorPageRequirement } from './readiness';
+import type { SlotView } from '../availability/slot.service';
+import {
+  mentorOfferReady,
+  mentorPagePublishable,
+  type MentorOfferRequirement,
+  type MentorOfferState,
+  type MentorPageFields,
+  type MentorPageRequirement,
+} from './readiness';
 
 export const PROFILE_NOT_FOUND_MESSAGE = 'Mentor profile not found.';
 export const PAGE_NOT_FOUND_MESSAGE = 'Mentor page not found.';
@@ -29,6 +37,10 @@ export interface MentorPublicView {
   publicWorkUrl: string;
   bio: string;
   stackTags: StackTagKey[];
+  /** `mentorOfferReady` at request time (#25). */
+  offerReady: boolean;
+  /** Future slots with their lead-time state; empty unless `offerReady` (Q4 of #27/#28). */
+  slots: SlotView[];
 }
 
 /** What the mentor sees about their own page; dates as ISO 8601. */
@@ -43,6 +55,8 @@ export interface MentorOwnerView {
   initialPublishDueAt: string | null;
   /** The publish gate, in checklist order. */
   readiness: RequirementResult<MentorPageRequirement>[];
+  /** The bookability gate at request time (`/mentor` steps), in checklist order. */
+  offerReadiness: RequirementResult<MentorOfferRequirement>[];
 }
 
 function pageFields(profile: MentorProfile): MentorPageFields {
@@ -54,7 +68,11 @@ function pageFields(profile: MentorProfile): MentorPageFields {
   };
 }
 
-export function toOwnerDto(profile: MentorProfile, avatarUrl: string | null): MentorOwnerView {
+function offerState(profile: MentorProfile, bookableSlots: number): MentorOfferState {
+  return { publishedAt: profile.publishedAt ?? null, bookableSlots };
+}
+
+export function toOwnerDto(profile: MentorProfile, avatarUrl: string | null, bookableSlots: number): MentorOwnerView {
   return {
     slug: profile.slug ?? null,
     displayName: profile.displayName ?? null,
@@ -65,11 +83,17 @@ export function toOwnerDto(profile: MentorProfile, avatarUrl: string | null): Me
     publishedAt: profile.publishedAt?.toISOString() ?? null,
     initialPublishDueAt: profile.initialPublishDueAt?.toISOString() ?? null,
     readiness: mentorPagePublishable.evaluate(pageFields(profile)),
+    offerReadiness: mentorOfferReady.evaluate(offerState(profile, bookableSlots)),
   };
 }
 
 /** Only called for a published, complete page (`getPublicBySlug` checks both). */
-export function toPublicDto(profile: MentorProfile, avatarUrl: string | null): MentorPublicView {
+export function toPublicDto(
+  profile: MentorProfile,
+  avatarUrl: string | null,
+  offerReady: boolean,
+  slots: SlotView[],
+): MentorPublicView {
   return {
     slug: profile.slug as string,
     displayName: profile.displayName as string,
@@ -77,6 +101,8 @@ export function toPublicDto(profile: MentorProfile, avatarUrl: string | null): M
     publicWorkUrl: profile.publicWorkUrl as string,
     bio: profile.bio as string,
     stackTags: [...profile.stackTags],
+    offerReady,
+    slots: offerReady ? slots : [],
   };
 }
 
@@ -104,11 +130,13 @@ export class MentorProfileService {
   private readonly em: Cradle['em'];
   private readonly clock: Cradle['clock'];
   private readonly events: Cradle['events'];
+  private readonly slotService: Cradle['slotService'];
 
-  constructor({ em, clock, events }: Pick<Cradle, 'em' | 'clock' | 'events'>) {
+  constructor({ em, clock, events, slotService }: Pick<Cradle, 'em' | 'clock' | 'events' | 'slotService'>) {
     this.em = em;
     this.clock = clock;
     this.events = events;
+    this.slotService = slotService;
   }
 
   /**
@@ -118,7 +146,11 @@ export class MentorProfileService {
   async findOwn(userId: string): Promise<MentorOwnerView | null> {
     const profile = await this.em.findOne(MentorProfile, { user: userId });
 
-    return profile === null ? null : toOwnerDto(profile, await this.avatarOf(userId));
+    if (profile === null) {
+      return null;
+    }
+
+    return this.ownerView(profile, userId);
   }
 
   /** The owner's page; 404 without a profile (never created implicitly on read). */
@@ -150,7 +182,7 @@ export class MentorProfileService {
       return em.assign(locked, changes);
     });
 
-    return toOwnerDto(profile, await this.avatarOf(userId));
+    return await this.ownerView(profile, userId);
   }
 
   /**
@@ -185,7 +217,7 @@ export class MentorProfileService {
         await this.events.emit('mentors.profile.published', { mentorProfileId: profile.id, slug: profile.slug as string });
       }
 
-      return toOwnerDto(profile, await this.avatarOf(userId));
+      return await this.ownerView(profile, userId);
     }
 
     throw new ConflictError(SLUG_CONFLICT_MESSAGE);
@@ -199,7 +231,7 @@ export class MentorProfileService {
       return em.assign(locked, { publishedAt: null });
     });
 
-    return toOwnerDto(profile, await this.avatarOf(userId));
+    return await this.ownerView(profile, userId);
   }
 
   /**
@@ -224,7 +256,11 @@ export class MentorProfileService {
       return null;
     }
 
-    return toPublicDto(profile, owner.avatarUrl ?? null);
+    const now = this.clock.now();
+    const offerReady = mentorOfferReady.isMet(offerState(profile, await this.slotService.countBookable(profile.id, now)));
+    const slots = offerReady ? await this.slotService.listPublicFor(profile.id, now) : [];
+
+    return toPublicDto(profile, owner.avatarUrl ?? null, offerReady, slots);
   }
 
   /** `findPublicBySlug` for the API: 404 for every page that is not public. */
@@ -271,6 +307,12 @@ export class MentorProfileService {
     }
 
     return profile;
+  }
+
+  private async ownerView(profile: MentorProfile, userId: string): Promise<MentorOwnerView> {
+    const bookableSlots = await this.slotService.countBookable(profile.id, this.clock.now());
+
+    return toOwnerDto(profile, await this.avatarOf(userId), bookableSlots);
   }
 
   private async avatarOf(userId: string): Promise<string | null> {

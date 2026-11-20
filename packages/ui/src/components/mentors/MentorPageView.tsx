@@ -70,9 +70,10 @@ export function MentorPageView({
           Sessions
         </h2>
         <TextSessionNotice />
-        {offerReady && prices ? (
+        {/* Slots show whenever the mentor is offer-ready; price facts only once prices exist (#24). */}
+        {offerReady ? (
           <>
-            <SessionFacts prices={prices} />
+            {prices ? <SessionFacts prices={prices} /> : null}
             <p className="text-caption text-muted-foreground">Times are shown in your time zone</p>
             <ul aria-label="Open times" className="flex flex-col">
               {slots.map((slot) => (

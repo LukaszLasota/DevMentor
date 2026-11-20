@@ -31,6 +31,8 @@ describe('@devmentor/core/validators', () => {
         'PUBLIC_WORK_URL_MAX',
         'StackTags',
         'isPublicWorkUrl',
+        'isWholeMinuteUtc',
+        'slotCreateSchema',
         'mentorProfileUpdateSchema',
         'PASSWORD_MAX_LENGTH',
         'PASSWORD_MIN_LENGTH',

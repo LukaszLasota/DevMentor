@@ -148,6 +148,15 @@ Hypotheses from a synthetic persona panel (`.ai/specs/research/walkthroughs/2026
 ## ❓ Open Questions
 None blocking. Non-blocking: how a mentor learns that a slot was booked — owned by the #29 spec (founder A).
 
+## 📝 Implementation notes (PR #50, 2026-11-20)
+- `/mentor/slots` reuses the Storybook `SlotsPanel` from `@devmentor/ui` (built in PR #37, `Table` + confirmed Remove + Show past) instead of a colocated copy over `DataTable`; the page's client container is `SlotsEditor.tsx`.
+- #24 is not merged: `mentorOfferReady` = `published` + `hasBookableSlot`; `MentorPageView` lists slots when offer-ready and shows price facts only once prices exist. The public DTO gains `offerReady` and `slots` (empty unless offer-ready); the owner DTO gains `offerReadiness` for `/mentor`.
+- `last_published_availability_at = GREATEST(…)` is computed in the service on the profile row it holds `FOR UPDATE` (same semantics, no raw SQL).
+- The `/m/[slug]` true 404 comes from `src/proxy.ts` (#23's implementation notes); slots are read at request time in the page, never cached.
+- `npm run invite -- list` shows `Bookable` and `D13` columns; an accepted invitation without a profile counts 0 against the invitation's `publish_due_at`.
+- The CrudForm `datetime` field names no zone in the server render and fills it in after hydration; an empty field asks for the time.
+- Migration and snapshot hand-written (no database in the agent sandbox); `integration/mentor-profiles-schema.test.ts` now migrates down to the migration before #23, which reverts this one too.
+
 ## 📋 Phasing
 One phase; starts only after #23 has merged (public read, `/m/[slug]`, readiness primitive); uses #22's `LocalTime`, `/mentor` and invite CLI; ships by 2026-10-31 with Epic 01.
 

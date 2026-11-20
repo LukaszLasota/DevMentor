@@ -78,4 +78,17 @@ describe('EventBus', () => {
     expect(onAccepted).toHaveBeenCalledExactlyOnceWith(accepted);
     expect(onRolesChanged).not.toHaveBeenCalled();
   });
+
+  it('carries the slot payload of availability.slot.published', async () => {
+    const { events } = bus();
+    const received: DomainEvents['availability.slot.published'][] = [];
+    const slot = { mentorProfileId: 'p1', slotId: 's1', startsAt: new Date('2026-06-22T16:00:00.000Z') };
+    events.on('availability.slot.published', (p) => {
+      received.push(p);
+    });
+
+    await events.emit('availability.slot.published', slot);
+
+    expect(received).toEqual([slot]);
+  });
 });
