@@ -55,6 +55,7 @@ export {
 } from './mentors';
 export type { MentorOwnerView, MentorPublicView } from '../services/mentors/mentor-profile.service';
 export type { MentorListItem } from '../services/mentors/mentor-list-item';
+export { receiveStripeWebhook, STRIPE_WEBHOOK_RESPONSE } from './stripe-webhook';
 export { listMySlots, publishSlot, removeSlot, type SlotIdParams } from './availability';
 export type { SlotView } from '../services/availability/slot.service';
 export { INVALID_CREDENTIALS_MESSAGE, VerificationLinkInvalidError } from '../services/auth/account.service';

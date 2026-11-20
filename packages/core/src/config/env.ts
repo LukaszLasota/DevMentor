@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const DEFAULT_GITHUB_OAUTH_URL = 'https://github.com';
 export const DEFAULT_GITHUB_API_URL = 'https://api.github.com';
+export const DEFAULT_STRIPE_API_URL = 'https://api.stripe.com';
 
 /** Dotenv files turn `KEY=` into an empty string; treat it as "not set". */
 const optional = <T extends z.ZodType>(schema: T) =>
@@ -37,7 +38,7 @@ export const DEFAULT_MENTOR_PUBLISH_WINDOW_DAYS = 14;
 const days = (fallback: number) =>
   optional(z.coerce.number().int().min(1).max(365)).transform((value) => value ?? fallback);
 
-const TEST_OVERRIDE_KEYS = ['DEVMENTOR_GITHUB_OAUTH_URL', 'DEVMENTOR_GITHUB_API_URL'] as const;
+const TEST_OVERRIDE_KEYS = ['DEVMENTOR_GITHUB_OAUTH_URL', 'DEVMENTOR_GITHUB_API_URL', 'STRIPE_API_URL'] as const;
 
 /** Stored prices are Postgres `integer` (spec 2026-10-21-mentor-prices). */
 export const MAX_PRICE_CENTS = 2_147_483_647;
@@ -76,7 +77,8 @@ export type MailProvider = (typeof MAIL_PROVIDERS)[number];
 
 /**
  * Tiers (platform-primitives spec, "API Contracts"):
- * - optional, checked at the route: GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, MAIL_API_KEY, MAIL_FROM;
+ * - optional, checked at the route: GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, MAIL_API_KEY, MAIL_FROM,
+ *   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET (payments are unavailable without them);
  * - required at first container creation in production (see `assertProductionEnv`), never here,
  *   so `npm run build` with no env passes: SESSION_SECRET, APP_URL, and MAIL_API_KEY + MAIL_FROM
  *   for the `resend` mailer;
@@ -85,7 +87,7 @@ export type MailProvider = (typeof MAIL_PROVIDERS)[number];
  * - dangerous configuration refused at boot: override URLs without ALLOW_TEST_OVERRIDES=1,
  *   MAIL_PROVIDER=log in production without ALLOW_TEST_OVERRIDES=1 (mail would only be logged), and a
  *   malformed or half-set PLATFORM_CURRENCY / PLATFORM_PRICE_BOUNDS pair;
- * - defaulted: SESSION_SECRET_PREVIOUS, OPERATOR_EMAILS, DEVMENTOR_GITHUB_OAUTH_URL, DEVMENTOR_GITHUB_API_URL,
+ * - defaulted: SESSION_SECRET_PREVIOUS, OPERATOR_EMAILS, DEVMENTOR_GITHUB_OAUTH_URL, DEVMENTOR_GITHUB_API_URL, STRIPE_API_URL,
  *   TRUSTED_PROXY_HOPS (0: no client IP is trusted), PASSWORD_HASH_CONCURRENCY, PASSWORD_HASH_WAIT_MS,
  *   MAIL_PROVIDER (`log` in development and test, `resend` in production), INVITATION_TTL_DAYS,
  *   MENTOR_PUBLISH_WINDOW_DAYS (14 each).
@@ -121,6 +123,12 @@ const envShape = z.object({
     PLATFORM_CURRENCY: optional(z.string().refine(isTwoDecimalCurrency, 'must be an ISO 4217 currency with two decimals')),
     /** Price bounds per session length in cents of PLATFORM_CURRENCY (Q-P2); no default. */
     PLATFORM_PRICE_BOUNDS: optional(platformPriceBounds),
+    /** Stripe API secret key (`sk_test_…` / `sk_live_…`); never logged. */
+    STRIPE_SECRET_KEY: optional(z.string()),
+    /** Signing secret of the Checkout webhook endpoint (`whsec_…`). */
+    STRIPE_WEBHOOK_SECRET: optional(z.string()),
+    /** Stripe API base URL; a test override (the integration stub), refused without ALLOW_TEST_OVERRIDES=1. */
+    STRIPE_API_URL: optional(baseUrl),
     ALLOW_TEST_OVERRIDES: z
       .enum(['0', '1'], 'must be 1 or 0')
       .default('0')
@@ -159,6 +167,7 @@ const envSchema = envShape
     ...env,
     DEVMENTOR_GITHUB_OAUTH_URL: env.DEVMENTOR_GITHUB_OAUTH_URL ?? DEFAULT_GITHUB_OAUTH_URL,
     DEVMENTOR_GITHUB_API_URL: env.DEVMENTOR_GITHUB_API_URL ?? DEFAULT_GITHUB_API_URL,
+    STRIPE_API_URL: env.STRIPE_API_URL ?? DEFAULT_STRIPE_API_URL,
     MAIL_PROVIDER: env.MAIL_PROVIDER ?? (env.NODE_ENV === 'production' ? 'resend' : 'log'),
   }));
 
