@@ -91,8 +91,8 @@ async function setup(fields: Partial<Booking> = {}, { pay = true, appUrl = 'http
 
   const table = (entity: unknown): object[] => (entity === Booking ? bookings : profiles);
   const em = {
-    findOne: vi.fn(async (entity: unknown, where: Where, _options?: object) => table(entity).find((row) => matches(row, where)) ?? null),
-    find: vi.fn(async (entity: unknown, where: Where, _options?: object) => table(entity).filter((row) => matches(row, where))),
+    findOne: vi.fn(async (entity: unknown, where: Where) => table(entity).find((row) => matches(row, where)) ?? null),
+    find: vi.fn(async (entity: unknown, where: Where) => table(entity).filter((row) => matches(row, where))),
     nativeUpdate: vi.fn(async (_entity: unknown, where: Where, data: Partial<Booking>) => {
       const rows = bookings.filter((row) => matches(row, where));
       rows.forEach((row) => Object.assign(row, data));
