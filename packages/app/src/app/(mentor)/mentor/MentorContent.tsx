@@ -2,13 +2,14 @@ import { withScope } from "@devmentor/core";
 import { LocalTime, ReadinessChecklist, RoleNotice, type ReadinessItem } from "@devmentor/ui";
 import { requirePageRole } from "@/lib/session";
 
-// The onboarding steps of s06. The page step links to /mentor/profile (#23); prices (#24) and slots
-// (#25) get their pages and `met` checks with those stories and are listed without a link until then.
-function steps(published: boolean): ReadinessItem[] {
+// The onboarding steps of s06. The page step links to /mentor/profile (#23) and the slot step to
+// /mentor/slots (#25, met by `hasBookableSlot`: a slot within two hours does not count); prices (#24)
+// get their page and `met` check with that story and are listed without a link until then.
+function steps(published: boolean, hasBookableSlot: boolean): ReadinessItem[] {
   return [
     { key: "published", label: "Publish your page", met: published, href: "/mentor/profile", actionLabel: "Edit your page" },
     { key: "prices", label: "Set your prices", met: false },
-    { key: "slot", label: "Publish a slot", met: false },
+    { key: "slot", label: "Publish a slot", met: hasBookableSlot, href: "/mentor/slots", actionLabel: "Add a slot" },
   ];
 }
 
@@ -38,7 +39,10 @@ export async function MentorContent({ searchParams }: { searchParams: Promise<Re
             </>
           )
         }
-        items={steps(own?.publishedAt != null)}
+        items={steps(
+          own?.publishedAt != null,
+          own?.offerReadiness.some((item) => item.key === "hasBookableSlot" && item.met) === true,
+        )}
       />
     </>
   );

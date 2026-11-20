@@ -15,7 +15,7 @@ const noQuery = () => Promise.resolve({});
 
 beforeEach(() => {
   mocks.requirePageRole.mockReset().mockResolvedValue({ id: "u1", roles: ["mentee", "mentor"] });
-  mocks.findOwn.mockReset().mockResolvedValue({ initialPublishDueAt: DUE.toISOString(), publishedAt: null });
+  mocks.findOwn.mockReset().mockResolvedValue({ initialPublishDueAt: DUE.toISOString(), publishedAt: null, offerReadiness: [] });
 });
 
 describe("MentorContent", () => {
@@ -31,19 +31,35 @@ describe("MentorContent", () => {
     expect(screen.queryByRole("status")).toBeNull();
   });
 
-  it("lists the onboarding steps; the page step links to /mentor/profile (#24, #25 later)", async () => {
+  it("lists the onboarding steps; page and slot steps link to their pages (#24 later)", async () => {
     render(await MentorContent({ searchParams: noQuery() }));
 
     expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual([
       "To do: Publish your pageEdit your page",
       "To do: Set your prices",
-      "To do: Publish a slot",
+      "To do: Publish a slotAdd a slot",
     ]);
     expect(screen.getByRole("link", { name: "Edit your page" }).getAttribute("href")).toBe("/mentor/profile");
+    expect(screen.getByRole("link", { name: "Add a slot" }).getAttribute("href")).toBe("/mentor/slots");
+  });
+
+  it("marks the slot step done only with a bookable slot (hasBookableSlot)", async () => {
+    mocks.findOwn.mockResolvedValue({
+      initialPublishDueAt: DUE.toISOString(),
+      publishedAt: null,
+      offerReadiness: [
+        { key: "published", met: false },
+        { key: "hasBookableSlot", met: true },
+      ],
+    });
+
+    render(await MentorContent({ searchParams: noQuery() }));
+
+    expect(screen.getAllByRole("listitem")[2]?.textContent).toBe("Done: Publish a slot");
   });
 
   it("marks the page step done once the page is published", async () => {
-    mocks.findOwn.mockResolvedValue({ initialPublishDueAt: DUE.toISOString(), publishedAt: DUE.toISOString() });
+    mocks.findOwn.mockResolvedValue({ initialPublishDueAt: DUE.toISOString(), publishedAt: DUE.toISOString(), offerReadiness: [] });
 
     render(await MentorContent({ searchParams: noQuery() }));
 
@@ -51,7 +67,7 @@ describe("MentorContent", () => {
   });
 
   it.each([
-    ["a profile without a date", { initialPublishDueAt: null, publishedAt: null }],
+    ["a profile without a date", { initialPublishDueAt: null, publishedAt: null, offerReadiness: [] }],
     ["no profile (mentor granted by hand)", null],
   ])("with %s the heading has no date", async (_case, own) => {
     mocks.findOwn.mockResolvedValue(own);
