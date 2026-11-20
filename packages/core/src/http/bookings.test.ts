@@ -4,7 +4,7 @@ import { parseEnv } from '../config/env';
 import { signSession } from '../security/session-token';
 import type { Clock } from '../time/clock';
 import { apiHandler } from './apiHandler';
-import { BOOKING_RESPONSE, getOwnBooking, releaseOwnBooking, startBooking } from './bookings';
+import { BOOKING_RESPONSE, cancelOwnBooking, getOwnBooking, releaseOwnBooking, retryBookingRefund, startBooking } from './bookings';
 import { CSRF_HEADER, CSRF_HEADER_VALUE } from './envelope';
 import { ConflictError, ForbiddenError, NotFoundError, ServiceUnavailableError } from './errors';
 
@@ -27,12 +27,19 @@ const VIEW = { id: BOOKING_ID, status: 'confirmed' };
 const START = apiHandler(startBooking, BOOKING_RESPONSE);
 const GET = apiHandler(getOwnBooking, BOOKING_RESPONSE);
 const RELEASE = apiHandler(releaseOwnBooking, BOOKING_RESPONSE);
+const CANCEL = apiHandler(cancelOwnBooking, BOOKING_RESPONSE);
+const RETRY = apiHandler(retryBookingRefund, BOOKING_RESPONSE);
 
 let bookingService: { start: ReturnType<typeof vi.fn>; getOwn: ReturnType<typeof vi.fn>; releaseOwnHold: ReturnType<typeof vi.fn> };
+let bookingCancellationService: { cancel: ReturnType<typeof vi.fn>; retryRefund: ReturnType<typeof vi.fn> };
+let roles: string[];
 
 beforeEach(() => {
-  const user = Object.assign(new User(), { id: USER_ID, email: 'mentee@devmentor.test', roles: ['mentee'], sessionVersion: 0 });
+  roles = ['mentee'];
+  const user = Object.assign(new User(), { id: USER_ID, email: 'mentee@devmentor.test', sessionVersion: 0 });
+  Object.defineProperty(user, 'roles', { get: () => roles });
   bookingService = { start: vi.fn(async () => STARTED), getOwn: vi.fn(async () => VIEW), releaseOwnHold: vi.fn(async () => VIEW) };
+  bookingCancellationService = { cancel: vi.fn(async () => VIEW), retryRefund: vi.fn(async () => ({ refundStatus: 'succeeded' })) };
   scope.cradle = {
     env: parseEnv({ DATABASE_URL: 'postgres://u:p@localhost:5432/db', SESSION_SECRET: SECRET }),
     clock,
@@ -40,6 +47,7 @@ beforeEach(() => {
     em: { findOne: vi.fn(async (_entity: unknown, where: { id: string }) => (where.id === user.id ? user : null)) },
     accountService: { reconcileOperator: vi.fn(async (u: User) => u) },
     bookingService,
+    bookingCancellationService,
   };
 });
 
@@ -122,5 +130,53 @@ describe('POST /api/bookings/[id]/release', () => {
     expect((await RELEASE(await request('POST', { csrf: false }), idParams(BOOKING_ID))).status).toBe(403);
     expect((await RELEASE(await request('POST'), idParams('x'))).status).toBe(404);
     expect(bookingService.releaseOwnHold).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /api/bookings/[id]/cancel', () => {
+  it('cancels the caller\'s own booking with the parsed terms only, never cached', async () => {
+    const response = await CANCEL(await request('POST', { body: { expectRefund: true, refundCents: 1 } }), idParams(BOOKING_ID));
+
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(await response.json()).toEqual({ ok: true, data: VIEW });
+    expect(bookingCancellationService.cancel).toHaveBeenCalledWith(USER_ID, BOOKING_ID, { expectRefund: true });
+  });
+
+  it('answers 401, 403 without CSRF, 404 for a malformed id and 400 without the terms', async () => {
+    expect((await CANCEL(await request('POST', { signedIn: false, body: { expectRefund: true } }), idParams(BOOKING_ID))).status).toBe(401);
+    expect((await CANCEL(await request('POST', { csrf: false, body: { expectRefund: true } }), idParams(BOOKING_ID))).status).toBe(403);
+    expect((await CANCEL(await request('POST', { body: { expectRefund: true } }), idParams('x'))).status).toBe(404);
+    expect((await CANCEL(await request('POST', { body: {} }), idParams(BOOKING_ID))).status).toBe(400);
+    expect(bookingCancellationService.cancel).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [new ConflictError('No.', { code: 'NOT_CANCELLABLE' }), 'NOT_CANCELLABLE'],
+    [new ConflictError('Changed.', { code: 'CANCELLATION_TERMS_CHANGED' }), 'CANCELLATION_TERMS_CHANGED'],
+  ])('maps %o to 409 %s', async (error, code) => {
+    bookingCancellationService.cancel.mockRejectedValueOnce(error);
+
+    const response = await CANCEL(await request('POST', { body: { expectRefund: false } }), idParams(BOOKING_ID));
+
+    expect(response.status).toBe(409);
+    expect((await response.json()).error.code).toBe(code);
+  });
+});
+
+describe('POST /api/admin/bookings/[id]/refund', () => {
+  it('retries the refund for an operator', async () => {
+    roles = ['mentee', 'operator'];
+
+    const response = await RETRY(await request('POST'), idParams(BOOKING_ID));
+
+    expect(await response.json()).toEqual({ ok: true, data: { refundStatus: 'succeeded' } });
+    expect(bookingCancellationService.retryRefund).toHaveBeenCalledWith(BOOKING_ID);
+  });
+
+  it('answers 403 to anyone else and 404 for a malformed id', async () => {
+    expect((await RETRY(await request('POST'), idParams(BOOKING_ID))).status).toBe(403);
+    roles = ['operator'];
+    expect((await RETRY(await request('POST'), idParams('x'))).status).toBe(404);
+    expect(bookingCancellationService.retryRefund).not.toHaveBeenCalled();
   });
 });

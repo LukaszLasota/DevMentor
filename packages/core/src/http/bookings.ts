@@ -1,9 +1,11 @@
 import { z } from 'zod';
 import type { BookingStarted, BookingView } from '../services/bookings/booking.service';
 import { BOOKING_NOT_FOUND_MESSAGE } from '../services/bookings/booking.service';
+import type { RefundStatus } from '@devmentor/db';
+import { bookingCancelSchema } from '../validators/bookings/booking-cancel.schema';
 import { bookingStartSchema } from '../validators/bookings/booking-start.schema';
 import type { ApiHandlerOptions, HandlerArgs, RouteParams } from './apiHandler';
-import { requireSession } from './auth';
+import { requireRole, requireSession } from './auth';
 import { NotFoundError } from './errors';
 import { parseJsonBody } from './parse';
 
@@ -48,4 +50,25 @@ export async function releaseOwnBooking({ req, params, cradle }: HandlerArgs<Boo
   const user = await requireSession(req, cradle);
 
   return cradle.bookingService.releaseOwnHold(user.id, bookingId(params));
+}
+
+/**
+ * `POST /api/bookings/[id]/cancel` `{ expectRefund }` → the caller's own booking, cancelled (spec
+ * 2026-11-20-booking-cancellation). 409 `NOT_CANCELLABLE` or `CANCELLATION_TERMS_CHANGED`; a repeat
+ * returns the cancelled booking.
+ */
+export async function cancelOwnBooking({ req, params, cradle }: HandlerArgs<BookingIdParams>): Promise<BookingView> {
+  const user = await requireSession(req, cradle);
+  const id = bookingId(params);
+  const input = await parseJsonBody(req, bookingCancelSchema);
+
+  return cradle.bookingCancellationService.cancel(user.id, id, input);
+}
+
+/** `POST /api/admin/bookings/[id]/refund` (operators) → the refund status after one more try. */
+export async function retryBookingRefund({ req, params, cradle }: HandlerArgs<BookingIdParams>): Promise<{ refundStatus: RefundStatus }> {
+  const user = await requireSession(req, cradle);
+  requireRole(user, 'operator');
+
+  return cradle.bookingCancellationService.retryRefund(bookingId(params));
 }
