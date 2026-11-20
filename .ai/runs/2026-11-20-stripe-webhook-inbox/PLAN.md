@@ -16,7 +16,7 @@ Engine: om-auto-create-pr-loop (--loop forwarded)
 | 1 | 1.3 | Stripe client: form encoding, pinned version, idempotency key, outcome classification | inline | done | c970c00 |
 | 1 | 1.4 | CheckoutGateway port, fake and Stripe adapter | inline | done | 051130e |
 | 1 | 1.5 | verifyStripeSignature (pure) | inline | done | 883ecbe |
-| 2 | 2.1 | StripeEvent entity, migration and snapshot | inline | todo | |
+| 2 | 2.1 | StripeEvent entity, migration and snapshot | inline | done | self |
 | 2 | 2.2 | StripeInboxService with handler registry and container registration | inline | todo | |
 | 2 | 2.3 | POST /api/webhooks/stripe (csrf off, raw body) | inline | todo | |
 | 3 | 3.1 | scripts/lib/stripe-stub.mjs with unit tests | inline | todo | |
