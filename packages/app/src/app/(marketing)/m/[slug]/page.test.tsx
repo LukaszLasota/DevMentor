@@ -23,6 +23,8 @@ const PAGE = {
   publicWorkUrl: "https://github.com/ada/engine",
   bio: "Wrote the first program.\nFor an engine that was never built.",
   stackTags: ["python", "ai-agents"],
+  offerReady: false,
+  slots: [] as { id: string; startsAt: string; meetsLeadTime: boolean }[],
 };
 const props = (slug: string) => ({ params: Promise.resolve({ slug }), searchParams: Promise.resolve({}) });
 
@@ -49,6 +51,28 @@ describe("/m/[slug]", () => {
     expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual(["Python", "AI agents"]);
     expect(screen.getByText("Not bookable yet")).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/\b(ratings?|scores?|reviews?|rank(ing)?|stars?)\b/i);
+  });
+
+  it("lists open times of an offer-ready mentor, a slot past its lead time disabled with the reason", async () => {
+    mocks.findPublicBySlug.mockResolvedValue({
+      ...PAGE,
+      offerReady: true,
+      slots: [
+        { id: "a", startsAt: "2026-06-22T16:30:00.000Z", meetsLeadTime: false },
+        { id: "b", startsAt: "2026-06-23T09:00:00.000Z", meetsLeadTime: true },
+      ],
+    });
+
+    render(await MentorSharePage(props("ada-lovelace")));
+
+    const items = screen.getByRole("list", { name: "Open times" }).querySelectorAll("li");
+    expect(items).toHaveLength(2);
+    expect(items[0]?.getAttribute("aria-disabled")).toBe("true");
+    expect(items[0]?.textContent).toContain("Starts in less than two hours — no longer bookable");
+    expect(items[1]?.getAttribute("aria-disabled")).toBeNull();
+    expect(screen.queryByText("Not bookable yet")).toBeNull();
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(document.body.textContent).not.toMatch(/\b(ratings?|scores?|reviews?|rank(ing)?|stars?|guaranteed|reserved)\b/i);
   });
 
   it("calls notFound() for a page that is not public", async () => {
