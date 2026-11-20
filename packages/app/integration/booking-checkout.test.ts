@@ -90,7 +90,7 @@ describe('booking: book → Stripe Checkout → Booked (agent-browser + Stripe s
   it('shows each length with its price before paying, books, pays on Checkout and lands on Booked (AC1, AC2)', async () => {
     await mentee.open(`${baseUrl}/m/${ada.slug}`);
     await mentee.waitForIdle();
-    const text = (await mentee.text('main')).replace(/ /g, ' ');
+    const text = (await mentee.text('main')).replace(/\s+/g, ' ');
     expect(text).toContain('25 min PLN 150.00');
     expect(text).toContain('50 min PLN 300.00');
 
@@ -102,7 +102,7 @@ describe('booking: book → Stripe Checkout → Booked (agent-browser + Stripe s
     await mentee.waitForText('Booked');
 
     bookingId = (await mentee.url()).split('/bookings/')[1] as string;
-    const page = (await mentee.text('main')).replace(/ /g, ' ');
+    const page = (await mentee.text('main')).replace(/\s+/g, ' ');
     expect(page).toContain(`25-minute text session with Booking ada ${run}`);
     expect(page).toContain('You paid PLN 150.00.');
     expect(page).not.toMatch(/respond|reply within|guarantee/i);

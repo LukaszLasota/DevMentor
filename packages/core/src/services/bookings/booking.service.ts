@@ -338,9 +338,8 @@ export class BookingService {
         }
 
         const settings = this.platformSettingsService.tryGet();
-        const bookable = await this.slotService.countBookable(profile.id, now, em);
 
-        if (!meetsLeadTime(slot.startsAt, now) || settings === null || !mentorOfferReady.isMet(offerState(profile, bookable, settings))) {
+        if (!meetsLeadTime(slot.startsAt, now) || settings === null) {
           throw notBookable();
         }
 
@@ -362,6 +361,14 @@ export class BookingService {
 
         if (!freeLengths(slot.startsAt, busy).includes(input.length)) {
           throw slotTaken();
+        }
+
+        // After the taken check: a rival's hold on the mentor's only time must read as SLOT_TAKEN, not as
+        // the mentor dropping out of offer-readiness (which counts free times).
+        const bookable = await this.slotService.countBookable(profile.id, now, em);
+
+        if (!mentorOfferReady.isMet(offerState(profile, bookable, settings))) {
+          throw notBookable();
         }
 
         const booking = em.create(Booking, {

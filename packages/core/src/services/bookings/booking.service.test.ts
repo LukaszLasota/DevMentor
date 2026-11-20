@@ -248,9 +248,11 @@ describe('BookingService.start', () => {
 
   it('lets two mentees race for one time: the second is refused before any Checkout (AC4)', async () => {
     const { profile, slot } = bookableMentor();
-    const { service, gateway } = setup({ profiles: [profile], slots: [slot] });
+    const { service, gateway, slotService } = setup({ profiles: [profile], slots: [slot] });
 
     await service.start(MENTEE, { slotId: slot.id, length: '25' });
+    // The held time was the mentor's only one: they now have no free time, yet the rival hears SLOT_TAKEN.
+    slotService.countBookable.mockResolvedValue(0);
     const second = await rejection(service.start({ id: randomUUID(), email: 'b@devmentor.test' }, { slotId: slot.id, length: '25' }));
 
     expect(second).toMatchObject({ status: 409, code: 'SLOT_TAKEN', message: SLOT_TAKEN_MESSAGE });
