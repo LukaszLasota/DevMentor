@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { cache } from "react";
-import { formatMoney, withScope } from "@devmentor/core";
+import { formatMoney } from "@devmentor/core";
 import { MentorPageView } from "@devmentor/ui/mentors";
+import { loadPublicMentor } from "./load-public-mentor";
 
 // The mentor's share page (spec 2026-10-21-mentor-page). The page is partially prerendered under
 // cacheComponents, so its stream starts with 200: the true HTTP 404 for an unknown or unpublished page
@@ -11,17 +11,14 @@ import { MentorPageView } from "@devmentor/ui/mentors";
 // touches the database.
 export const instant = false;
 
-/** One database read per request, shared by the metadata and the page. */
-const findPage = cache((slug: string) => withScope(({ mentorProfileService }) => mentorProfileService.findPublicBySlug(slug)));
-
 export async function generateMetadata({ params }: PageProps<"/m/[slug]">): Promise<Metadata> {
-  const page = await findPage((await params).slug);
+  const page = await loadPublicMentor((await params).slug);
 
   return { title: page === null ? "Page not found · DevMentor" : `${page.displayName} · DevMentor` };
 }
 
 export default async function MentorSharePage({ params }: PageProps<"/m/[slug]">) {
-  const page = await findPage((await params).slug);
+  const page = await loadPublicMentor((await params).slug);
 
   if (page === null) {
     notFound();
