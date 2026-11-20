@@ -47,6 +47,23 @@ async function db(...args: string[]): Promise<string> {
   return stdout;
 }
 
+/** Table names of the scratch database's public schema. */
+async function scratchTables(): Promise<string> {
+  const { stdout } = await execFileAsync('docker', [
+    'exec',
+    inject('postgresContainerId'),
+    'psql',
+    '-U',
+    'devmentor',
+    '-d',
+    SCRATCH_DB,
+    '-tAc',
+    "select string_agg(table_name, ',' order by table_name) from information_schema.tables where table_schema = 'public'",
+  ]);
+
+  return stdout.trim();
+}
+
 /** Column names of `mentor_profiles` in the scratch database, sorted. */
 async function scratchColumns(): Promise<string> {
   const { stdout } = await execFileAsync('docker', [
@@ -123,12 +140,15 @@ describe('mentor page migration down and up (scratch database)', () => {
     await db('migration:up');
     expect(await scratchColumns()).toContain('published_at');
 
-    await db('migration:down');
+    // Back to the migration before the mentor page: later ones (slots, #25) are reverted with it.
+    await db('migration:down', '--to', 'Migration20261114193444');
     expect(await scratchColumns()).toBe('created_at,id,initial_publish_due_at,updated_at,user_id');
+    expect(await scratchTables()).not.toContain('slots');
 
     await db('migration:up');
     expect(await scratchColumns()).toBe(
-      'bio,created_at,display_name,id,initial_publish_due_at,public_work_url,published_at,slug,stack_tags,updated_at,user_id',
+      'bio,created_at,display_name,id,initial_publish_due_at,last_published_availability_at,public_work_url,published_at,slug,stack_tags,updated_at,user_id',
     );
+    expect(await scratchTables()).toContain('slots');
   });
 });

@@ -27,9 +27,10 @@ export default async function MentorSharePage({ params }: PageProps<"/m/[slug]">
     notFound();
   }
 
-  // Prices (#24) and slots (#25) do not exist yet, so no page is bookable: "Not bookable yet". Those
-  // stories replace `offerReady={false}` with the `mentorOfferReady` gate (services/mentors/readiness.ts).
-  // The true 404 status comes from `src/proxy.ts`; `notFound()` here covers a page hidden in between.
+  // `offerReady` is the `mentorOfferReady` gate at request time (published + a bookable slot; #24 adds
+  // prices); `slots` is empty unless it holds, and each slot carries its lead-time state for this
+  // request (nothing here is cached). The true 404 status comes from `src/proxy.ts`; `notFound()` here
+  // covers a page hidden in between.
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col px-paragraph py-section">
       <MentorPageView
@@ -38,9 +39,9 @@ export default async function MentorSharePage({ params }: PageProps<"/m/[slug]">
         publicWorkUrl={page.publicWorkUrl}
         bio={page.bio}
         stackTags={page.stackTags}
-        offerReady={false}
+        offerReady={page.offerReady}
         prices={null}
-        slots={[]}
+        slots={page.slots}
       />
     </main>
   );

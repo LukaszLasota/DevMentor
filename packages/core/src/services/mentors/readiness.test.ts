@@ -16,9 +16,13 @@ describe('mentorPagePublishable', () => {
 });
 
 describe('mentorOfferReady', () => {
-  it('declares only "published" in this story (#24 and #25 add prices and a slot)', () => {
-    expect(mentorOfferReady.keys).toEqual(['published']);
-    expect(mentorOfferReady.isMet({ publishedAt: new Date() })).toBe(true);
-    expect(mentorOfferReady.isMet({ publishedAt: null })).toBe(false);
+  it('needs a published page and a bookable slot (#24 adds prices)', () => {
+    expect(mentorOfferReady.keys).toEqual(['published', 'hasBookableSlot']);
+    expect(mentorOfferReady.isMet({ publishedAt: new Date(), bookableSlots: 1 })).toBe(true);
+    expect(mentorOfferReady.evaluate({ publishedAt: new Date(), bookableSlots: 0 })).toEqual([
+      { key: 'published', met: true },
+      { key: 'hasBookableSlot', met: false },
+    ]);
+    expect(mentorOfferReady.isMet({ publishedAt: null, bookableSlots: 3 })).toBe(false);
   });
 });

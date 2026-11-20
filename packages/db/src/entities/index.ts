@@ -1,3 +1,4 @@
+import { SlotSchema } from './availability/slot.entity';
 import { AuthRateLimitSchema } from './auth/auth-rate-limit.entity';
 import { EmailVerificationTokenSchema } from './auth/email-verification-token.entity';
 import { UserSchema } from './auth/user.entity';
@@ -11,4 +12,5 @@ export const entities = [
   EmailVerificationTokenSchema,
   InvitationSchema,
   MentorProfileSchema,
+  SlotSchema,
 ];

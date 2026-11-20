@@ -19,7 +19,7 @@ Every create/edit form is a `CrudForm` (AGENTS.md). The rules live in the compon
 | Errors under the field, linked with `aria-describedby`; form errors in a danger Alert | WCAG 3.3.1 |
 | Footer: Cancel first, then the primary action, right-aligned | R03.4 |
 | Cmd/Ctrl+Enter submits, Escape cancels | AGENTS.md (`CrudForm`) |
-| Field types: text, email, password, number, textarea, checkbox, `multiselect` (stack tags), `inputMode` + `suffix` (prices) | specs #23, #24 |
+| Field types: text, email, password, number, textarea, checkbox, `multiselect` (stack tags), `inputMode` + `suffix` (prices), `datetime` (slot start: local time → UTC, zone named, UTC echo, DST gap refused) | specs #23, #24, #25 |
 
 ## API answers (simulated with msw)
 <Canvas of={Stories.Success} />

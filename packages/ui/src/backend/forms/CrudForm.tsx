@@ -8,10 +8,20 @@ import { Input } from "../../components/ui/input";
 import { Alert, AlertDescription } from "../../components/ui/alert";
 import { Textarea } from "../../components/ui/textarea";
 import { FORM_ERRORS_KEY, type ApiResult, type FieldErrors } from "../api/types";
+import { localToUtc, utcToLocal, viewerTimeZone } from "./datetime";
+import { DateTimeField } from "./DateTimeField";
 import { Field } from "./Field";
 import { PasswordField } from "./PasswordField";
 
-export type CrudFormFieldType = "text" | "email" | "password" | "number" | "textarea" | "checkbox" | "multiselect";
+export type CrudFormFieldType =
+  | "text"
+  | "email"
+  | "password"
+  | "number"
+  | "textarea"
+  | "checkbox"
+  | "multiselect"
+  | "datetime";
 
 export interface CrudFormOption {
   value: string;
@@ -37,6 +47,11 @@ export interface CrudFormField<Name extends string> {
   autoComplete?: string;
   /** "password" fields only: adds a "Show password" checkbox (`PasswordField`, DS-02). */
   revealable?: boolean;
+  /**
+   * "datetime" fields only: the IANA zone the mentor types in (default: the viewer's). The schema
+   * receives the UTC ISO instant (spec #25).
+   */
+  timeZone?: string;
 }
 
 type FieldValue = string | boolean | string[];
@@ -62,7 +77,19 @@ export interface CrudFormProps<S extends z.ZodObject> {
   errors?: FieldErrors;
 }
 
-function initialValue(type: CrudFormFieldType, value: DefaultValue | undefined): FieldValue {
+function zoneOf(field: CrudFormField<string>): string {
+  return field.timeZone ?? viewerTimeZone();
+}
+
+function initialValue(field: CrudFormField<string>, value: DefaultValue | undefined): FieldValue {
+  const type = field.type ?? "text";
+
+  if (type === "datetime") {
+    // A default is a UTC instant; the input shows it on the mentor's wall clock. The conversion runs in
+    // the initializer, so a server render uses the server's zone: pass `timeZone` with a default.
+    return utcToLocal(value === undefined ? "" : String(value), zoneOf(field));
+  }
+
   if (type === "checkbox") {
     return value === true;
   }
@@ -80,10 +107,36 @@ function toSchemaInput(fields: CrudFormField<string>[], values: Record<string, F
 
   for (const field of fields) {
     const value = values[field.name];
+    if (field.type === "datetime") {
+      const resolved = localToUtc(String(value), zoneOf(field));
+      // Unresolvable input goes through as typed, so the schema refuses it with its own message.
+      input[field.name] = resolved.kind === "ok" ? resolved.iso : value;
+      continue;
+    }
+
     input[field.name] = field.type === "number" ? (value === "" ? undefined : Number(value)) : value;
   }
 
   return input;
+}
+
+/** A local time that a clock change skips cannot be stored: say so on the field (spec #25, DST). */
+function conversionErrors(fields: CrudFormField<string>[], values: Record<string, FieldValue>): FieldErrors {
+  const errors: FieldErrors = {};
+
+  for (const field of fields) {
+    if (field.type !== "datetime") {
+      continue;
+    }
+
+    if (values[field.name] === "") {
+      errors[field.name] = [`Enter the ${field.label.toLowerCase()}.`];
+    } else if (localToUtc(String(values[field.name]), zoneOf(field)).kind === "gap") {
+      errors[field.name] = [`This time does not exist in ${zoneOf(field)} because the clocks change. Pick another time.`];
+    }
+  }
+
+  return errors;
 }
 
 // Mirrors toFieldErrors in @devmentor/core/http (ui must not import core).
@@ -118,7 +171,7 @@ export function CrudForm<S extends z.ZodObject>({
   const formRef = useRef<HTMLFormElement>(null);
   const [values, setValues] = useState<Record<string, FieldValue>>(() =>
     Object.fromEntries(
-      fields.map((field) => [field.name, initialValue(field.type ?? "text", defaultValues[field.name])]),
+      fields.map((field) => [field.name, initialValue(field, defaultValues[field.name])]),
     ),
   );
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -171,7 +224,7 @@ export function CrudForm<S extends z.ZodObject>({
   /** Validates one field when the user leaves it; other fields keep their current errors. */
   function validateField(name: string, current: Record<string, FieldValue> = values) {
     const parsed = schema.safeParse(toSchemaInput(fields, current));
-    const errors = parsed.success ? {} : toFieldErrors(parsed.error);
+    const errors = { ...(parsed.success ? {} : toFieldErrors(parsed.error)), ...conversionErrors(fields, current) };
     setFieldErrors((current) => ({ ...current, [name]: errors[name] ?? [] }));
   }
 
@@ -183,9 +236,10 @@ export function CrudForm<S extends z.ZodObject>({
     }
 
     const parsed = schema.safeParse(toSchemaInput(fields, values));
+    const unconvertible = conversionErrors(fields, values);
 
-    if (!parsed.success) {
-      const errors = toFieldErrors(parsed.error);
+    if (!parsed.success || Object.keys(unconvertible).length > 0) {
+      const errors = { ...(parsed.success ? {} : toFieldErrors(parsed.error)), ...unconvertible };
       setFieldErrors(errors);
       setFormError(null);
       focusFirstError(errors);
@@ -279,6 +333,23 @@ export function CrudForm<S extends z.ZodObject>({
                 </p>
               ) : null}
             </fieldset>
+          );
+        }
+
+        if (type === "datetime") {
+          return (
+            <div key={field.name} data-field={field.name}>
+              <DateTimeField
+                label={field.label}
+                name={field.name}
+                value={String(value)}
+                error={error}
+                required={field.required}
+                timeZone={field.timeZone}
+                onChange={(next) => changeText(field.name, next)}
+                onBlur={() => validateField(field.name)}
+              />
+            </div>
           );
         }
 

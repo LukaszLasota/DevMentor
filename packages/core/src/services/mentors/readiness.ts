@@ -30,15 +30,25 @@ export const mentorPagePublishable = defineReadiness<MentorPageFields, MentorPag
   { key: 'stackTags', message: PAGE_REQUIREMENT_MESSAGES.stackTags, met: (page) => page.stackTags.length > 0 },
 ]);
 
-/** What the bookability gate reads; #24 and #25 widen it additively. */
+/** What the bookability gate reads; #24 widens it additively with prices. */
 export interface MentorOfferState {
   publishedAt: Date | null;
+  /** Future, non-removed slots meeting the two-hour lead time at `clock.now()` (`SlotService.countBookable`). */
+  bookableSlots: number;
 }
+
+export type MentorOfferRequirement = 'published' | 'hasBookableSlot';
 
 /**
  * The single bookability gate (name fixed by #24): the list (#27), the share page (#28) and booking
- * (#29) read it. This story declares only `published`.
+ * (#29) read it. #23 declared `published`; #25 adds `hasBookableSlot` (a slot within two hours does
+ * not count); #24 adds its price requirements.
  */
-export const mentorOfferReady = defineReadiness<MentorOfferState, 'published'>([
+export const mentorOfferReady = defineReadiness<MentorOfferState, MentorOfferRequirement>([
   { key: 'published', message: 'Publish your page.', met: (offer) => offer.publishedAt !== null },
+  {
+    key: 'hasBookableSlot',
+    message: 'Publish a slot at least two hours ahead.',
+    met: (offer) => offer.bookableSlots > 0,
+  },
 ]);

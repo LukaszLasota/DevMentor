@@ -27,6 +27,10 @@ function own(overrides: Partial<MentorOwnerView> = {}): MentorOwnerView {
     publishedAt: null,
     initialPublishDueAt: "2026-11-28T12:00:00.000Z",
     readiness: READY.map((key) => ({ key, met: false })),
+    offerReadiness: [
+      { key: "published", met: false },
+      { key: "hasBookableSlot", met: false },
+    ],
   };
 
   return { ...base, ...overrides };

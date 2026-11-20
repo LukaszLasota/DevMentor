@@ -15,7 +15,8 @@ export const MENTOR_OWNER_RESPONSE: ApiHandlerOptions = { headers: { 'Cache-Cont
 /** Route params of `/api/mentors/[slug]` (a type, not an interface: it must fit `RouteParams`). */
 export type MentorSlugParams = { slug: string };
 
-async function requireMentor(req: Request, cradle: Cradle): Promise<SessionUser> {
+/** The session user, who must hold `mentor` (401 / 403); shared by the mentor-owned routes. */
+export async function requireMentor(req: Request, cradle: Cradle): Promise<SessionUser> {
   const user = await requireSession(req, cradle);
   requireRole(user, 'mentor');
 

@@ -30,6 +30,7 @@ vi.mock('../services/invitations/invitation.service', async (importOriginal) => 
 }));
 
 const { parseEnv } = await import('../config/env');
+const { SlotService } = await import('../services/availability/slot.service');
 const { AccountService } = await import('../services/auth/account.service');
 const { ConflictError, NotFoundError, ServiceUnavailableError, ValidationError } = await import('../http/errors');
 const {
@@ -61,6 +62,8 @@ function view(overrides: Partial<InvitationView> = {}): InvitationView {
     acceptedAt: null,
     publishDueAt: null,
     revokedAt: null,
+    bookableSlots: null,
+    d13: null,
     ...overrides,
   };
 }
@@ -152,24 +155,36 @@ describe('formatting', () => {
     );
   });
 
-  it('lists invitations as an aligned table with a count per status', () => {
-    const accepted = view({
-      id: ID_2,
-      email: 'linus@example.com',
-      stackTags: ['python'],
-      batch: null,
-      status: 'accepted',
-      acceptedAt: new Date('2026-11-15T09:00:00.000Z'),
-      publishDueAt: new Date('2026-11-29T09:00:00.000Z'),
-    });
+  it('lists invitations as an aligned table with a count per status and the D13 columns', () => {
+    const accepted = (id: string, email: string, bookableSlots: number, d13: InvitationView['d13']) =>
+      view({
+        id,
+        email,
+        stackTags: ['python'],
+        batch: null,
+        status: 'accepted',
+        acceptedAt: new Date('2026-11-15T09:00:00.000Z'),
+        publishDueAt: new Date('2026-11-29T09:00:00.000Z'),
+        bookableSlots,
+        d13,
+      });
 
-    expect(formatInvitationTable([view(), accepted])).toBe(
+    expect(
+      formatInvitationTable([
+        view(),
+        accepted(ID_2, 'linus@example.com', 3, 'met'),
+        accepted(ID_2, 'grace@example.com', 0, 'pending'),
+        accepted(ID_2, 'alan@example.com', 0, 'missed'),
+      ]),
+    ).toBe(
       [
-        'ID                                    Email              Tags              Batch  Status    Created            Expires            Accepted           Publish due',
-        `${ID}  ada@example.com    typescript,react  b1     pending   2026-11-14T20:15Z  2026-11-28T20:15Z  -                  -`,
-        `${ID_2}  linus@example.com  python            -      accepted  2026-11-14T20:15Z  2026-11-28T20:15Z  2026-11-15T09:00Z  2026-11-29T09:00Z`,
+        'ID                                    Email              Tags              Batch  Status    Created            Expires            Accepted           Publish due        Bookable  D13',
+        `${ID}  ada@example.com    typescript,react  b1     pending   2026-11-14T20:15Z  2026-11-28T20:15Z  -                  -                  -         -`,
+        `${ID_2}  linus@example.com  python            -      accepted  2026-11-14T20:15Z  2026-11-28T20:15Z  2026-11-15T09:00Z  2026-11-29T09:00Z  3         met`,
+        `${ID_2}  grace@example.com  python            -      accepted  2026-11-14T20:15Z  2026-11-28T20:15Z  2026-11-15T09:00Z  2026-11-29T09:00Z  0         pending`,
+        `${ID_2}  alan@example.com   python            -      accepted  2026-11-14T20:15Z  2026-11-28T20:15Z  2026-11-15T09:00Z  2026-11-29T09:00Z  0         missed`,
         '',
-        '2 invitations (pending 1, accepted 1, expired 0, revoked 0). Times in UTC.',
+        '4 invitations (pending 1, accepted 3, expired 0, revoked 0). Times in UTC.',
       ].join('\n'),
     );
     expect(formatInvitationTable([view({ status: 'revoked' })]).split('\n').at(-1)).toBe(
@@ -283,6 +298,7 @@ describe('runInviteCli', () => {
     const [[deps]] = InvitationService.mock.calls as unknown as [[Record<string, unknown>]];
     expect(deps).toMatchObject({ em: 'forked-em', env: getEnv.mock.results[0].value });
     expect(deps.accountService).toBeInstanceOf(AccountService);
+    expect(deps.slotService).toBeInstanceOf(SlotService);
     expect(lines(stdout)[0]).toContain('ada@example.com');
     expect(stderr).not.toHaveBeenCalled();
     expect(orm.close).toHaveBeenCalledOnce();

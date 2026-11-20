@@ -9,6 +9,7 @@ import { PasswordHasher } from '../security/password';
 import { RateLimiter } from '../security/rate-limit';
 import { AccountService } from '../services/auth/account.service';
 import { GithubOAuthService } from '../services/auth/github-oauth.service';
+import { SlotService } from '../services/availability/slot.service';
 import { HealthService } from '../services/health/health.service';
 import { InvitationService } from '../services/invitations/invitation.service';
 import { MentorProfileService } from '../services/mentors/mentor-profile.service';
@@ -54,6 +55,7 @@ async function buildContainer(): Promise<AwilixContainer<Cradle>> {
     accountService: asClass(AccountService).scoped(),
     invitationService: asClass(InvitationService).scoped(),
     mentorProfileService: asClass(MentorProfileService).scoped(),
+    slotService: asClass(SlotService).scoped(),
   });
 
   // Resolved eagerly so the log mailer's "not delivered" warning appears at boot, not at the first mail.
