@@ -4,15 +4,19 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Cradle } from '../../container/cradle';
 import { isAppError } from '../../http/errors';
 import {
+  allowedRange,
   MAX_SLUG_ATTEMPTS,
   MentorProfileService,
   NOT_PUBLISHABLE_MESSAGE,
   PAGE_NOT_FOUND_MESSAGE,
+  PRICES_OUT_OF_BOUNDS_MESSAGE,
   PROFILE_NOT_FOUND_MESSAGE,
   PUBLISHED_EDIT_MESSAGE,
   SLUG_CONFLICT_MESSAGE,
 } from './mentor-profile.service';
 import type { MentorProfileUpdateInput } from '../../validators/mentors/mentor-profile-update.schema';
+import { parseEnv } from '../../config/env';
+import { PlatformSettingsService } from '../operator/platform-settings.service';
 import { PAGE_REQUIREMENT_MESSAGES, type MentorPageRequirement } from './readiness';
 
 const NOW = new Date('2026-11-20T10:00:00.000Z');
@@ -22,8 +26,10 @@ const LOCK = { lockMode: LockMode.PESSIMISTIC_WRITE, refresh: true };
 const AVATAR = 'https://avatars.example/ada.png';
 
 const PAGE_KEYS = ['avatarUrl', 'bio', 'displayName', 'publicWorkUrl', 'slug', 'stackTags'];
-const PUBLIC_KEYS = [...PAGE_KEYS, 'offerReady', 'slots'];
-const OWNER_KEYS = [...PAGE_KEYS, 'initialPublishDueAt', 'offerReadiness', 'publishedAt', 'readiness'].sort();
+const PUBLIC_KEYS = [...PAGE_KEYS, 'offerReady', 'prices', 'slots'];
+const OWNER_KEYS = [...PAGE_KEYS, 'initialPublishDueAt', 'offerReadiness', 'priceBounds', 'prices', 'publishedAt', 'readiness'].sort();
+const BOUNDS = { '25': { minCents: 5000, maxCents: 30000 }, '50': { minCents: 10000, maxCents: 60000 } };
+const PRICED = { price25Cents: 15000, price50Cents: 30000 };
 const SLOT = { id: 's1', startsAt: '2026-11-21T09:00:00.000Z', meetsLeadTime: true };
 
 /** Key equality, never a subset check: a new field must be added to the allowlist on purpose. */
@@ -129,7 +135,7 @@ function fakeEm(rows: MentorProfile[], users: User[], options: { failCommit?: ()
   return em;
 }
 
-function setup(rows: MentorProfile[], users: User[], options: Parameters<typeof fakeEm>[2] = {}) {
+function setup(rows: MentorProfile[], users: User[], options: Parameters<typeof fakeEm>[2] = {}, configured = true) {
   const em = fakeEm(rows, users, options);
   const events = { emit: vi.fn(async () => undefined) };
   // Slot reads are SlotService's (tested there); here only their effect on the two DTOs.
@@ -142,6 +148,13 @@ function setup(rows: MentorProfile[], users: User[], options: Parameters<typeof 
     clock: { now: () => NOW },
     events: events as unknown as Cradle['events'],
     slotService: slotService as unknown as Cradle['slotService'],
+    platformSettingsService: new PlatformSettingsService({
+      env: parseEnv(
+        configured
+          ? { DATABASE_URL: 'postgres://u:p@localhost:5432/db', PLATFORM_CURRENCY: 'PLN', PLATFORM_PRICE_BOUNDS: JSON.stringify(BOUNDS) }
+          : { DATABASE_URL: 'postgres://u:p@localhost:5432/db' },
+      ),
+    }),
   });
 
   return { em, events, service, slotService };
@@ -202,19 +215,21 @@ describe('MentorProfileService.getOwn', () => {
       ],
       offerReadiness: [
         { key: 'published', met: false },
+        { key: 'settings', met: true },
+        { key: 'price25', met: false },
+        { key: 'price50', met: false },
         { key: 'hasBookableSlot', met: false },
       ],
+      prices: null,
+      priceBounds: { p25: BOUNDS['25'], p50: BOUNDS['50'] },
     });
   });
 
   it('reports the bookability gate from the bookable-slot count at request time', async () => {
-    const { user, row, service, slotService } = ownerWith({ ...COMPLETE, slug: 'ada', publishedAt: EARLIER });
+    const { user, row, service, slotService } = ownerWith({ ...COMPLETE, ...PRICED, slug: 'ada', publishedAt: EARLIER });
     slotService.countBookable.mockResolvedValue(2);
 
-    expect((await service.getOwn(user.id)).offerReadiness).toEqual([
-      { key: 'published', met: true },
-      { key: 'hasBookableSlot', met: true },
-    ]);
+    expect((await service.getOwn(user.id)).offerReadiness.every((item) => item.met)).toBe(true);
     expect(slotService.countBookable).toHaveBeenCalledWith(row.id, NOW);
   });
 
@@ -420,7 +435,7 @@ describe('MentorProfileService.unpublish', () => {
 
 describe('MentorProfileService.getPublicBySlug', () => {
   it('returns exactly the public allowlist of a published page; slots only when offer-ready', async () => {
-    const { row, service, slotService } = ownerWith({ ...COMPLETE, slug: 'ada-lovelace', publishedAt: EARLIER });
+    const { row, service, slotService } = ownerWith({ ...COMPLETE, ...PRICED, slug: 'ada-lovelace', publishedAt: EARLIER });
 
     const notReady = await service.getPublicBySlug('ada-lovelace');
     slotService.countBookable.mockResolvedValue(1);
@@ -435,6 +450,7 @@ describe('MentorProfileService.getPublicBySlug', () => {
       publicWorkUrl: COMPLETE.publicWorkUrl,
       bio: COMPLETE.bio,
       stackTags: ['python'],
+      prices: { price25Cents: 15000, price50Cents: 30000, currency: 'PLN' },
       offerReady: true,
       slots: [SLOT],
     });
@@ -474,5 +490,84 @@ describe('MentorProfileService.getPublicBySlug', () => {
 
     expect(await rejection(service.getPublicBySlug('revoked'))).toMatchObject({ status: 404 });
     expect(await rejection(service.getPublicBySlug('orphan'))).toMatchObject({ status: 404 });
+  });
+});
+
+describe('MentorProfileService.updatePrices (#24)', () => {
+  it('saves both prices exactly in cents under the row lock and answers the owner view', async () => {
+    const { user, row, em, service } = ownerWith({ ...COMPLETE });
+
+    const own = await service.updatePrices(user.id, { price25: '150', price50: '300.50' });
+
+    expect(em.findOne).toHaveBeenCalledWith(MentorProfile, { user: user.id }, LOCK);
+    expect(row).toMatchObject({ price25Cents: 15000, price50Cents: 30050 });
+    expect(own.prices).toEqual({ price25Cents: 15000, price50Cents: 30050, currency: 'PLN' });
+    expect(own.offerReadiness.filter((item) => item.key.startsWith('price')).every((item) => item.met)).toBe(true);
+  });
+
+  it('accepts prices exactly at the bounds', async () => {
+    const { user, row, service } = ownerWith();
+
+    await service.updatePrices(user.id, { price25: '50', price50: '600.00' });
+
+    expect(row).toMatchObject({ price25Cents: 5000, price50Cents: 60000 });
+  });
+
+  it('names every field outside its range with the allowed range and saves nothing', async () => {
+    const { user, row, service } = ownerWith({ price25Cents: 10000, price50Cents: 20000 });
+
+    const both = await rejection(service.updatePrices(user.id, { price25: '49.99', price50: '600.01' }));
+    const one = await rejection(service.updatePrices(user.id, { price25: '150', price50: '99999999999999999999' }));
+
+    expect(both).toMatchObject({
+      status: 400,
+      message: PRICES_OUT_OF_BOUNDS_MESSAGE,
+      fieldErrors: { price25: [allowedRange(BOUNDS['25'], 'PLN')], price50: [allowedRange(BOUNDS['50'], 'PLN')] },
+    });
+    expect(Object.keys((one as { fieldErrors: object }).fieldErrors)).toEqual(['price50']);
+    expect(row).toMatchObject({ price25Cents: 10000, price50Cents: 20000 });
+    expect(allowedRange(BOUNDS['25'], 'PLN').replace(/\s/g, ' ')).toBe('Allowed: PLN 50.00–PLN 300.00');
+  });
+
+  it('answers 503 when settings are missing and writes nothing', async () => {
+    const user = makeUser();
+    const row = makeRow(user);
+    const { em, service } = setup([row], [user], {}, false);
+
+    expect(await rejection(service.updatePrices(user.id, { price25: '150', price50: '300' }))).toMatchObject({
+      status: 503,
+      code: 'SERVICE_UNAVAILABLE',
+    });
+    expect(em.transactional).not.toHaveBeenCalled();
+  });
+
+  it('answers 404 without a profile', async () => {
+    const user = makeUser();
+    const { service } = setup([], [user]);
+
+    expect(await rejection(service.updatePrices(user.id, { price25: '150', price50: '300' }))).toMatchObject({ status: 404 });
+  });
+
+  it('keeps stored prices when bounds are tightened, reports them unmet and still shows them to the owner', async () => {
+    const { user, service } = ownerWith({ ...PRICED, price50Cents: 70000 });
+
+    const own = await service.getOwn(user.id);
+
+    expect(own.prices).toEqual({ price25Cents: 15000, price50Cents: 70000, currency: 'PLN' });
+    expect(own.offerReadiness.find((item) => item.key === 'price50')).toEqual({ key: 'price50', met: false });
+  });
+
+  it('without settings: no prices, no bounds, settings unmet, and the public page is not offer-ready', async () => {
+    const user = makeUser();
+    const row = makeRow(user, { ...COMPLETE, ...PRICED, slug: 'ada', publishedAt: EARLIER });
+    const { service, slotService } = setup([row], [user], {}, false);
+    slotService.countBookable.mockResolvedValue(3);
+
+    const own = await service.getOwn(user.id);
+    const page = await service.getPublicBySlug('ada');
+
+    expect(own).toMatchObject({ prices: null, priceBounds: null });
+    expect(own.offerReadiness.find((item) => item.key === 'settings')).toEqual({ key: 'settings', met: false });
+    expect(page).toMatchObject({ prices: null, offerReady: false, slots: [] });
   });
 });
