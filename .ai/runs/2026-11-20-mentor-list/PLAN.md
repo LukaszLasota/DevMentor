@@ -13,7 +13,7 @@ Engine: om-auto-create-pr-loop (forced by the brief, regardless of step count)
 |-------|------|-------|------|--------|--------|
 | 1 | 1.1 | mentorListQuerySchema | inline | done | self |
 | 1 | 1.2 | SlotService.bookableSummaryFor with countBookable delegating | inline | done | self |
-| 1 | 1.3 | MentorListItem projection with bio truncation | inline | todo | — |
+| 1 | 1.3 | MentorListItem projection with bio truncation | inline | done | self |
 | 1 | 1.4 | MentorListService and container registration | inline | todo | — |
 | 1 | 1.5 | GET /api/mentors | inline | todo | — |
 | 2 | 2.1 | Public /mentors list page with filter and states | inline | todo | — |
