@@ -491,7 +491,7 @@ describe('BookingService.applyCompleted / applyExpired', () => {
     await expect(service.applyCompleted(em as unknown as Cradle['em'], session(booking))).resolves.toEqual({ outcome: 'confirmed', booking });
     expect(em.findOne).toHaveBeenCalledWith(MentorProfile, { id: booking.mentorProfile.id }, LOCK);
     expect(em.findOne).toHaveBeenCalledWith(Booking, { id: booking.id }, LOCK);
-    expect(booking).toMatchObject({ status: 'confirmed', confirmedAt: NOW, leadMinutes: 24 * 60, checkoutSessionId: `cs_${booking.id}` });
+    expect(booking).toMatchObject({ status: 'confirmed', confirmedAt: NOW, leadMinutes: 24 * 60, checkoutSessionId: `cs_${booking.id}`, feeBps: 2000 });
   });
 
   it('is idempotent for a confirmed booking and leaves an orphaned one alone', async () => {

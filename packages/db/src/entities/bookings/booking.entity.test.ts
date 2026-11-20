@@ -48,6 +48,7 @@ describe('Booking entity', () => {
     expect(column('cancelledAt')).toEqual({ field: 'cancelled_at', type: 'timestamptz', nullable: true });
     expect(column('refundStatus')).toEqual({ field: 'refund_status', type: 'text', nullable: true });
     expect(column('refundId')).toEqual({ field: 'refund_id', type: 'text', nullable: true });
+    expect(column('feeBps')).toEqual({ field: 'fee_bps', type: 'smallint', nullable: true });
   });
 
   it.each([
@@ -73,6 +74,8 @@ describe('Booking entity', () => {
       'bookings_confirmed_check',
       'bookings_currency_check',
       'bookings_ends_check',
+      'bookings_fee_bps_check',
+      'bookings_fee_snapshot_check',
       'bookings_length_check',
       'bookings_price_check',
       'bookings_refund_status_check',

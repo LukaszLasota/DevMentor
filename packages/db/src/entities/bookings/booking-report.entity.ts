@@ -24,6 +24,8 @@ export const BookingReportSchema = defineEntity({
     booking: () => p.oneToOne(BookingSchema).owner().ref().deleteRule('restrict'),
     message: p.text(),
     createdAt: p.datetime().onCreate(() => new Date()),
+    /** Set by the operator once the dispute is settled; an unresolved report holds the payout. */
+    resolvedAt: p.datetime().nullable(),
   },
 });
 

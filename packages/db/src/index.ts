@@ -12,6 +12,13 @@ export { MENTOR_PROFILE_SLUG_KEY, MentorProfile } from './entities/mentors/mento
 export { ACTIVE_SLOT_UNIQUE, Slot } from './entities/availability/slot.entity';
 export { StripeEvent } from './entities/payments/stripe-event.entity';
 export {
+  CONNECT_ACCOUNT_MENTOR_UNIQUE,
+  ConnectAccount,
+  ONBOARDING_STATUSES,
+  type OnboardingStatus,
+} from './entities/payments/connect-account.entity';
+export { HOLD_REASONS, Payout, type HoldReason, type PayoutStatus } from './entities/payments/payout.entity';
+export {
   ACTIVE_BOOKING_SLOT_UNIQUE,
   ACTIVE_BOOKING_STATUSES,
   Booking,

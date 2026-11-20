@@ -288,6 +288,8 @@ export class BookingService {
 
     booking.status = 'confirmed';
     booking.confirmedAt = now;
+    // The fee rate at payment time (spec 2026-11-21-mentor-payouts): later changes never touch it.
+    booking.feeBps = this.env.PLATFORM_FEE_BPS;
     booking.leadMinutes = Math.floor((booking.startsAt.getTime() - now.getTime()) / 60_000);
 
     return { outcome: 'confirmed', booking };
