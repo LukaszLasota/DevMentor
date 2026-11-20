@@ -118,6 +118,15 @@ describe('mentor_profiles page columns (migration against a real PostgreSQL)', (
     expect(await psqlError(update(userId, `bio = repeat('a', 2001)`))).toContain('mentor_profiles_bio_length_check');
   });
 
+  it.each([
+    ['zero', 'price_25_cents = 0', 'mentor_profiles_price_25_cents_check'],
+    ['a negative', 'price_50_cents = -100', 'mentor_profiles_price_50_cents_check'],
+  ])('refuses %s price (CHECK > 0)', async (_case, set, check) => {
+    const userId = await profileFor(`mp-price-${run}@devmentor.test`);
+
+    expect(await psqlError(update(userId, set))).toContain(check);
+  });
+
   it('refuses a published page without a slug', async () => {
     const userId = await profileFor(`mp-noslug-${run}@devmentor.test`);
 
@@ -147,7 +156,7 @@ describe('mentor page migration down and up (scratch database)', () => {
 
     await db('migration:up');
     expect(await scratchColumns()).toBe(
-      'bio,created_at,display_name,id,initial_publish_due_at,last_published_availability_at,public_work_url,published_at,slug,stack_tags,updated_at,user_id',
+      'bio,created_at,display_name,id,initial_publish_due_at,last_published_availability_at,price_25_cents,price_50_cents,public_work_url,published_at,slug,stack_tags,updated_at,user_id',
     );
     expect(await scratchTables()).toContain('slots');
   });

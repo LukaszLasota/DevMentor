@@ -1,6 +1,7 @@
 import type { SessionUser } from '../auth/session-user';
 import type { Cradle } from '../container/cradle';
 import type { MentorOwnerView, MentorPublicView } from '../services/mentors/mentor-profile.service';
+import { mentorPricesUpdateSchema } from '../validators/mentors/mentor-prices-update.schema';
 import { mentorProfileUpdateSchema } from '../validators/mentors/mentor-profile-update.schema';
 import type { ApiHandlerOptions, HandlerArgs, RouteParams } from './apiHandler';
 import { requireRole, requireSession } from './auth';
@@ -36,6 +37,17 @@ export async function updateOwnMentorPage({ req, cradle }: HandlerArgs<RoutePara
   const input = await parseJsonBody(req, mentorProfileUpdateSchema);
 
   return cradle.mentorProfileService.updateOwn(user.id, input);
+}
+
+/**
+ * `PUT /api/mentors/me/prices` (mentor) → the owner DTO; 400 names each price outside the allowed
+ * range (nothing saved), 503 without platform settings.
+ */
+export async function updateOwnMentorPrices({ req, cradle }: HandlerArgs<RouteParams>): Promise<MentorOwnerView> {
+  const user = await requireMentor(req, cradle);
+  const input = await parseJsonBody(req, mentorPricesUpdateSchema);
+
+  return cradle.mentorProfileService.updatePrices(user.id, input);
 }
 
 /** `POST /api/mentors/me/publish` (mentor) → the owner DTO; 400 per missing item, 409 when no slug could be reserved. */

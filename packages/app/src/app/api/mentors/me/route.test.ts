@@ -10,6 +10,7 @@ vi.mock('@devmentor/core/http', () => ({
   publishOwnMentorPage: 'publishOwnMentorPage',
   unpublishOwnMentorPage: 'unpublishOwnMentorPage',
   getPublicMentorPage: 'getPublicMentorPage',
+  updateOwnMentorPrices: 'updateOwnMentorPrices',
   MENTOR_OWNER_RESPONSE: 'MENTOR_OWNER_RESPONSE',
 }));
 
@@ -27,6 +28,12 @@ describe('mentor page routes', () => {
 
     expect(publish).toEqual({ handler: 'publishOwnMentorPage', options: 'MENTOR_OWNER_RESPONSE' });
     expect(unpublish).toEqual({ handler: 'unpublishOwnMentorPage', options: 'MENTOR_OWNER_RESPONSE' });
+  });
+
+  it('/api/mentors/me/prices wires PUT with no-store headers', async () => {
+    const { PUT } = await import('./prices/route');
+
+    expect(PUT).toEqual({ handler: 'updateOwnMentorPrices', options: 'MENTOR_OWNER_RESPONSE' });
   });
 
   it('/api/mentors/[slug] wires the public read without options', async () => {

@@ -25,4 +25,5 @@ export {
   type MentorProfileUpdateInput,
 } from './mentors/mentor-profile-update.schema';
 export { isWholeMinuteUtc, slotCreateSchema, type SlotCreateInput } from './availability/slot-create.schema';
+export { AMOUNT_MESSAGE, mentorPricesUpdateSchema, type MentorPricesUpdateInput } from './mentors/mentor-prices-update.schema';
 export { MAX_STACK_TAGS, StackTags, type StackTagKey } from '../domain/vocabularies/stack-tags';

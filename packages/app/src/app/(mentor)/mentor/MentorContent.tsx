@@ -1,15 +1,57 @@
-import { withScope } from "@devmentor/core";
+import { formatMoney, withScope } from "@devmentor/core";
+import type { MentorOwnerView } from "@devmentor/core/http";
 import { LocalTime, ReadinessChecklist, RoleNotice, type ReadinessItem } from "@devmentor/ui";
 import { requirePageRole } from "@/lib/session";
 
-// The onboarding steps of s06. The page step links to /mentor/profile (#23) and the slot step to
-// /mentor/slots (#25, met by `hasBookableSlot`: a slot within two hours does not count); prices (#24)
-// get their page and `met` check with that story and are listed without a link until then.
-function steps(published: boolean, hasBookableSlot: boolean): ReadinessItem[] {
+/**
+ * A stored price outside the *current* bounds, named (spec #24, Q4: bounds tightened after a save),
+ * e.g. "Your 50-minute price PLN 700.00 is above the allowed PLN 600.00 — save a new price."
+ */
+function outOfBounds(own: MentorOwnerView): string | undefined {
+  const { prices, priceBounds } = own;
+
+  if (prices === null || priceBounds === null) {
+    return undefined;
+  }
+
+  for (const [length, cents, bounds] of [
+    ["25", prices.price25Cents, priceBounds.p25],
+    ["50", prices.price50Cents, priceBounds.p50],
+  ] as const) {
+    const money = (value: number) => formatMoney(value, prices.currency);
+
+    if (cents > bounds.maxCents) {
+      return `Your ${length}-minute price ${money(cents)} is above the allowed ${money(bounds.maxCents)} — save a new price.`;
+    }
+
+    if (cents < bounds.minCents) {
+      return `Your ${length}-minute price ${money(cents)} is below the allowed ${money(bounds.minCents)} — save a new price.`;
+    }
+  }
+
+  return undefined;
+}
+
+type OfferRequirement = MentorOwnerView["offerReadiness"][number]["key"];
+
+const isMet = (own: MentorOwnerView | null, ...keys: OfferRequirement[]) =>
+  keys.every((key) => own?.offerReadiness.some((item) => item.key === key && item.met) === true);
+
+// The onboarding steps of s06, each from `mentorOfferReady` where it has a requirement: the page step
+// links to /mentor/profile (#23), prices to /mentor/prices (#24: both set and within the current
+// bounds), the slot step to /mentor/slots (#25: a slot within two hours does not count).
+function steps(own: MentorOwnerView | null): ReadinessItem[] {
   return [
-    { key: "published", label: "Publish your page", met: published, href: "/mentor/profile", actionLabel: "Edit your page" },
-    { key: "prices", label: "Set your prices", met: false },
-    { key: "slot", label: "Publish a slot", met: hasBookableSlot, href: "/mentor/slots", actionLabel: "Add a slot" },
+    { key: "published", label: "Publish your page", met: own?.publishedAt != null, href: "/mentor/profile", actionLabel: "Edit your page" },
+    {
+      key: "prices",
+      label: "Set your prices",
+      met: isMet(own, "price25", "price50"),
+      href: "/mentor/prices",
+      actionLabel: "Set prices",
+      detail: own === null ? undefined : outOfBounds(own),
+    },
+    { key: "slot", label: "Publish a slot", met: isMet(own, "hasBookableSlot"), href: "/mentor/slots", actionLabel: "Add a slot" },
   ];
 }
 
@@ -39,10 +81,7 @@ export async function MentorContent({ searchParams }: { searchParams: Promise<Re
             </>
           )
         }
-        items={steps(
-          own?.publishedAt != null,
-          own?.offerReadiness.some((item) => item.key === "hasBookableSlot" && item.met) === true,
-        )}
+        items={steps(own)}
       />
     </>
   );

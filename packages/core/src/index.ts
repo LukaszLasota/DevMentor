@@ -29,6 +29,8 @@ export {
   type RateLimitPolicy,
 } from './security/rate-limit';
 export { getSessionUser, type SessionUser, type SessionUserDeps } from './auth/session-user';
+export { formatMoney, parseMajorAmount, toMajorString, withinBounds, type Cents } from './money/money';
+export { allowedRange } from './services/mentors/mentor-profile.service';
 export { homeFor } from './auth/home';
 export type { Role } from '@devmentor/db';
 export { EventBus, type DomainEventListener, type DomainEventName, type DomainEvents } from './events/events';

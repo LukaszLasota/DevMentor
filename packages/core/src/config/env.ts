@@ -39,6 +39,37 @@ const days = (fallback: number) =>
 
 const TEST_OVERRIDE_KEYS = ['DEVMENTOR_GITHUB_OAUTH_URL', 'DEVMENTOR_GITHUB_API_URL'] as const;
 
+/** Stored prices are Postgres `integer` (spec 2026-10-21-mentor-prices). */
+export const MAX_PRICE_CENTS = 2_147_483_647;
+
+const cents = z.number().int('must be whole cents').positive('must be above 0').max(MAX_PRICE_CENTS, `must be at most ${MAX_PRICE_CENTS}`);
+const priceBounds = z
+  .object({ minCents: cents, maxCents: cents })
+  .strict()
+  .refine((bounds) => bounds.minCents <= bounds.maxCents, 'minCents must not exceed maxCents');
+
+/** `{"25":{"minCents":n,"maxCents":n},"50":{...}}` — both session lengths, validated together. */
+const platformPriceBounds = z
+  .string()
+  .transform((raw, ctx) => {
+    try {
+      return JSON.parse(raw) as unknown;
+    } catch {
+      ctx.addIssue({ code: 'custom', message: 'must be JSON' });
+      return z.NEVER;
+    }
+  })
+  .pipe(z.object({ '25': priceBounds, '50': priceBounds }).strict());
+
+/** An ISO 4217 code with exactly two decimals (the money module works in hundredths). */
+export function isTwoDecimalCurrency(code: string): boolean {
+  return (
+    /^[A-Z]{3}$/.test(code) &&
+    Intl.supportedValuesOf('currency').includes(code) &&
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: code }).resolvedOptions().maximumFractionDigits === 2
+  );
+}
+
 export const MAIL_PROVIDERS = ['resend', 'log'] as const;
 
 export type MailProvider = (typeof MAIL_PROVIDERS)[number];
@@ -49,8 +80,11 @@ export type MailProvider = (typeof MAIL_PROVIDERS)[number];
  * - required at first container creation in production (see `assertProductionEnv`), never here,
  *   so `npm run build` with no env passes: SESSION_SECRET, APP_URL, and MAIL_API_KEY + MAIL_FROM
  *   for the `resend` mailer;
- * - dangerous configuration refused at boot: override URLs without ALLOW_TEST_OVERRIDES=1, and
- *   MAIL_PROVIDER=log in production without ALLOW_TEST_OVERRIDES=1 (mail would only be logged);
+ * - optional, read at request time by PlatformSettingsService (no defaults; missing = prices fail
+ *   closed): PLATFORM_CURRENCY, PLATFORM_PRICE_BOUNDS;
+ * - dangerous configuration refused at boot: override URLs without ALLOW_TEST_OVERRIDES=1,
+ *   MAIL_PROVIDER=log in production without ALLOW_TEST_OVERRIDES=1 (mail would only be logged), and a
+ *   malformed or half-set PLATFORM_CURRENCY / PLATFORM_PRICE_BOUNDS pair;
  * - defaulted: SESSION_SECRET_PREVIOUS, OPERATOR_EMAILS, DEVMENTOR_GITHUB_OAUTH_URL, DEVMENTOR_GITHUB_API_URL,
  *   TRUSTED_PROXY_HOPS (0: no client IP is trusted), PASSWORD_HASH_CONCURRENCY, PASSWORD_HASH_WAIT_MS,
  *   MAIL_PROVIDER (`log` in development and test, `resend` in production), INVITATION_TTL_DAYS,
@@ -83,6 +117,10 @@ const envShape = z.object({
     MAIL_API_KEY: optional(z.string()),
     /** Sender, e.g. `DevMentor <noreply@example.com>`; Resend requires a verified domain. */
     MAIL_FROM: optional(z.string()),
+    /** Platform currency (Q-P1: PLN); no default. */
+    PLATFORM_CURRENCY: optional(z.string().refine(isTwoDecimalCurrency, 'must be an ISO 4217 currency with two decimals')),
+    /** Price bounds per session length in cents of PLATFORM_CURRENCY (Q-P2); no default. */
+    PLATFORM_PRICE_BOUNDS: optional(platformPriceBounds),
     ALLOW_TEST_OVERRIDES: z
       .enum(['0', '1'], 'must be 1 or 0')
       .default('0')
@@ -94,6 +132,11 @@ export const ENV_KEYS = Object.keys(envShape.shape) as (keyof typeof envShape.sh
 
 const envSchema = envShape
   .superRefine((env, ctx) => {
+    if ((env.PLATFORM_CURRENCY === undefined) !== (env.PLATFORM_PRICE_BOUNDS === undefined)) {
+      const missing = env.PLATFORM_CURRENCY === undefined ? 'PLATFORM_CURRENCY' : 'PLATFORM_PRICE_BOUNDS';
+      ctx.addIssue({ code: 'custom', path: [missing], message: 'PLATFORM_CURRENCY and PLATFORM_PRICE_BOUNDS are set together' });
+    }
+
     if (env.ALLOW_TEST_OVERRIDES) {
       return;
     }

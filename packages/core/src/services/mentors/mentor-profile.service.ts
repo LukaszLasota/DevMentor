@@ -3,7 +3,11 @@ import type { Cradle } from '../../container/cradle';
 import { isReservedSlug, SLUG_MAX_LENGTH, slugCandidate, slugify } from '../../domain/slug';
 import type { RequirementResult } from '../../domain/readiness';
 import type { StackTagKey } from '../../domain/vocabularies/stack-tags';
-import { ConflictError, NotFoundError } from '../../http/errors';
+import { SESSION_LENGTHS, priceField } from '../../domain/session-lengths';
+import { ConflictError, NotFoundError, ValidationError } from '../../http/errors';
+import { formatMoney, parseMajorAmount, withinBounds } from '../../money/money';
+import type { MentorPricesUpdateInput } from '../../validators/mentors/mentor-prices-update.schema';
+import type { PlatformSettings, PriceBounds } from '../operator/platform-settings.service';
 import type { MentorProfileUpdateInput } from '../../validators/mentors/mentor-profile-update.schema';
 import type { SlotView } from '../availability/slot.service';
 import {
@@ -16,6 +20,19 @@ import {
 } from './readiness';
 
 export const PROFILE_NOT_FOUND_MESSAGE = 'Mentor profile not found.';
+export const PRICES_OUT_OF_BOUNDS_MESSAGE = 'A price is outside the allowed range; nothing was saved.';
+
+/** "Allowed: PLN 50.00–PLN 300.00", shown under the price field. */
+export function allowedRange(bounds: PriceBounds, currency: string): string {
+  return `Allowed: ${formatMoney(bounds.minCents, currency)}–${formatMoney(bounds.maxCents, currency)}`;
+}
+
+/** Both prices in minor units of the platform currency; no formatted strings in DTOs. */
+export interface MentorPrices {
+  price25Cents: number;
+  price50Cents: number;
+  currency: string;
+}
 export const PAGE_NOT_FOUND_MESSAGE = 'Mentor page not found.';
 export const NOT_PUBLISHABLE_MESSAGE = 'Your page is not ready to publish yet.';
 export const PUBLISHED_EDIT_MESSAGE = 'A published page needs all four items; nothing was saved.';
@@ -37,6 +54,8 @@ export interface MentorPublicView {
   publicWorkUrl: string;
   bio: string;
   stackTags: StackTagKey[];
+  /** Both prices, or `null` unless the mentor is offer-ready (#24); bounds never cross here. */
+  prices: MentorPrices | null;
   /** `mentorOfferReady` at request time (#25). */
   offerReady: boolean;
   /** Future slots with their lead-time state; empty unless `offerReady` (Q4 of #27/#28). */
@@ -57,6 +76,9 @@ export interface MentorOwnerView {
   readiness: RequirementResult<MentorPageRequirement>[];
   /** The bookability gate at request time (`/mentor` steps), in checklist order. */
   offerReadiness: RequirementResult<MentorOfferRequirement>[];
+  prices: MentorPrices | null;
+  /** The current bounds for the price form, or `null` when settings are missing. */
+  priceBounds: { p25: PriceBounds; p50: PriceBounds } | null;
 }
 
 function pageFields(profile: MentorProfile): MentorPageFields {
@@ -68,11 +90,31 @@ function pageFields(profile: MentorProfile): MentorPageFields {
   };
 }
 
-function offerState(profile: MentorProfile, bookableSlots: number): MentorOfferState {
-  return { publishedAt: profile.publishedAt ?? null, bookableSlots };
+function offerState(profile: MentorProfile, bookableSlots: number, settings: PlatformSettings | null): MentorOfferState {
+  return {
+    publishedAt: profile.publishedAt ?? null,
+    settings,
+    price25Cents: profile.price25Cents ?? null,
+    price50Cents: profile.price50Cents ?? null,
+    bookableSlots,
+  };
 }
 
-export function toOwnerDto(profile: MentorProfile, avatarUrl: string | null, bookableSlots: number): MentorOwnerView {
+/** Both prices with the platform currency, or `null` unless both are set and settings exist. */
+function pricesOf(profile: MentorProfile, settings: PlatformSettings | null): MentorPrices | null {
+  if (settings === null || profile.price25Cents == null || profile.price50Cents == null) {
+    return null;
+  }
+
+  return { price25Cents: profile.price25Cents, price50Cents: profile.price50Cents, currency: settings.currency };
+}
+
+export function toOwnerDto(
+  profile: MentorProfile,
+  avatarUrl: string | null,
+  bookableSlots: number,
+  settings: PlatformSettings | null,
+): MentorOwnerView {
   return {
     slug: profile.slug ?? null,
     displayName: profile.displayName ?? null,
@@ -83,7 +125,9 @@ export function toOwnerDto(profile: MentorProfile, avatarUrl: string | null, boo
     publishedAt: profile.publishedAt?.toISOString() ?? null,
     initialPublishDueAt: profile.initialPublishDueAt?.toISOString() ?? null,
     readiness: mentorPagePublishable.evaluate(pageFields(profile)),
-    offerReadiness: mentorOfferReady.evaluate(offerState(profile, bookableSlots)),
+    offerReadiness: mentorOfferReady.evaluate(offerState(profile, bookableSlots, settings)),
+    prices: pricesOf(profile, settings),
+    priceBounds: settings === null ? null : { p25: settings.bounds['25'], p50: settings.bounds['50'] },
   };
 }
 
@@ -93,6 +137,7 @@ export function toPublicDto(
   avatarUrl: string | null,
   offerReady: boolean,
   slots: SlotView[],
+  settings: PlatformSettings | null,
 ): MentorPublicView {
   return {
     slug: profile.slug as string,
@@ -101,6 +146,8 @@ export function toPublicDto(
     publicWorkUrl: profile.publicWorkUrl as string,
     bio: profile.bio as string,
     stackTags: [...profile.stackTags],
+    // Like slots: a mentor who is not offer-ready shows only "Not bookable yet" (spec #24, Q4).
+    prices: offerReady ? pricesOf(profile, settings) : null,
     offerReady,
     slots: offerReady ? slots : [],
   };
@@ -132,11 +179,52 @@ export class MentorProfileService {
   private readonly events: Cradle['events'];
   private readonly slotService: Cradle['slotService'];
 
-  constructor({ em, clock, events, slotService }: Pick<Cradle, 'em' | 'clock' | 'events' | 'slotService'>) {
+  private readonly platformSettingsService: Cradle['platformSettingsService'];
+
+  constructor({
+    em,
+    clock,
+    events,
+    slotService,
+    platformSettingsService,
+  }: Pick<Cradle, 'em' | 'clock' | 'events' | 'slotService' | 'platformSettingsService'>) {
     this.em = em;
     this.clock = clock;
     this.events = events;
     this.slotService = slotService;
+    this.platformSettingsService = platformSettingsService;
+  }
+
+  /**
+   * Saves both prices together (R12, R02): parsed exactly into cents and checked against the
+   * *current* bounds; every field outside its range is named with the allowed range and nothing is
+   * saved. 503 when settings are missing (fail closed); 404 without a profile.
+   */
+  async updatePrices(userId: string, input: MentorPricesUpdateInput): Promise<MentorOwnerView> {
+    const settings = this.platformSettingsService.get();
+    const cents = { price25: parseMajorAmount(input.price25), price50: parseMajorAmount(input.price50) };
+    const fieldErrors: Record<string, string[]> = {};
+
+    for (const length of SESSION_LENGTHS) {
+      const field = priceField(length);
+      const bounds = settings.bounds[length];
+
+      if (!withinBounds(cents[field], bounds)) {
+        fieldErrors[field] = [allowedRange(bounds, settings.currency)];
+      }
+    }
+
+    if (Object.keys(fieldErrors).length > 0) {
+      throw new ValidationError(PRICES_OUT_OF_BOUNDS_MESSAGE, fieldErrors);
+    }
+
+    const profile = await this.em.transactional(async (em) => {
+      const locked = await this.lockOwn(em, userId);
+
+      return em.assign(locked, { price25Cents: cents.price25, price50Cents: cents.price50 });
+    });
+
+    return this.ownerView(profile, userId);
   }
 
   /**
@@ -257,10 +345,12 @@ export class MentorProfileService {
     }
 
     const now = this.clock.now();
-    const offerReady = mentorOfferReady.isMet(offerState(profile, await this.slotService.countBookable(profile.id, now)));
+    const settings = this.platformSettingsService.tryGet();
+    const bookableSlots = await this.slotService.countBookable(profile.id, now);
+    const offerReady = mentorOfferReady.isMet(offerState(profile, bookableSlots, settings));
     const slots = offerReady ? await this.slotService.listPublicFor(profile.id, now) : [];
 
-    return toPublicDto(profile, owner.avatarUrl ?? null, offerReady, slots);
+    return toPublicDto(profile, owner.avatarUrl ?? null, offerReady, slots, settings);
   }
 
   /** `findPublicBySlug` for the API: 404 for every page that is not public. */
@@ -312,7 +402,7 @@ export class MentorProfileService {
   private async ownerView(profile: MentorProfile, userId: string): Promise<MentorOwnerView> {
     const bookableSlots = await this.slotService.countBookable(profile.id, this.clock.now());
 
-    return toOwnerDto(profile, await this.avatarOf(userId), bookableSlots);
+    return toOwnerDto(profile, await this.avatarOf(userId), bookableSlots, this.platformSettingsService.tryGet());
   }
 
   private async avatarOf(userId: string): Promise<string | null> {

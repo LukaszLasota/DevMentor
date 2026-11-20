@@ -31,6 +31,8 @@ function own(overrides: Partial<MentorOwnerView> = {}): MentorOwnerView {
       { key: "published", met: false },
       { key: "hasBookableSlot", met: false },
     ],
+    prices: null,
+    priceBounds: null,
   };
 
   return { ...base, ...overrides };

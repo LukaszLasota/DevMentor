@@ -9,6 +9,7 @@ import { PasswordHasher } from '../security/password';
 import { RateLimiter } from '../security/rate-limit';
 import { AccountService } from '../services/auth/account.service';
 import { GithubOAuthService } from '../services/auth/github-oauth.service';
+import { PlatformSettingsService } from '../services/operator/platform-settings.service';
 import { SlotService } from '../services/availability/slot.service';
 import { HealthService } from '../services/health/health.service';
 import { InvitationService } from '../services/invitations/invitation.service';
@@ -48,6 +49,8 @@ async function buildContainer(): Promise<AwilixContainer<Cradle>> {
       ({ env }: Cradle) =>
         new PasswordHasher({ concurrency: env.PASSWORD_HASH_CONCURRENCY, waitMs: env.PASSWORD_HASH_WAIT_MS }),
     ).singleton(),
+    // Singleton: reads the process env, holds no request state.
+    platformSettingsService: asClass(PlatformSettingsService).singleton(),
     em: asFunction(({ orm }: Cradle) => orm.em.fork()).scoped(),
     rateLimiter: asClass(RateLimiter).scoped(),
     healthService: asClass(HealthService).scoped(),
