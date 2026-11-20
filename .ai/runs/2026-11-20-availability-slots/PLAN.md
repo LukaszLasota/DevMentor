@@ -12,7 +12,7 @@ Engine: om-auto-create-pr-loop (forced by the brief, regardless of step count)
 | Phase | Step | Title | Exec | Status | Commit |
 |-------|------|-------|------|--------|--------|
 | 1 | 1.1 | Slot entity, last_published_availability_at, migration and isUniqueViolation | inline | done | self |
-| 2 | 2.1 | Lead-time rule and slotCreateSchema | inline | todo | — |
+| 2 | 2.1 | Lead-time rule and slotCreateSchema | inline | done | self |
 | 2 | 2.2 | availability.slot.published event | inline | todo | — |
 | 2 | 2.3 | SlotService and container registration | inline | todo | — |
 | 2 | 2.4 | hasBookableSlot in mentorOfferReady and slots on the public mentor read | inline | todo | — |
