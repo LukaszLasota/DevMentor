@@ -35,6 +35,8 @@ export interface DomainEvents {
   'bookings.booking.cancelled': { bookingId: string; mentorProfileId: string; menteeId: string; startsAt: Date; refundDue: boolean };
   /** A mentee reported a dispute about a booking (R10: the operator decides, by hand). Emitted after the insert commits. */
   'bookings.booking.reported': { bookingId: string; reportId: string };
+  /** The mentor submitted the session's written answer (spec 2026-11-20-text-session, AC3). Emitted after the insert commits. */
+  'sessions.answer.submitted': { bookingId: string; answerId: string };
 }
 
 export type DomainEventName = keyof DomainEvents;

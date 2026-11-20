@@ -36,3 +36,14 @@ export {
 } from './bookings/booking-report.schema';
 export { bookingStartSchema, type BookingStartInput } from './bookings/booking-start.schema';
 export { MAX_STACK_TAGS, StackTags, type StackTagKey } from '../domain/vocabularies/stack-tags';
+export {
+  ANSWER_MAX,
+  ANSWER_MIN,
+  MESSAGE_MAX,
+  sessionAnswerSchema,
+  sessionMessageSchema,
+  sessionReadQuerySchema,
+  type SessionAnswerInput,
+  type SessionMessageInput,
+  type SessionReadQuery,
+} from './sessions/session-message.schema';
