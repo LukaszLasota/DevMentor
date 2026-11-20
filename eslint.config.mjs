@@ -32,6 +32,27 @@ const eslintConfig = defineConfig([
     ]),
   },
   {
+    // Public pages are Tailwind-only: components come from `@devmentor/ui/mentors`, never the admin barrel
+    // (spec 2026-10-21-mentor-page). Repeats the app patterns because a later block replaces the rule.
+    files: ["packages/app/src/app/(marketing)/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          // Exact entries (`paths`): `@devmentor/ui/mentors` and `@devmentor/ui/theme.css` stay allowed.
+          paths: ["@devmentor/ui", "@devmentor/ui/styles.css"].map((name) => ({
+            name,
+            message: "Public (marketing) pages use @devmentor/ui/mentors (Tailwind only), not the panel barrel.",
+          })),
+          patterns: [
+            ...MIKRO_ORM,
+            pkg("db", "app talks to the database through @devmentor/core services, never @devmentor/db directly."),
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ["packages/core/**"],
     rules: restrict([
       ...NEXT_AND_REACT,

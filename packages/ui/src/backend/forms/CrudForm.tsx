@@ -55,6 +55,11 @@ export interface CrudFormProps<S extends z.ZodObject> {
   /** Announced on the submit button while `onSubmit` runs, e.g. "Signing in…". */
   submittingLabel?: string;
   cancelLabel?: string;
+  /**
+   * Field errors from an action outside the form (e.g. a refused publish on /mentor/profile, spec #23):
+   * shown next to their fields like server errors, first one focused. Pass a new object to show them again.
+   */
+  errors?: FieldErrors;
 }
 
 function initialValue(type: CrudFormFieldType, value: DefaultValue | undefined): FieldValue {
@@ -108,6 +113,7 @@ export function CrudForm<S extends z.ZodObject>({
   submitLabel = "Save",
   submittingLabel = "Saving…",
   cancelLabel = "Cancel",
+  errors,
 }: CrudFormProps<S>) {
   const formRef = useRef<HTMLFormElement>(null);
   const [values, setValues] = useState<Record<string, FieldValue>>(() =>
@@ -135,6 +141,16 @@ export function CrudForm<S extends z.ZodObject>({
   function focusFirstError(errors: FieldErrors) {
     const first = fields.find((field) => (errors[field.name] ?? []).length > 0);
     setFocusRequest(first ? { name: first.name } : null);
+  }
+
+  // Adopt errors handed in from outside while rendering (React's "adjusting state on a prop change").
+  const [shownErrors, setShownErrors] = useState<FieldErrors | undefined>(undefined);
+  if (errors !== shownErrors) {
+    setShownErrors(errors);
+    if (errors) {
+      setFieldErrors(errors);
+      focusFirstError(errors);
+    }
   }
 
   /**
