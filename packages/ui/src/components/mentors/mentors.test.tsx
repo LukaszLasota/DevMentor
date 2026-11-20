@@ -133,6 +133,46 @@ describe("public mentor components", () => {
   });
 });
 
+describe("MentorPageView as the share page (#28)", () => {
+  const R01 = "Sessions are text — no video call. 25 or 50 minutes.";
+  const SLOTS = [{ id: "a", startsAt: "2026-11-14T18:30:00Z", meetsLeadTime: true }];
+  const headings = () => screen.getAllByRole("heading").map((heading) => `${heading.tagName}:${heading.textContent}`);
+  const noScores = () =>
+    expect(document.body.textContent).not.toMatch(/\b(ratings?|scores?|reviews?|rank(ing)?|stars?|top|popular|search)\b/i);
+
+  it("orders the sections: header, what they have done and public work, then sessions", () => {
+    render(<MentorPageView {...mentor} offerReady slots={SLOTS} />);
+
+    expect(headings()).toEqual(["H1:Marta Kowal", "H2:What I have done", "H3:Public work", "H2:Sessions"]);
+  });
+
+  it("offer-ready: the R01 line, both prices, the time-zone line and the times; no booking action", () => {
+    render(<MentorPageView {...mentor} offerReady slots={SLOTS} />);
+
+    expect(screen.getByText(R01)).toBeTruthy();
+    expect(screen.getByRole("list", { name: "Session prices" })).toBeTruthy();
+    expect(screen.getByText("Times are shown in your time zone")).toBeTruthy();
+    expect(screen.getByRole("list", { name: "Open times" }).tagName).toBe("UL");
+    expect(screen.queryByText("Not bookable yet")).toBeNull();
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.queryByRole("link", { name: /book/i })).toBeNull();
+    noScores();
+  });
+
+  it("not offer-ready: the R01 line and only \"Not bookable yet\" — no amounts, no times, no reason", () => {
+    render(<MentorPageView {...mentor} offerReady={false} slots={SLOTS} />);
+
+    expect(screen.getByText(R01)).toBeTruthy();
+    const status = screen.getByText("Not bookable yet");
+    expect(status.getAttribute("role")).toBeNull();
+    expect(screen.queryByRole("list", { name: "Session prices" })).toBeNull();
+    expect(screen.queryByRole("list", { name: "Open times" })).toBeNull();
+    expect(screen.queryByText(/\$\d/)).toBeNull();
+    expect(screen.queryByRole("button")).toBeNull();
+    noScores();
+  });
+});
+
 describe("LocalTime on the server", () => {
   it("prints UTC with a label before hydration", async () => {
     const { renderToString } = await import("react-dom/server");

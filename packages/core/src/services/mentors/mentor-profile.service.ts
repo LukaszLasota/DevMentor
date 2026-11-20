@@ -344,11 +344,14 @@ export class MentorProfileService {
       return null;
     }
 
+    // One clock reading and one slot read (spec #28): `hasBookableSlot`, `offerReady` and every
+    // `meetsLeadTime` come from the same rows at the same instant, so an enabled slot never sits next
+    // to "Not bookable yet" at the two-hour boundary. #25's 200-slot cap keeps the rows complete.
     const now = this.clock.now();
     const settings = this.platformSettingsService.tryGet();
-    const bookableSlots = await this.slotService.countBookable(profile.id, now);
+    const slots = await this.slotService.listPublicFor(profile.id, now);
+    const bookableSlots = slots.filter((slot) => slot.meetsLeadTime).length;
     const offerReady = mentorOfferReady.isMet(offerState(profile, bookableSlots, settings));
-    const slots = offerReady ? await this.slotService.listPublicFor(profile.id, now) : [];
 
     return toPublicDto(profile, owner.avatarUrl ?? null, offerReady, slots, settings);
   }

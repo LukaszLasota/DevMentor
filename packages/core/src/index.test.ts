@@ -108,6 +108,7 @@ describe('public entries', () => {
         'updateOwnMentorPrices',
         'listMentors',
         'MENTOR_LIST_RESPONSE',
+        'MENTOR_PAGE_RESPONSE',
         'listMySlots',
         'publishSlot',
         'removeSlot',

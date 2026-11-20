@@ -437,8 +437,9 @@ describe('MentorProfileService.getPublicBySlug', () => {
   it('returns exactly the public allowlist of a published page; slots only when offer-ready', async () => {
     const { row, service, slotService } = ownerWith({ ...COMPLETE, ...PRICED, slug: 'ada-lovelace', publishedAt: EARLIER });
 
+    slotService.listPublicFor.mockResolvedValueOnce([]);
     const notReady = await service.getPublicBySlug('ada-lovelace');
-    slotService.countBookable.mockResolvedValue(1);
+    slotService.listPublicFor.mockClear();
     const page = await service.getPublicBySlug('ada-lovelace');
 
     expect(notReady).toMatchObject({ offerReady: false, prices: null, slots: [] });
@@ -457,6 +458,20 @@ describe('MentorProfileService.getPublicBySlug', () => {
     expect(Object.keys(page.slots[0] as object).sort()).toEqual(['id', 'meetsLeadTime', 'startsAt']);
     expect(slotService.listPublicFor).toHaveBeenCalledExactlyOnceWith(row.id, NOW);
     expect(JSON.stringify(page)).not.toMatch(/ada@devmentor\.test|"ada"|initialPublishDueAt|invitation/);
+  });
+
+  it('decides offer-readiness from the same slot rows it shows, at one instant, with no second slot query (#28)', async () => {
+    const { row, service, slotService } = ownerWith({ ...COMPLETE, ...PRICED, slug: 'ada', publishedAt: EARLIER });
+    const soon = { id: 's2', startsAt: '2026-11-20T11:00:00.000Z', meetsLeadTime: false };
+    slotService.listPublicFor.mockResolvedValueOnce([soon]).mockResolvedValueOnce([soon, SLOT]);
+
+    const onlySoon = await service.getPublicBySlug('ada');
+    const both = await service.getPublicBySlug('ada');
+
+    expect(onlySoon).toMatchObject({ offerReady: false, prices: null, slots: [] });
+    expect(both).toMatchObject({ offerReady: true, slots: [soon, SLOT] });
+    expect(slotService.listPublicFor).toHaveBeenNthCalledWith(1, row.id, NOW);
+    expect(slotService.countBookable).not.toHaveBeenCalled();
   });
 
   it('shows no avatar when the user has none', async () => {

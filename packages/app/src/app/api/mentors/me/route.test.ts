@@ -13,6 +13,7 @@ vi.mock('@devmentor/core/http', () => ({
   updateOwnMentorPrices: 'updateOwnMentorPrices',
   listMentors: 'listMentors',
   MENTOR_LIST_RESPONSE: 'MENTOR_LIST_RESPONSE',
+  MENTOR_PAGE_RESPONSE: 'MENTOR_PAGE_RESPONSE',
   MENTOR_OWNER_RESPONSE: 'MENTOR_OWNER_RESPONSE',
 }));
 
@@ -44,9 +45,9 @@ describe('mentor page routes', () => {
     expect(GET).toEqual({ handler: 'listMentors', options: 'MENTOR_LIST_RESPONSE' });
   });
 
-  it('/api/mentors/[slug] wires the public read without options', async () => {
+  it('/api/mentors/[slug] wires the public read with no-store headers', async () => {
     const { GET } = await import('../[slug]/route');
 
-    expect(GET).toEqual({ handler: 'getPublicMentorPage', options: undefined });
+    expect(GET).toEqual({ handler: 'getPublicMentorPage', options: 'MENTOR_PAGE_RESPONSE' });
   });
 });

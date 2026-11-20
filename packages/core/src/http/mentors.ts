@@ -18,6 +18,9 @@ export const MENTOR_OWNER_RESPONSE: ApiHandlerOptions = { headers: { 'Cache-Cont
 /** The public list is per request (the two-hour line moves with the clock): nothing may keep it. */
 export const MENTOR_LIST_RESPONSE: ApiHandlerOptions = { headers: { 'Cache-Control': 'no-store' } };
 
+/** The public mentor page: lead-time state and offer-readiness are per request (spec #28). */
+export const MENTOR_PAGE_RESPONSE: ApiHandlerOptions = { headers: { 'Cache-Control': 'no-store' } };
+
 /** Route params of `/api/mentors/[slug]` (a type, not an interface: it must fit `RouteParams`). */
 export type MentorSlugParams = { slug: string };
 
