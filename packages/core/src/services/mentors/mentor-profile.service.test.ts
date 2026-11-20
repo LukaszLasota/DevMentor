@@ -21,8 +21,10 @@ const DUE = new Date('2026-11-28T12:00:00.000Z');
 const LOCK = { lockMode: LockMode.PESSIMISTIC_WRITE, refresh: true };
 const AVATAR = 'https://avatars.example/ada.png';
 
-const PUBLIC_KEYS = ['avatarUrl', 'bio', 'displayName', 'publicWorkUrl', 'slug', 'stackTags'];
-const OWNER_KEYS = [...PUBLIC_KEYS, 'initialPublishDueAt', 'publishedAt', 'readiness'].sort();
+const PAGE_KEYS = ['avatarUrl', 'bio', 'displayName', 'publicWorkUrl', 'slug', 'stackTags'];
+const PUBLIC_KEYS = [...PAGE_KEYS, 'offerReady', 'slots'];
+const OWNER_KEYS = [...PAGE_KEYS, 'initialPublishDueAt', 'offerReadiness', 'publishedAt', 'readiness'].sort();
+const SLOT = { id: 's1', startsAt: '2026-11-21T09:00:00.000Z', meetsLeadTime: true };
 
 /** Key equality, never a subset check: a new field must be added to the allowlist on purpose. */
 function expectProjectionKeys(dto: object, keys: readonly string[]) {
@@ -130,13 +132,19 @@ function fakeEm(rows: MentorProfile[], users: User[], options: { failCommit?: ()
 function setup(rows: MentorProfile[], users: User[], options: Parameters<typeof fakeEm>[2] = {}) {
   const em = fakeEm(rows, users, options);
   const events = { emit: vi.fn(async () => undefined) };
+  // Slot reads are SlotService's (tested there); here only their effect on the two DTOs.
+  const slotService = {
+    countBookable: vi.fn<(profileId: string, now: Date) => Promise<number>>(async () => 0),
+    listPublicFor: vi.fn<(profileId: string, now: Date) => Promise<(typeof SLOT)[]>>(async () => [SLOT]),
+  };
   const service = new MentorProfileService({
     em: em as unknown as Cradle['em'],
     clock: { now: () => NOW },
     events: events as unknown as Cradle['events'],
+    slotService: slotService as unknown as Cradle['slotService'],
   });
 
-  return { em, events, service };
+  return { em, events, service, slotService };
 }
 
 async function rejection(promise: Promise<unknown>): Promise<unknown> {
@@ -192,7 +200,22 @@ describe('MentorProfileService.getOwn', () => {
         { key: 'bio', met: false },
         { key: 'stackTags', met: true },
       ],
+      offerReadiness: [
+        { key: 'published', met: false },
+        { key: 'hasBookableSlot', met: false },
+      ],
     });
+  });
+
+  it('reports the bookability gate from the bookable-slot count at request time', async () => {
+    const { user, row, service, slotService } = ownerWith({ ...COMPLETE, slug: 'ada', publishedAt: EARLIER });
+    slotService.countBookable.mockResolvedValue(2);
+
+    expect((await service.getOwn(user.id)).offerReadiness).toEqual([
+      { key: 'published', met: true },
+      { key: 'hasBookableSlot', met: true },
+    ]);
+    expect(slotService.countBookable).toHaveBeenCalledWith(row.id, NOW);
   });
 
   it('answers 404 without a profile and never creates one', async () => {
@@ -396,11 +419,14 @@ describe('MentorProfileService.unpublish', () => {
 });
 
 describe('MentorProfileService.getPublicBySlug', () => {
-  it('returns exactly the public allowlist of a published page', async () => {
-    const { service } = ownerWith({ ...COMPLETE, slug: 'ada-lovelace', publishedAt: EARLIER });
+  it('returns exactly the public allowlist of a published page; slots only when offer-ready', async () => {
+    const { row, service, slotService } = ownerWith({ ...COMPLETE, slug: 'ada-lovelace', publishedAt: EARLIER });
 
+    const notReady = await service.getPublicBySlug('ada-lovelace');
+    slotService.countBookable.mockResolvedValue(1);
     const page = await service.getPublicBySlug('ada-lovelace');
 
+    expect(notReady).toMatchObject({ offerReady: false, slots: [] });
     expectProjectionKeys(page, PUBLIC_KEYS);
     expect(page).toEqual({
       slug: 'ada-lovelace',
@@ -409,7 +435,11 @@ describe('MentorProfileService.getPublicBySlug', () => {
       publicWorkUrl: COMPLETE.publicWorkUrl,
       bio: COMPLETE.bio,
       stackTags: ['python'],
+      offerReady: true,
+      slots: [SLOT],
     });
+    expect(Object.keys(page.slots[0] as object).sort()).toEqual(['id', 'meetsLeadTime', 'startsAt']);
+    expect(slotService.listPublicFor).toHaveBeenCalledExactlyOnceWith(row.id, NOW);
     expect(JSON.stringify(page)).not.toMatch(/ada@devmentor\.test|"ada"|initialPublishDueAt|invitation/);
   });
 

@@ -15,7 +15,7 @@ Engine: om-auto-create-pr-loop (forced by the brief, regardless of step count)
 | 2 | 2.1 | Lead-time rule and slotCreateSchema | inline | done | self |
 | 2 | 2.2 | availability.slot.published event | inline | done | self |
 | 2 | 2.3 | SlotService and container registration | inline | done | self |
-| 2 | 2.4 | hasBookableSlot in mentorOfferReady and slots on the public mentor read | inline | todo | — |
+| 2 | 2.4 | hasBookableSlot in mentorOfferReady and slots on the public mentor read | inline | done | self |
 | 2 | 2.5 | Slot owner routes and HTTP handlers | inline | todo | — |
 | 3 | 3.1 | CrudForm datetime field | inline | todo | — |
 | 3 | 3.2 | MentorPageView shows slots when offer-ready without prices | inline | todo | — |

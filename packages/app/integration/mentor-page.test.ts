@@ -26,7 +26,7 @@ const SLUG = `ada-lovelace-${run}`;
 const LINK = 'https://github.com/ada/analytical-engine';
 const BIO = 'Wrote the first program for an engine that was never built.';
 const CSRF = { 'x-devmentor-request': '1', 'content-type': 'application/json' };
-const PUBLIC_KEYS = ['avatarUrl', 'bio', 'displayName', 'publicWorkUrl', 'slug', 'stackTags'];
+const PUBLIC_KEYS = ['avatarUrl', 'bio', 'displayName', 'offerReady', 'publicWorkUrl', 'slots', 'slug', 'stackTags'];
 const NO_RATINGS = /\b(ratings?|scores?|reviews?|rank(ing)?|stars?)\b/i;
 
 type Browser = ReturnType<typeof createAgentBrowser>;
