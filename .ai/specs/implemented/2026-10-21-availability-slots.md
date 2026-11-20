@@ -1,6 +1,6 @@
 # A mentor can publish slots
 
-Status: approved
+Status: implemented (PR #50, merged 2026-11-20)
 Issue: #25 (E01-S05) · Epic: #16 · Depends on: #23 (`.ai/specs/implemented/2026-10-21-mentor-page.md`, merged first: public read, `/m/[slug]`, readiness primitive) and #22 (`.ai/specs/implemented/2026-10-21-mentor-invitations.md`: `LocalTime`, `/mentor`, `initial_publish_due_at`, `npm run invite -- list`) · Source: `.ai/specs/product-brief.md` (R09, R08, R13, D09, D13) · Builds on: `.ai/specs/implemented/2026-10-21-platform-primitives.md`, `.ai/specs/implemented/2026-10-21-sign-in-github-and-email.md` · Siblings: `.ai/specs/2026-10-21-mentor-prices.md` (#24) · Follows the course reference specs `2026-09-08-availability-slots.md`, `2026-09-08-mentors-become-bookable.md` (Slice 3) and `2026-09-08-platform-primitives-ii.md` (lesson 05), adapted to this repository
 
 ## 📝 TLDR
