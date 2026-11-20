@@ -1,6 +1,6 @@
 # Mentor and mentee hold the session in text in DevMentor; the mentor gives a written answer
 
-Status: approved — Q01 answered on 2026-11-20 by the session owner (Łukasz Lasota, who signs the brief's Definition of Ready): the session happens in DevMentor; founders A and B to record it in the brief
+Status: implemented (branch feat/text-session) — Q01 answered on 2026-11-20 by the session owner (Łukasz Lasota, who signs the brief's Definition of Ready): the session happens in DevMentor; founders A and B to record it in the brief
 Issue: #31 (E04-S01) · Epic: #19 · Depends on: #29 (`.ai/specs/2026-11-20-booking-stripe-checkout.md`), #30 (`.ai/specs/2026-11-20-booking-cancellation.md`) · Feeds: #32 (the note) · Source: `.ai/specs/product-brief.md` (R01, N01, R03, Q01)
 
 ## 📝 TLDR
@@ -127,3 +127,10 @@ R01/N01 (text only; said on every session screen), Q01 (answered: in DevMentor �
 6. `answer` + route + `AnswerForm`/answer view + email; unit, handler and component tests.
 7. Integration: mentor submits the answer, mentee sees it and gets the email, second submit refused.
 Each step ends with `npm run validate` green at 100% coverage; steps 1, 5 and 7 run `npm run test:integration`.
+
+## Implementation notes
+- `SessionView` carries `phase` (`not_started` | `open` | `closed`) so the page never reads the clock while rendering; polling stops once the chat is closed.
+- `seq` is mapped as a generated identity (`generated('identity')`); `autoincrement()` only makes it optional on create, with the column type pinned to `bigint`.
+- Mentors reach their sessions through "My sessions" (and the email links); a session link on `/mentor/slots` was left out, since the owner slot view carries no booking id and the nav already covers it.
+- The mentee is shown to the mentor by GitHub login (or "Your mentee"); no email address is exposed in the session.
+
