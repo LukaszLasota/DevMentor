@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import { withScope } from "@devmentor/core";
-import { isAppError, type SessionView } from "@devmentor/core/http";
+import { isAppError, type NoteView, type SessionView } from "@devmentor/core/http";
 import { LocalTime } from "@devmentor/ui";
 import { requirePageSession } from "@/lib/session";
 import { AnswerForm } from "./AnswerForm";
 import { SessionChat } from "./SessionChat";
+import { SessionNote } from "./SessionNote";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -12,13 +13,16 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const TEXT_ONLY = "Sessions are text — no video call.";
 
 /** The caller's session, or `null` (unknown, malformed or not theirs: one 404 for all, AC4). */
-async function loadSession(userId: string, id: string): Promise<SessionView | null> {
+async function loadSession(userId: string, id: string): Promise<{ session: SessionView; note: NoteView } | null> {
   if (!UUID.test(id)) {
     return null;
   }
 
   try {
-    return await withScope(({ sessionService }) => sessionService.get(userId, id));
+    return await withScope(async ({ sessionService, sessionNoteService }) => ({
+      session: await sessionService.get(userId, id),
+      note: await sessionNoteService.get(userId, id),
+    }));
   } catch (error) {
     if (isAppError(error) && error.status === 404) {
       return null;
@@ -35,11 +39,13 @@ async function loadSession(userId: string, id: string): Promise<SessionView | nu
 export async function SessionContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requirePageSession(`/sessions/${id}`);
-  const session = await loadSession(user.id, id);
+  const loaded = await loadSession(user.id, id);
 
-  if (session === null) {
+  if (loaded === null) {
     notFound();
   }
+
+  const { session, note } = loaded;
 
   return (
     <>
@@ -71,6 +77,7 @@ export async function SessionContent({ params }: { params: Promise<{ id: string 
           <p className="text-body-small text-muted-foreground">The mentor&apos;s written answer will appear here.</p>
         )}
       </section>
+      <SessionNote sessionId={session.id} note={note} />
       {session.role === "mentee" ? (
         <p className="text-body-small text-muted-foreground">
           Something went wrong?{" "}

@@ -1,16 +1,17 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ get: vi.fn(), requirePageSession: vi.fn(), notFound: vi.fn() }));
+const mocks = vi.hoisted(() => ({ get: vi.fn(), getNote: vi.fn(), requirePageSession: vi.fn(), notFound: vi.fn() }));
 
 vi.mock("@devmentor/core", () => ({
-  withScope: <T,>(fn: (cradle: unknown) => Promise<T>) => fn({ sessionService: { get: mocks.get } }),
+  withScope: <T,>(fn: (cradle: unknown) => Promise<T>) => fn({ sessionService: { get: mocks.get }, sessionNoteService: { get: mocks.getNote } }),
 }));
 vi.mock("@devmentor/core/http", () => ({
   isAppError: (error: unknown) => typeof error === "object" && error !== null && "status" in error,
 }));
 vi.mock("@/lib/session", () => ({ requirePageSession: mocks.requirePageSession }));
 vi.mock("./SessionChat", () => ({ SessionChat: () => <p>chat</p> }));
+vi.mock("./SessionNote", () => ({ SessionNote: ({ note }: { note: { state: string } }) => <p>note {note.state}</p> }));
 vi.mock("./AnswerForm", () => ({ AnswerForm: ({ sessionId }: { sessionId: string }) => <p>answer-form {sessionId}</p> }));
 vi.mock("next/navigation", () => ({
   notFound: () => {
@@ -36,6 +37,7 @@ const params = (id = ID) => ({ params: Promise.resolve({ id }) });
 beforeEach(() => {
   mocks.requirePageSession.mockReset().mockResolvedValue({ id: "u-1" });
   mocks.get.mockReset().mockResolvedValue(VIEW);
+  mocks.getNote.mockReset().mockResolvedValue({ state: 'none' });
   mocks.notFound.mockReset();
 });
 
@@ -49,6 +51,8 @@ describe("/sessions/[id]", () => {
     expect(document.body.textContent).toContain(TEXT_ONLY);
     expect(TEXT_ONLY).toBe("Sessions are text — no video call.");
     expect(screen.getByText("chat")).toBeTruthy();
+    expect(screen.getByText("note none")).toBeTruthy();
+    expect(mocks.getNote).toHaveBeenCalledWith("u-1", ID);
   });
 
   it("mentee: waits for the answer and links Report a problem", async () => {

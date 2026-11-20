@@ -69,7 +69,17 @@ export {
 } from './bookings';
 export type { AttentionItem } from '../services/bookings/booking-cancellation.service';
 export type { ReportItem } from '../services/bookings/booking-report.service';
-export { getSession, SESSION_RESPONSE, sendSessionMessage, submitSessionAnswer, type SessionIdParams } from './sessions';
+export {
+  decideSessionNote,
+  getSession,
+  getSessionNote,
+  SESSION_RESPONSE,
+  sendSessionMessage,
+  sendSessionNote,
+  submitSessionAnswer,
+  type SessionIdParams,
+} from './sessions';
+export type { NoteState, NoteVersionView, NoteView } from '../services/sessions/session-note.service';
 export type {
   SessionAnswerView,
   SessionListItem,

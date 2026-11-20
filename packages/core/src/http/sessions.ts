@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import type { SessionAnswerView, SessionMessageView, SessionView } from '../services/sessions/session.service';
 import { SESSION_NOT_FOUND_MESSAGE } from '../services/sessions/session.service';
+import type { NoteView } from '../services/sessions/session-note.service';
 import { sessionAnswerSchema, sessionMessageSchema, sessionReadQuerySchema } from '../validators/sessions/session-message.schema';
+import { sessionNoteDecisionSchema, sessionNoteSchema } from '../validators/sessions/session-note.schema';
 import type { ApiHandlerOptions, HandlerArgs } from './apiHandler';
 import { requireSession } from './auth';
 import { NotFoundError } from './errors';
@@ -47,4 +49,27 @@ export async function submitSessionAnswer({ req, params, cradle }: HandlerArgs<S
   const id = sessionId(params);
 
   return cradle.sessionService.answer(user.id, id, await parseJsonBody(req, sessionAnswerSchema));
+}
+
+/** `GET /api/sessions/[id]/note` → the session note and what the caller can do with it. */
+export async function getSessionNote({ req, params, cradle }: HandlerArgs<SessionIdParams>): Promise<NoteView> {
+  const user = await requireSession(req, cradle);
+
+  return cradle.sessionNoteService.get(user.id, sessionId(params));
+}
+
+/** `POST /api/sessions/[id]/note` `{ body }` → the mentor sends the next version. */
+export async function sendSessionNote({ req, params, cradle }: HandlerArgs<SessionIdParams>): Promise<NoteView> {
+  const user = await requireSession(req, cradle);
+  const id = sessionId(params);
+
+  return cradle.sessionNoteService.send(user.id, id, await parseJsonBody(req, sessionNoteSchema));
+}
+
+/** `POST /api/sessions/[id]/note/decision` `{ version, decision, comment? }` → the mentee decides. */
+export async function decideSessionNote({ req, params, cradle }: HandlerArgs<SessionIdParams>): Promise<NoteView> {
+  const user = await requireSession(req, cradle);
+  const id = sessionId(params);
+
+  return cradle.sessionNoteService.decide(user.id, id, await parseJsonBody(req, sessionNoteDecisionSchema));
 }
