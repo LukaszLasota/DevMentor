@@ -1,6 +1,6 @@
 # Execution plan — availability slots (E01-S05)
 
-Source spec: .ai/specs/2026-10-21-availability-slots.md
+Source spec: .ai/specs/implemented/2026-10-21-availability-slots.md
 Issue: #25 · Epic: #16
 Branch: feat/availability-slots
 Engine: om-auto-create-pr-loop (forced by the brief, regardless of step count)

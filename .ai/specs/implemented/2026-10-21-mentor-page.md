@@ -1,6 +1,6 @@
 # A mentor fills a page with public work and stack tags and gets a share link
 
-Status: approved
+Status: implemented (PR #48, merged 2026-11-20)
 Issue: #23 (E01-S03) · Epic: #16 · Depends on: #22 (`.ai/specs/implemented/2026-10-21-mentor-invitations.md`) · Source: `.ai/specs/product-brief.md` (R04, N02, R08, D24, R13) · Builds on: `.ai/specs/implemented/2026-10-21-platform-primitives.md`, `.ai/specs/implemented/2026-10-21-sign-in-github-and-email.md`, `.ai/specs/implemented/2026-10-21-mentor-invitations.md` · Follows the course reference specs `2026-09-08-mentor-page.md`, `2026-09-08-mentors-become-bookable.md` (Slice 2) and `2026-09-08-platform-primitives-ii.md` (lesson 05), adapted to this repository
 
 ## 📝 TLDR
