@@ -9,6 +9,8 @@ import { promisify } from 'node:util';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import type { TestProject } from 'vitest/node';
 import { startGithubStub } from '../../../scripts/lib/github-stub.mjs';
+import { startStripeStub } from '../../../scripts/lib/stripe-stub.mjs';
+import { STRIPE_TEST_SECRET_KEY, STRIPE_TEST_WEBHOOK_SECRET } from './stripe-credentials';
 
 declare module 'vitest' {
   export interface ProvidedContext {
@@ -16,6 +18,8 @@ declare module 'vitest' {
     postgresContainerId: string;
     databaseUrl: string;
     githubStubUrl: string;
+    /** STRIPE_API_URL of the app: the local Stripe stub (`scripts/lib/stripe-stub.mjs`). */
+    stripeStubUrl: string;
     /** The app's stdout/stderr (pino JSON lines at `info`), read by `waitForMail` (`mail.ts`). */
     appLogFile: string;
   }
@@ -65,8 +69,8 @@ async function waitForHealthy(url: string, server: ChildProcess, logs: string[])
 
 /**
  * Starts PostgreSQL in Docker, applies the committed migrations with the real CLI
- * (`npm run db:migrate`), starts the GitHub stub (`scripts/lib/github-stub.mjs`) and boots the
- * production build against both.
+ * (`npm run db:migrate`), starts the GitHub and Stripe stubs (`scripts/lib/github-stub.mjs`,
+ * `scripts/lib/stripe-stub.mjs`) and boots the production build against them.
  */
 export default async function setup(project: TestProject) {
   if (!existsSync(`${appDir}.next/BUILD_ID`)) {
@@ -85,6 +89,15 @@ export default async function setup(project: TestProject) {
   const githubStub = await startGithubStub({ port: 0, clientId: 'integration-client', clientSecret: 'integration-secret' });
   const port = await freePort();
   const baseUrl = `http://127.0.0.1:${port}`;
+  // Stripe goes to the local stub, which delivers signed webhooks to the app like Stripe does.
+  const stripeStub = await startStripeStub({
+    secretKey: STRIPE_TEST_SECRET_KEY,
+    webhookSecret: STRIPE_TEST_WEBHOOK_SECRET,
+    webhookUrl: `${baseUrl}/api/webhooks/stripe`,
+  });
+  const closeStubs = async () => {
+    await Promise.allSettled([githubStub.close(), stripeStub.close()]);
+  };
   const logs: string[] = [];
   // The app logs at `info` so the log mailer's `mail.sent` lines (verification links) reach the file;
   // nothing is printed unless DEBUG_APP_LOGS is set, so the test output stays quiet.
@@ -111,6 +124,10 @@ export default async function setup(project: TestProject) {
       // Mentor prices (founder decision 2026-11-20, spec 2026-10-21-mentor-prices).
       PLATFORM_CURRENCY: 'PLN',
       PLATFORM_PRICE_BOUNDS: JSON.stringify({ '25': { minCents: 5000, maxCents: 30000 }, '50': { minCents: 10000, maxCents: 60000 } }),
+      // Stripe (spec 2026-11-20-booking-stripe-checkout): the stub, never the real API.
+      STRIPE_API_URL: stripeStub.url,
+      STRIPE_SECRET_KEY: STRIPE_TEST_SECRET_KEY,
+      STRIPE_WEBHOOK_SECRET: STRIPE_TEST_WEBHOOK_SECRET,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -125,7 +142,7 @@ export default async function setup(project: TestProject) {
     await waitForHealthy(`${baseUrl}/api/health`, server, logs);
   } catch (error) {
     server.kill();
-    await githubStub.close();
+    await closeStubs();
     await postgres.stop();
     throw error;
   }
@@ -134,6 +151,7 @@ export default async function setup(project: TestProject) {
   project.provide('postgresContainerId', postgres.getId());
   project.provide('databaseUrl', postgres.getConnectionUri());
   project.provide('githubStubUrl', githubStub.url);
+  project.provide('stripeStubUrl', stripeStub.url);
   project.provide('appLogFile', appLogFile);
 
   return async () => {
@@ -141,7 +159,7 @@ export default async function setup(project: TestProject) {
     if (process.env.DEBUG_APP_LOGS) console.log(logs.join(''));
     server.kill();
     logStream.end();
-    await githubStub.close();
+    await closeStubs();
     await postgres.stop();
   };
 }
