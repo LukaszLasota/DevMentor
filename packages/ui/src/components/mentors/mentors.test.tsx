@@ -36,6 +36,7 @@ describe("public mentor components", () => {
         "SlotBookingControls",
         "TagList",
         "TextSessionNotice",
+        "apiCall",
         "buttonVariants",
         "formatInstant",
         "publicWorkLabel",

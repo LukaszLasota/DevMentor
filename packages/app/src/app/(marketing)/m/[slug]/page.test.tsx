@@ -11,6 +11,14 @@ vi.mock("@devmentor/core", () => ({
   withScope: <T,>(fn: (cradle: unknown) => Promise<T>) =>
     fn({ mentorProfileService: { findPublicBySlug: mocks.findPublicBySlug } }),
 }));
+vi.mock("./BookSlot", () => ({
+  BookSlot: (props: { slotId: string; lengths: string[]; prices: Record<string, string>; slug: string }) => (
+    <button type="button">{`Book ${props.slotId} ${props.lengths.join("/")} ${props.prices["25"]} ${props.slug}`}</button>
+  ),
+}));
+vi.mock("./CheckoutCancelled", () => ({
+  CheckoutCancelled: ({ bookingId }: { bookingId: string | null }) => <p>{`cancelled:${bookingId}`}</p>,
+}));
 vi.mock("next/navigation", () => ({
   notFound: () => {
     mocks.notFound();
@@ -29,9 +37,12 @@ const PAGE = {
   stackTags: ["python", "ai-agents"],
   offerReady: false,
   prices: null as { price25Cents: number; price50Cents: number; currency: string } | null,
-  slots: [] as { id: string; startsAt: string; meetsLeadTime: boolean }[],
+  slots: [] as { id: string; startsAt: string; meetsLeadTime: boolean; bookableLengths: ("25" | "50")[] }[],
 };
-const props = (slug: string) => ({ params: Promise.resolve({ slug }), searchParams: Promise.resolve({}) });
+const props = (slug: string, searchParams: Record<string, string | string[]> = {}) => ({
+  params: Promise.resolve({ slug }),
+  searchParams: Promise.resolve(searchParams),
+});
 
 beforeEach(() => {
   mocks.findPublicBySlug.mockReset().mockResolvedValue(PAGE);
@@ -64,8 +75,8 @@ describe("/m/[slug]", () => {
       offerReady: true,
       prices: { price25Cents: 15000, price50Cents: 30000, currency: "PLN" },
       slots: [
-        { id: "a", startsAt: "2026-06-22T16:30:00.000Z", meetsLeadTime: false },
-        { id: "b", startsAt: "2026-06-23T09:00:00.000Z", meetsLeadTime: true },
+        { id: "a", startsAt: "2026-06-22T16:30:00.000Z", meetsLeadTime: false, bookableLengths: [] },
+        { id: "b", startsAt: "2026-06-23T09:00:00.000Z", meetsLeadTime: true, bookableLengths: ["25", "50"] },
       ],
     });
 
@@ -78,8 +89,39 @@ describe("/m/[slug]", () => {
     expect(items[1]?.getAttribute("aria-disabled")).toBeNull();
     expect(screen.queryByText("Not bookable yet")).toBeNull();
     expect(screen.getByRole("list", { name: "Session prices" }).textContent).toBe("25 minPLN 150.0050 minPLN 300.00");
-    expect(screen.queryByRole("button")).toBeNull();
+    // Booking controls only on the bookable time, with the formatted prices (spec #29).
+    expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual(["Book b 25/50 PLN 150.00 ada-lovelace"]);
     expect(document.body.textContent).not.toMatch(/\b(ratings?|scores?|reviews?|rank(ing)?|stars?|guaranteed|reserved)\b/i);
+  });
+
+  it("offers no booking controls for a mentor who is offer-ready without prices", async () => {
+    mocks.findPublicBySlug.mockResolvedValue({
+      ...PAGE,
+      offerReady: true,
+      slots: [{ id: "b", startsAt: "2026-06-23T09:00:00.000Z", meetsLeadTime: true, bookableLengths: ["25"] }],
+    });
+
+    render(await MentorSharePage(props("ada-lovelace")));
+
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("shows the cancelled-payment notice with the booking to release, only for ?checkout=cancelled", async () => {
+    render(await MentorSharePage(props("ada-lovelace", { checkout: "cancelled", booking: "b-1" })));
+    expect(screen.getByText("cancelled:b-1")).toBeTruthy();
+  });
+
+  it.each([
+    [{ checkout: "cancelled" }, "cancelled:null"],
+    [{ checkout: "cancelled", booking: ["x", "y"] }, "cancelled:null"],
+  ])("passes no booking id for %o", async (query, text) => {
+    render(await MentorSharePage(props("ada-lovelace", query)));
+    expect(screen.getByText(text)).toBeTruthy();
+  });
+
+  it("shows no notice without ?checkout=cancelled", async () => {
+    render(await MentorSharePage(props("ada-lovelace", { checkout: "done" })));
+    expect(screen.queryByText(/cancelled:/)).toBeNull();
   });
 
   it("shows no prices for a mentor who is not offer-ready, even with stored prices", async () => {

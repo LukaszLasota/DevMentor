@@ -17,3 +17,5 @@ export { TextSessionNotice } from "./components/mentors/TextSessionNotice";
 export { STACK_TAGS, publicWorkLabel, stackTagLabel, type StackTagKey } from "./components/mentors/vocabulary";
 export { InvitationPanel, type InvitationState } from "./components/invitations/InvitationPanel";
 export { buttonVariants } from "./components/ui/button-variants";
+// The one sanctioned fetch to /api/* (no styles, no Radix): public pages that act, e.g. booking (#29).
+export { apiCall } from "./backend/api/apiCall";

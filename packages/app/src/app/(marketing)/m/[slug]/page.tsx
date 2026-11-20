@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { formatMoney, getEnv } from "@devmentor/core";
 import { MentorPageView } from "@devmentor/ui/mentors";
+import { BookSlot } from "./BookSlot";
+import { CheckoutCancelled } from "./CheckoutCancelled";
 import { loadPublicMentor } from "./load-public-mentor";
 
 // The mentor's share page (spec 2026-10-21-mentor-page). The page is partially prerendered under
@@ -50,8 +52,15 @@ export async function generateMetadata({ params }: PageProps<"/m/[slug]">): Prom
   };
 }
 
-export default async function MentorSharePage({ params }: PageProps<"/m/[slug]">) {
-  const page = await loadPublicMentor((await params).slug);
+/** One value of a search param, or `null` (repeated or absent). */
+function single(value: string | string[] | undefined): string | null {
+  return typeof value === "string" ? value : null;
+}
+
+export default async function MentorSharePage({ params, searchParams }: PageProps<"/m/[slug]">) {
+  const slug = (await params).slug;
+  const query = await searchParams;
+  const page = await loadPublicMentor(slug);
 
   if (page === null) {
     notFound();
@@ -65,9 +74,17 @@ export default async function MentorSharePage({ params }: PageProps<"/m/[slug]">
       ? { price25: formatMoney(page.prices.price25Cents, page.prices.currency), price50: formatMoney(page.prices.price50Cents, page.prices.currency) }
       : null;
 
+  // Booking controls per open time (spec #29): a client island per slot, prices formatted here.
+  const bookingPrices =
+    page.prices === null
+      ? null
+      : { "25": formatMoney(page.prices.price25Cents, page.prices.currency), "50": formatMoney(page.prices.price50Cents, page.prices.currency) };
+  const cancelled = single(query.checkout) === "cancelled";
+
   // The true 404 status comes from `src/proxy.ts`; `notFound()` above covers a page hidden in between.
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col px-paragraph py-section">
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-section px-paragraph py-section">
+      {cancelled ? <CheckoutCancelled bookingId={single(query.booking)} /> : null}
       <MentorPageView
         displayName={page.displayName}
         avatarUrl={page.avatarUrl}
@@ -77,6 +94,13 @@ export default async function MentorSharePage({ params }: PageProps<"/m/[slug]">
         offerReady={page.offerReady}
         prices={prices}
         slots={page.slots}
+        renderSlotAction={
+          page.offerReady && bookingPrices !== null
+            ? (slot) => (
+                <BookSlot slug={page.slug} slotId={slot.id} startsAt={slot.startsAt} lengths={slot.bookableLengths} prices={bookingPrices} />
+              )
+            : undefined
+        }
       />
     </main>
   );
