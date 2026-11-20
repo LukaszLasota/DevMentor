@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { StripeClient, StripeOutcome, StripeRequest } from './stripe-client';
-import { stripeCheckoutSessionSchema, StripeCheckoutGateway, stripeRefundSchema } from './stripe-checkout-gateway';
+import { sessionChargeSchema, stripeCheckoutSessionSchema, StripeCheckoutGateway, stripeRefundSchema } from './stripe-checkout-gateway';
 
 const RAW_SESSION = {
   id: 'cs_test_1',
@@ -193,3 +193,23 @@ describe('StripeCheckoutGateway', () => {
     expect(request).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('StripeCheckoutGateway.chargeOf', () => {
+  it('reads the session with its charge expanded and keeps the reversal state only', async () => {
+    const { gateway, request } = setup({
+      kind: 'ok',
+      data: { id: 'cs_1', payment_intent: { id: 'pi_1', latest_charge: { id: 'ch_1', refunded: false, amount_refunded: 500, disputed: true, receipt_email: 'x' } } },
+    });
+
+    await expect(gateway.chargeOf('cs_1')).resolves.toEqual({ kind: 'ok', data: { id: 'ch_1', refunded: false, amountRefunded: 500, disputed: true } });
+    expect(request.mock.calls[0]?.[0]).toMatchObject({ method: 'GET', path: '/v1/checkout/sessions/cs_1', params: { expand: ['payment_intent.latest_charge'] } });
+  });
+
+  it('answers null without a charge and defaults missing flags', () => {
+    expect(sessionChargeSchema.parse({ payment_intent: null })).toBeNull();
+    expect(sessionChargeSchema.parse({ payment_intent: { latest_charge: null } })).toBeNull();
+    expect(sessionChargeSchema.parse({})).toBeNull();
+    expect(sessionChargeSchema.parse({ payment_intent: { latest_charge: { id: 'ch_2' } } })).toEqual({ id: 'ch_2', refunded: false, amountRefunded: 0, disputed: false });
+  });
+});
+

@@ -1,4 +1,4 @@
-import type { CheckoutGateway, CheckoutResult, CheckoutSession, CheckoutSessionInput, Refund, RefundInput } from './checkout-gateway';
+import type { CheckoutGateway, CheckoutResult, CheckoutSession, CheckoutSessionInput, Refund, RefundInput, SessionCharge } from './checkout-gateway';
 
 type Failure = Exclude<CheckoutResult<CheckoutSession>, { kind: 'ok' }>;
 
@@ -12,6 +12,8 @@ export class FakeCheckoutGateway implements CheckoutGateway {
   readonly created: CheckoutSessionInput[] = [];
   /** Refunds by booking id (one per booking, like Stripe's idempotency key). */
   readonly refunds = new Map<string, Refund & { id: string; sessionId: string }>();
+  /** Charge state per session id a test changed (refunded, disputed); a completed session's charge is clean by default. */
+  readonly chargeChanges = new Map<string, Partial<SessionCharge>>();
   /** The status the next new refund gets (`succeeded` unless a test sets it). */
   nextRefundStatus: Refund['status'] = 'succeeded';
   /** The next call (any method) answers this instead (then it is cleared). */
@@ -104,6 +106,25 @@ export class FakeCheckoutGateway implements CheckoutGateway {
     const refund = [...this.refunds.values()].find((candidate) => candidate.id === refundId);
 
     return refund ? { kind: 'ok', data: { id: refund.id, status: refund.status } } : { kind: 'rejected', status: 404, code: 'resource_missing' };
+  }
+
+  async chargeOf(sessionId: string): Promise<CheckoutResult<SessionCharge | null>> {
+    const failure = this.take();
+
+    if (failure) {
+      return failure;
+    }
+
+    const session = this.sessions.get(sessionId);
+
+    if (session?.paymentIntentId == null) {
+      return { kind: 'ok', data: null };
+    }
+
+    return {
+      kind: 'ok',
+      data: { id: `ch_fake_${session.clientReferenceId}`, refunded: false, amountRefunded: 0, disputed: false, ...this.chargeChanges.get(sessionId) },
+    };
   }
 
   /** Simulates a successful payment on the hosted page. */
