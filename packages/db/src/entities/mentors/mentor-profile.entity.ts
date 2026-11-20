@@ -70,8 +70,9 @@ export const MentorProfileSchema = defineEntity({
      * The mentor's prices in minor units of the platform currency (R12), always written together by
      * `MentorProfileService.updatePrices`; the currency is not stored per mentor.
      */
-    price25Cents: p.integer().nullable(),
-    price50Cents: p.integer().nullable(),
+    // Explicit names: the underscore naming strategy does not split digits (`price25cents`).
+    price25Cents: p.integer().fieldName('price_25_cents').nullable(),
+    price50Cents: p.integer().fieldName('price_50_cents').nullable(),
     createdAt: p.datetime().onCreate(now),
     updatedAt: p.datetime().onCreate(now).onUpdate(now),
   },
