@@ -326,6 +326,24 @@ describe('SlotService.listMine', () => {
     ]);
   });
 
+  it('marks a slot cancelled by its mentee until it is booked again (AC4)', async () => {
+    const mine = makeProfile();
+    const cancelled = makeSlot(mine, hoursFromNow(24));
+    const rebooked = makeSlot(mine, hoursFromNow(30));
+    const { service } = setup(
+      [mine],
+      [cancelled, rebooked],
+      [makeBooking(cancelled, 25, 'cancelled'), makeBooking(rebooked, 25, 'cancelled'), makeBooking(rebooked, 50)],
+    );
+
+    const list = await service.listMine(mine.user.id, 'upcoming');
+
+    expect(list.map(({ id, booking, bookableLengths }) => [id, booking, bookableLengths])).toEqual([
+      [cancelled.id, 'cancelled', ['25', '50']],
+      [rebooked.id, 'booked', []],
+    ]);
+  });
+
   it('lists past slots descending, the last 50', async () => {
     const mine = makeProfile();
     const past = Array.from({ length: PAST_LIST_LIMIT + 5 }, (_, i) => makeSlot(mine, hoursFromNow(-1 - i)));

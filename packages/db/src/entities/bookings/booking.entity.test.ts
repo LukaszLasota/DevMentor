@@ -5,7 +5,7 @@ import { User } from '../auth/user.entity';
 import { Slot } from '../availability/slot.entity';
 import { entities } from '../index';
 import { MentorProfile } from '../mentors/mentor-profile.entity';
-import { ACTIVE_BOOKING_SLOT_UNIQUE, ACTIVE_BOOKING_STATUSES, Booking, BOOKING_STATUSES, BookingSchema } from './booking.entity';
+import { ACTIVE_BOOKING_SLOT_UNIQUE, ACTIVE_BOOKING_STATUSES, Booking, BOOKING_STATUSES, BookingSchema, REFUND_STATUSES } from './booking.entity';
 
 // Metadata discovery only; the constructor does not open a connection.
 const orm = new MikroORM(
@@ -22,7 +22,8 @@ describe('Booking entity', () => {
     expect(entities).toContain(BookingSchema);
     expect(meta.tableName).toBe('bookings');
     expect(meta.primaryKeys).toEqual(['id']);
-    expect(BOOKING_STATUSES).toEqual(['pending_payment', 'confirmed', 'expired', 'failed', 'payment_orphaned']);
+    expect(BOOKING_STATUSES).toEqual(['pending_payment', 'confirmed', 'expired', 'failed', 'payment_orphaned', 'cancelled']);
+    expect(REFUND_STATUSES).toEqual(['not_due', 'requested', 'pending', 'succeeded', 'failed']);
     expect(ACTIVE_BOOKING_STATUSES).toEqual(['pending_payment', 'confirmed']);
   });
 
@@ -44,6 +45,9 @@ describe('Booking entity', () => {
     expect(meta.properties.checkoutSessionId.unique).toBe(true);
     expect(column('confirmedAt')).toEqual({ field: 'confirmed_at', type: 'timestamptz', nullable: true });
     expect(column('leadMinutes')).toEqual({ field: 'lead_minutes', type: 'int', nullable: true });
+    expect(column('cancelledAt')).toEqual({ field: 'cancelled_at', type: 'timestamptz', nullable: true });
+    expect(column('refundStatus')).toEqual({ field: 'refund_status', type: 'text', nullable: true });
+    expect(column('refundId')).toEqual({ field: 'refund_id', type: 'text', nullable: true });
   });
 
   it.each([
@@ -65,11 +69,13 @@ describe('Booking entity', () => {
     ]);
     expect(meta.indexes).toEqual([{ name: 'bookings_mentor_profile_status_idx', properties: ['mentorProfile', 'status'] }]);
     expect(meta.checks.map((check) => check.name).sort()).toEqual([
+      'bookings_cancelled_check',
       'bookings_confirmed_check',
       'bookings_currency_check',
       'bookings_ends_check',
       'bookings_length_check',
       'bookings_price_check',
+      'bookings_refund_status_check',
       'bookings_status_check',
     ]);
   });

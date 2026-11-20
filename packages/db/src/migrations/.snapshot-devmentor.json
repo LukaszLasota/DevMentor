@@ -5,6 +5,126 @@
   ],
   "tables": [
     {
+      "name": "booking_reports",
+      "schema": "public",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "booking_id": {
+          "name": "booking_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "message": {
+          "name": "message",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "indexes": [
+        {
+          "columnNames": [
+            "booking_id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "booking_reports_booking_id_unique",
+          "primary": false,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "booking_reports_pkey",
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [
+        {
+          "name": "booking_reports_message_check",
+          "expression": "((char_length(message) >= 20) AND (char_length(message) <= 2000))",
+          "definition": "CHECK (((char_length(message) >= 20) AND (char_length(message) <= 2000)))",
+          "columnName": "message"
+        }
+      ],
+      "triggers": [],
+      "foreignKeys": {
+        "booking_reports_booking_id_foreign": {
+          "columnNames": [
+            "booking_id"
+          ],
+          "constraintName": "booking_reports_booking_id_foreign",
+          "localTableName": "public.booking_reports",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.bookings",
+          "deleteRule": "restrict"
+        }
+      },
+      "comment": null
+    },
+    {
       "name": "bookings",
       "schema": "public",
       "columns": {
@@ -279,6 +399,57 @@
           "collation": null,
           "enumItems": [],
           "mappedType": "datetime"
+        },
+        "cancelled_at": {
+          "name": "cancelled_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "refund_status": {
+          "name": "refund_status",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "refund_id": {
+          "name": "refund_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
         }
       },
       "indexes": [
@@ -327,6 +498,11 @@
       ],
       "checks": [
         {
+          "name": "bookings_cancelled_check",
+          "expression": "(status <> 'cancelled'::text) OR ((cancelled_at IS NOT NULL) AND (refund_status IS NOT NULL))",
+          "definition": "CHECK (((status <> 'cancelled'::text) OR ((cancelled_at IS NOT NULL) AND (refund_status IS NOT NULL))))"
+        },
+        {
           "name": "bookings_confirmed_check",
           "expression": "(status <> 'confirmed'::text) OR ((confirmed_at IS NOT NULL) AND (lead_minutes IS NOT NULL))",
           "definition": "CHECK (((status <> 'confirmed'::text) OR ((confirmed_at IS NOT NULL) AND (lead_minutes IS NOT NULL))))"
@@ -355,9 +531,15 @@
           "columnName": "price_cents"
         },
         {
+          "name": "bookings_refund_status_check",
+          "expression": "(refund_status = ANY (ARRAY['not_due'::text, 'requested'::text, 'pending'::text, 'succeeded'::text, 'failed'::text]))",
+          "definition": "CHECK (((refund_status = ANY (ARRAY['not_due'::text, 'requested'::text, 'pending'::text, 'succeeded'::text, 'failed'::text]))))",
+          "columnName": "refund_status"
+        },
+        {
           "name": "bookings_status_check",
-          "expression": "(status = ANY (ARRAY['pending_payment'::text, 'confirmed'::text, 'expired'::text, 'failed'::text, 'payment_orphaned'::text]))",
-          "definition": "CHECK (((status = ANY (ARRAY['pending_payment'::text, 'confirmed'::text, 'expired'::text, 'failed'::text, 'payment_orphaned'::text]))))",
+          "expression": "(status = ANY (ARRAY['pending_payment'::text, 'confirmed'::text, 'expired'::text, 'failed'::text, 'payment_orphaned'::text, 'cancelled'::text]))",
+          "definition": "CHECK (((status = ANY (ARRAY['pending_payment'::text, 'confirmed'::text, 'expired'::text, 'failed'::text, 'payment_orphaned'::text, 'cancelled'::text]))))",
           "columnName": "status"
         }
       ],

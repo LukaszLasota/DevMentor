@@ -1,6 +1,9 @@
-import { RoleNotice } from "@devmentor/ui";
+import { Suspense } from "react";
+import { LoadingMessage, RoleNotice } from "@devmentor/ui";
 import { requirePageRole } from "@/lib/session";
+import { AttentionPanel } from "./AttentionPanel";
 import { HealthPanel } from "./HealthPanel";
+import { ReportsPanel } from "./ReportsPanel";
 
 /** /admin body, operators only. `?notice=` explains a redirect here from another role's page (L03). */
 export async function AdminContent({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
@@ -15,6 +18,12 @@ export async function AdminContent({ searchParams }: { searchParams: Promise<Rec
       </div>
       <RoleNotice notice={notice} />
       <HealthPanel />
+      <Suspense fallback={<LoadingMessage />}>
+        <AttentionPanel />
+      </Suspense>
+      <Suspense fallback={<LoadingMessage />}>
+        <ReportsPanel />
+      </Suspense>
     </>
   );
 }

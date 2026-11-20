@@ -16,7 +16,14 @@ export {
   ACTIVE_BOOKING_STATUSES,
   Booking,
   type BookingStatus,
+  type RefundStatus,
 } from './entities/bookings/booking.entity';
+export {
+  BOOKING_REPORT_BOOKING_UNIQUE,
+  BOOKING_REPORT_MESSAGE_MAX,
+  BOOKING_REPORT_MESSAGE_MIN,
+  BookingReport,
+} from './entities/bookings/booking-report.entity';
 export { isUniqueViolation } from './errors';
 export type { DbOptions } from './config';
 // Re-exported so no package other than db imports @mikro-orm/* directly.

@@ -12,6 +12,10 @@ vi.mock("@devmentor/core/http", () => ({
 }));
 vi.mock("@/lib/session", () => ({ requirePageSession: mocks.requirePageSession }));
 vi.mock("./BookingPending", () => ({ BookingPending: () => <p>pending-poller</p> }));
+vi.mock("./ReportProblem", () => ({ ReportProblem: ({ bookingId }: { bookingId: string }) => <p>report-form {bookingId}</p> }));
+vi.mock("./CancelBooking", () => ({
+  CancelBooking: (props: object) => <p data-testid="cancel">{JSON.stringify(props)}</p>,
+}));
 vi.mock("next/navigation", () => ({
   notFound: () => {
     mocks.notFound();
@@ -30,6 +34,10 @@ const VIEW = {
   currency: "PLN",
   startsAt: "2026-06-23T09:00:00.000Z",
   mentor: { displayName: "Ada", slug: "ada" as string | null },
+  cancellation: null as { refundDue: boolean; freeUntil: string } | null,
+  cancelledAt: null as string | null,
+  refundStatus: null as string | null,
+  reportedAt: null as string | null,
 };
 const params = (id = ID) => ({ params: Promise.resolve({ id }) });
 
@@ -55,6 +63,59 @@ describe("/bookings/[id]", () => {
     expect(status.textContent).toContain("25-minute text session with Ada on");
     expect(status.textContent).toContain("You paid PLN 150.00. The mentor has been told by email.");
     expect(document.body.textContent).not.toMatch(/respond|reply within|guarantee/i);
+  });
+
+  it("confirmed and not started: offers Cancel with the server's terms", async () => {
+    mocks.getOwn.mockResolvedValue({ ...VIEW, cancellation: { refundDue: true, freeUntil: "2026-06-22T09:00:00.000Z" } });
+    render(await BookingContent(params()));
+
+    expect(JSON.parse(screen.getByTestId("cancel").textContent as string)).toEqual({
+      bookingId: ID,
+      refundDue: true,
+      freeUntil: "2026-06-22T09:00:00.000Z",
+      price: "PLN 150.00",
+    });
+  });
+
+  it("confirmed but started: no Cancel", async () => {
+    render(await BookingContent(params()));
+
+    expect(screen.queryByTestId("cancel")).toBeNull();
+  });
+
+  it.each([
+    ["requested", "Your PLN 150.00 is being refunded in full to your card (usually 5–10 days)."],
+    ["pending", "Your PLN 150.00 is being refunded in full to your card (usually 5–10 days)."],
+    ["succeeded", "Your PLN 150.00 is being refunded in full to your card (usually 5–10 days)."],
+    ["failed", "We will refund PLN 150.00 by hand and email you."],
+    ["not_due", "The PLN 150.00 fee was not refunded: the booking was cancelled 24 hours or less before the start."],
+  ])("cancelled with refund %s: says what happens to the money", async (refundStatus, line) => {
+    mocks.getOwn.mockResolvedValue({ ...VIEW, status: "cancelled", cancelledAt: "2026-06-21T09:00:00.000Z", refundStatus });
+    render(await BookingContent(params()));
+
+    expect(screen.getByText("Cancelled")).toBeTruthy();
+    expect(screen.getByText(/Cancelled on/)).toBeTruthy();
+    expect(screen.getByText(line)).toBeTruthy();
+    expect(screen.queryByTestId("cancel")).toBeNull();
+  });
+
+  it.each(["confirmed", "cancelled"])("%s: offers Report a problem until it is reported, then says when", async (status) => {
+    mocks.getOwn.mockResolvedValue({ ...VIEW, status, cancelledAt: "2026-06-21T09:00:00.000Z", refundStatus: "not_due" });
+    const { unmount } = render(await BookingContent(params()));
+    expect(screen.getByText(`report-form ${ID}`)).toBeTruthy();
+    unmount();
+
+    mocks.getOwn.mockResolvedValue({ ...VIEW, status, cancelledAt: "2026-06-21T09:00:00.000Z", refundStatus: "not_due", reportedAt: "2026-06-24T09:00:00.000Z" });
+    render(await BookingContent(params()));
+    expect(screen.queryByText(/report-form/)).toBeNull();
+    expect(screen.getByText(/Reported on/).textContent).toContain("The DevMentor team will reply by email. Reporting does not refund automatically.");
+  });
+
+  it.each(["pending_payment", "expired", "payment_orphaned"])("%s: no report form", async (status) => {
+    mocks.getOwn.mockResolvedValue({ ...VIEW, status });
+    render(await BookingContent(params()));
+
+    expect(screen.queryByText(/report-form/)).toBeNull();
   });
 
   it("pending: the self-refreshing waiting state", async () => {

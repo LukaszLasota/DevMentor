@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { ACTIVE_BOOKING_SLOT_UNIQUE, Booking, LockMode, MentorProfile, Slot, UniqueConstraintViolationException, User } from '@devmentor/db';
+import { ACTIVE_BOOKING_SLOT_UNIQUE, Booking, BookingReport, LockMode, MentorProfile, Slot, UniqueConstraintViolationException, User } from '@devmentor/db';
 import { describe, expect, it, vi } from 'vitest';
 import { parseEnv } from '../../config/env';
 import type { Cradle } from '../../container/cradle';
@@ -206,6 +206,7 @@ const session = (booking: Booking, fields: Partial<CheckoutSession> = {}): Check
   clientReferenceId: booking.id,
   amountTotal: booking.priceCents,
   currency: booking.currency,
+  paymentIntentId: `pi_${booking.id}`,
   ...fields,
 });
 
@@ -506,6 +507,16 @@ describe('BookingService.applyCompleted / applyExpired', () => {
     });
   });
 
+  it('ignores a redelivered completion for a cancelled booking (never orphaned, so never refunded twice)', async () => {
+    const cancelled = held({ status: 'cancelled', confirmedAt: hoursFromNow(-1), leadMinutes: 1500, refundStatus: 'succeeded' });
+
+    await expect(cancelled.service.applyCompleted(cancelled.em as unknown as Cradle['em'], session(cancelled.booking))).resolves.toEqual({
+      outcome: 'ignored',
+      booking: cancelled.booking,
+    });
+    expect(cancelled.booking).toMatchObject({ status: 'cancelled', refundStatus: 'succeeded' });
+  });
+
   it.each([
     ['an amount mismatch', {}, { amountTotal: 1 }],
     ['a currency mismatch', {}, { currency: 'EUR' }],
@@ -595,8 +606,53 @@ describe('BookingService.getOwn', () => {
       currency: 'PLN',
       startsAt: slot.startsAt.toISOString(),
       mentor: { displayName: 'Ada', slug: 'ada' },
+      cancellation: null,
+      cancelledAt: null,
+      refundStatus: null,
+      reportedAt: null,
     });
     expect(em.findOne).toHaveBeenCalledWith(Booking, { id: booking.id, mentee: MENTEE.id }, { populate: ['mentorProfile'] });
+    expect(em.findOne).toHaveBeenCalledWith(BookingReport, { booking: booking.id });
+  });
+
+  it('says when the mentee reported it', async () => {
+    const { profile, slot } = bookableMentor();
+    const booking = makeBooking(slot, { status: 'confirmed' });
+    const { service, em } = setup({ profiles: [profile], slots: [slot], bookings: [booking] });
+    const read = em.findOne.getMockImplementation();
+    em.findOne.mockImplementation(async (entity, where, options) =>
+      entity === BookingReport ? Object.assign(new BookingReport(), { createdAt: hoursFromNow(-2) }) : (read?.(entity, where, options) ?? null),
+    );
+
+    await expect(service.getOwn(MENTEE.id, booking.id)).resolves.toMatchObject({ reportedAt: hoursFromNow(-2).toISOString() });
+  });
+
+  it('offers cancellation terms for a confirmed booking that has not started (R10)', async () => {
+    const { profile, slot } = bookableMentor(hoursFromNow(30));
+    const free = makeBooking(slot, { status: 'confirmed' });
+    const late = makeBooking(makeSlot(profile, hoursFromNow(10)), { status: 'confirmed' });
+    const started = makeBooking(makeSlot(profile, hoursFromNow(-0.1)), { status: 'confirmed' });
+    const { service } = setup({ profiles: [profile], slots: [slot], bookings: [free, late, started] });
+
+    await expect(service.getOwn(MENTEE.id, free.id)).resolves.toMatchObject({
+      cancellation: { refundDue: true, freeUntil: hoursFromNow(6).toISOString() },
+    });
+    await expect(service.getOwn(MENTEE.id, late.id)).resolves.toMatchObject({
+      cancellation: { refundDue: false, freeUntil: hoursFromNow(-14).toISOString() },
+    });
+    await expect(service.getOwn(MENTEE.id, started.id)).resolves.toMatchObject({ cancellation: null });
+  });
+
+  it('shows when a booking was cancelled and its refund', async () => {
+    const { profile, slot } = bookableMentor();
+    const booking = makeBooking(slot, { status: 'cancelled', cancelledAt: hoursFromNow(-1), refundStatus: 'pending' });
+    const { service } = setup({ profiles: [profile], slots: [slot], bookings: [booking] });
+
+    await expect(service.getOwn(MENTEE.id, booking.id)).resolves.toMatchObject({
+      cancellation: null,
+      cancelledAt: hoursFromNow(-1).toISOString(),
+      refundStatus: 'pending',
+    });
   });
 
   it('shows a blank name and no link for a profile without them', async () => {

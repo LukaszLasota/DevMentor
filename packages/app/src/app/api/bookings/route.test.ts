@@ -8,6 +8,9 @@ vi.mock('@devmentor/core/http', () => ({
   startBooking: 'startBooking',
   getOwnBooking: 'getOwnBooking',
   releaseOwnBooking: 'releaseOwnBooking',
+  cancelOwnBooking: 'cancelOwnBooking',
+  reportOwnBooking: 'reportOwnBooking',
+  retryBookingRefund: 'retryBookingRefund',
   BOOKING_RESPONSE: 'BOOKING_RESPONSE',
 }));
 
@@ -22,5 +25,17 @@ describe('booking routes', () => {
 
   it('POST /api/bookings/[id]/release wires releaseOwnBooking with no-store', async () => {
     expect((await import('./[id]/release/route')).POST).toEqual({ handler: 'releaseOwnBooking', options: 'BOOKING_RESPONSE' });
+  });
+
+  it('POST /api/bookings/[id]/cancel wires cancelOwnBooking with no-store', async () => {
+    expect((await import('./[id]/cancel/route')).POST).toEqual({ handler: 'cancelOwnBooking', options: 'BOOKING_RESPONSE' });
+  });
+
+  it('POST /api/admin/bookings/[id]/refund wires retryBookingRefund with no-store', async () => {
+    expect((await import('../admin/bookings/[id]/refund/route')).POST).toEqual({ handler: 'retryBookingRefund', options: 'BOOKING_RESPONSE' });
+  });
+
+  it('POST /api/bookings/[id]/report wires reportOwnBooking with no-store', async () => {
+    expect((await import('./[id]/report/route')).POST).toEqual({ handler: 'reportOwnBooking', options: 'BOOKING_RESPONSE' });
   });
 });

@@ -1,4 +1,4 @@
-import type { CheckoutGateway, CheckoutResult, CheckoutSession, CheckoutSessionInput } from './checkout-gateway';
+import type { CheckoutGateway, CheckoutResult, CheckoutSession, CheckoutSessionInput, Refund, RefundInput } from './checkout-gateway';
 
 type Failure = Exclude<CheckoutResult<CheckoutSession>, { kind: 'ok' }>;
 
@@ -10,7 +10,11 @@ export class FakeCheckoutGateway implements CheckoutGateway {
   configured = true;
   readonly sessions = new Map<string, CheckoutSession>();
   readonly created: CheckoutSessionInput[] = [];
-  /** The next `createSession` / `expireSession` answers this instead (then it is cleared). */
+  /** Refunds by booking id (one per booking, like Stripe's idempotency key). */
+  readonly refunds = new Map<string, Refund & { id: string; sessionId: string }>();
+  /** The status the next new refund gets (`succeeded` unless a test sets it). */
+  nextRefundStatus: Refund['status'] = 'succeeded';
+  /** The next call (any method) answers this instead (then it is cleared). */
   nextFailure: Failure | undefined;
 
   private take(): Failure | undefined {
@@ -44,6 +48,7 @@ export class FakeCheckoutGateway implements CheckoutGateway {
       clientReferenceId: input.bookingId,
       amountTotal: input.amountCents,
       currency: input.currency.toUpperCase(),
+      paymentIntentId: null,
     };
     this.sessions.set(id, session);
 
@@ -71,6 +76,36 @@ export class FakeCheckoutGateway implements CheckoutGateway {
     return { kind: 'ok', data: { ...session } };
   }
 
+  async refund({ bookingId, sessionId }: RefundInput): Promise<CheckoutResult<Refund>> {
+    const failure = this.take();
+
+    if (failure) {
+      return failure;
+    }
+
+    if (this.sessions.get(sessionId)?.paymentIntentId == null) {
+      return { kind: 'rejected', status: 400, code: 'payment_intent_missing' };
+    }
+
+    const existing = this.refunds.get(bookingId);
+    const refund = existing ?? { id: `re_fake_${bookingId}`, status: this.nextRefundStatus, sessionId };
+    this.refunds.set(bookingId, refund);
+
+    return { kind: 'ok', data: { id: refund.id, status: refund.status } };
+  }
+
+  async getRefund(refundId: string): Promise<CheckoutResult<Refund>> {
+    const failure = this.take();
+
+    if (failure) {
+      return failure;
+    }
+
+    const refund = [...this.refunds.values()].find((candidate) => candidate.id === refundId);
+
+    return refund ? { kind: 'ok', data: { id: refund.id, status: refund.status } } : { kind: 'rejected', status: 404, code: 'resource_missing' };
+  }
+
   /** Simulates a successful payment on the hosted page. */
   complete(sessionId: string): CheckoutSession {
     const session = this.sessions.get(sessionId);
@@ -82,6 +117,7 @@ export class FakeCheckoutGateway implements CheckoutGateway {
     session.status = 'complete';
     session.paymentStatus = 'paid';
     session.url = null;
+    session.paymentIntentId = `pi_fake_${session.clientReferenceId}`;
 
     return { ...session };
   }

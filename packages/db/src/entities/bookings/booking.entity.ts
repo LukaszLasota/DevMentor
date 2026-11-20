@@ -7,12 +7,21 @@ import { MentorProfileSchema } from '../mentors/mentor-profile.entity';
 /**
  * Lifecycle (spec 2026-11-20-booking-stripe-checkout): `pending_payment` holds the time while the
  * mentee pays; Stripe's webhook moves it to `confirmed` or `expired`; `failed` = Checkout could not
- * start; `payment_orphaned` = paid but the time was no longer held (operator by hand, R16). Values
- * only grow (#30 adds `cancelled`); rows are financial records and are never deleted.
+ * start; `payment_orphaned` = paid but the time was no longer held (operator by hand, R16);
+ * `cancelled` = the mentee cancelled a confirmed booking (spec 2026-11-20-booking-cancellation). Values
+ * only grow; rows are financial records and are never deleted.
  */
-export const BOOKING_STATUSES = ['pending_payment', 'confirmed', 'expired', 'failed', 'payment_orphaned'] as const;
+export const BOOKING_STATUSES = ['pending_payment', 'confirmed', 'expired', 'failed', 'payment_orphaned', 'cancelled'] as const;
 
 export type BookingStatus = (typeof BOOKING_STATUSES)[number];
+
+/**
+ * Refund of a cancelled booking: `not_due` (cancelled 24 hours or less before), `requested` (decided,
+ * Stripe not yet sure to have it), `pending` (Stripe accepted it), `succeeded`, `failed` (operator, R16).
+ */
+export const REFUND_STATUSES = ['not_due', 'requested', 'pending', 'succeeded', 'failed'] as const;
+
+export type RefundStatus = (typeof REFUND_STATUSES)[number];
 
 /** Statuses that occupy their slot (a `pending_payment` hold only until `hold_expires_at`). */
 export const ACTIVE_BOOKING_STATUSES = ['pending_payment', 'confirmed'] as const satisfies readonly BookingStatus[];
@@ -28,6 +37,8 @@ export const BOOKING_PRICE_CHECK = 'price_cents > 0';
 export const BOOKING_CURRENCY_CHECK = "currency ~ '^[A-Z]{3}$'";
 export const BOOKING_ENDS_CHECK = 'ends_at = starts_at + make_interval(mins => length_minutes)';
 export const BOOKING_CONFIRMED_CHECK = "status <> 'confirmed' or (confirmed_at is not null and lead_minutes is not null)";
+export const BOOKING_REFUND_STATUS_CHECK = `refund_status in (${REFUND_STATUSES.map((status) => `'${status}'`).join(', ')})`;
+export const BOOKING_CANCELLED_CHECK = "status <> 'cancelled' or (cancelled_at is not null and refund_status is not null)";
 
 const now = () => new Date();
 
@@ -46,6 +57,8 @@ export const BookingSchema = defineEntity({
     { name: 'bookings_currency_check', expression: BOOKING_CURRENCY_CHECK },
     { name: 'bookings_ends_check', expression: BOOKING_ENDS_CHECK },
     { name: 'bookings_confirmed_check', expression: BOOKING_CONFIRMED_CHECK },
+    { name: 'bookings_refund_status_check', expression: BOOKING_REFUND_STATUS_CHECK },
+    { name: 'bookings_cancelled_check', expression: BOOKING_CANCELLED_CHECK },
   ],
   uniques: [
     {
@@ -71,6 +84,10 @@ export const BookingSchema = defineEntity({
     confirmedAt: p.datetime().nullable(),
     /** R09: minutes from confirmation to the start, recorded once. */
     leadMinutes: p.integer().nullable(),
+    cancelledAt: p.datetime().nullable(),
+    refundStatus: p.string().$type<RefundStatus>().columnType('text').nullable(),
+    /** Stripe refund id (`re_…`), for the operator's reconciliation. */
+    refundId: p.text().nullable(),
     createdAt: p.datetime().onCreate(now),
     updatedAt: p.datetime().onCreate(now).onUpdate(now),
   },

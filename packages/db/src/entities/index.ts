@@ -1,4 +1,5 @@
 import { SlotSchema } from './availability/slot.entity';
+import { BookingReportSchema } from './bookings/booking-report.entity';
 import { BookingSchema } from './bookings/booking.entity';
 import { AuthRateLimitSchema } from './auth/auth-rate-limit.entity';
 import { EmailVerificationTokenSchema } from './auth/email-verification-token.entity';
@@ -17,4 +18,5 @@ export const entities = [
   SlotSchema,
   StripeEventSchema,
   BookingSchema,
+  BookingReportSchema,
 ];

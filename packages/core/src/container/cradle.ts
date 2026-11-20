@@ -14,6 +14,8 @@ import type { StripeClient } from '../services/payments/stripe-client';
 import type { StripeEventHandlers } from '../services/payments/stripe-event-handlers';
 import type { StripeInboxService } from '../services/payments/stripe-inbox.service';
 import type { SlotService } from '../services/availability/slot.service';
+import type { BookingCancellationService } from '../services/bookings/booking-cancellation.service';
+import type { BookingReportService } from '../services/bookings/booking-report.service';
 import type { BookingService } from '../services/bookings/booking.service';
 import type { HealthService } from '../services/health/health.service';
 import type { InvitationService } from '../services/invitations/invitation.service';
@@ -47,6 +49,8 @@ export interface Cradle {
   mentorListService: MentorListService;
   slotService: SlotService;
   bookingService: BookingService;
+  bookingCancellationService: BookingCancellationService;
+  bookingReportService: BookingReportService;
   stripeEventHandlers: StripeEventHandlers;
   stripeInboxService: StripeInboxService;
 }

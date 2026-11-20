@@ -1,4 +1,4 @@
-import { ACTIVE_BOOKING_SLOT_UNIQUE, Booking, isUniqueViolation, LockMode, MentorProfile, Slot } from '@devmentor/db';
+import { ACTIVE_BOOKING_SLOT_UNIQUE, Booking, BookingReport, isUniqueViolation, LockMode, MentorProfile, type RefundStatus, Slot } from '@devmentor/db';
 import type { Cradle } from '../../container/cradle';
 import type { SessionLength } from '../../domain/session-lengths';
 import { ConflictError, ForbiddenError, NotFoundError, ServiceUnavailableError } from '../../http/errors';
@@ -10,6 +10,7 @@ import { activeBookingsWhere } from '../availability/slot.service';
 import { mentorOfferReady } from '../mentors/readiness';
 import { offerState } from '../mentors/mentor-profile.service';
 import type { CheckoutSession } from '../payments/checkout-gateway';
+import { cancellationTerms } from './cancellation-terms';
 import { endOf, freeLengths, overlaps } from './occupancy';
 
 /** Stripe's minimum session lifetime is 30 minutes; one more absorbs latency and clock skew. */
@@ -29,7 +30,7 @@ const notBookable = () => new ConflictError(NOT_BOOKABLE_MESSAGE, { code: 'NOT_B
 const paymentsUnavailable = () => new ServiceUnavailableError(PAYMENTS_UNAVAILABLE_MESSAGE, { code: 'PAYMENTS_UNAVAILABLE' });
 
 /** `SELECT … FOR UPDATE` that re-reads the row (lesson 2026-10-26); built at call time. */
-function lockForUpdate() {
+export function lockForUpdate() {
   return { lockMode: LockMode.PESSIMISTIC_WRITE, refresh: true } as const;
 }
 
@@ -48,6 +49,12 @@ export interface BookingView {
   currency: string;
   startsAt: string;
   mentor: { displayName: string; slug: string | null };
+  /** What cancelling now means (spec 2026-11-20-booking-cancellation); `null` unless it can be cancelled. */
+  cancellation: { refundDue: boolean; freeUntil: string } | null;
+  cancelledAt: string | null;
+  refundStatus: RefundStatus | null;
+  /** When the mentee reported a dispute about it, or `null` (phase 2 of the cancellation spec). */
+  reportedAt: string | null;
 }
 
 /** What a completed Checkout did to its booking. */
@@ -203,6 +210,10 @@ export class BookingService {
     }
 
     const profile = booking.mentorProfile.getEntity();
+    const now = this.clock.now();
+    const terms = cancellationTerms(booking.startsAt, now);
+    const cancellable = booking.status === 'confirmed' && booking.startsAt.getTime() > now.getTime();
+    const report = await this.em.findOne(BookingReport, { booking: booking.id });
 
     return {
       id: booking.id,
@@ -212,6 +223,10 @@ export class BookingService {
       currency: booking.currency,
       startsAt: booking.startsAt.toISOString(),
       mentor: { displayName: profile.displayName ?? '', slug: profile.slug ?? null },
+      cancellation: cancellable ? { refundDue: terms.refundDue, freeUntil: terms.freeUntil.toISOString() } : null,
+      cancelledAt: booking.cancelledAt?.toISOString() ?? null,
+      refundStatus: booking.refundStatus ?? null,
+      reportedAt: report?.createdAt.toISOString() ?? null,
     };
   }
 
@@ -240,6 +255,12 @@ export class BookingService {
 
     if (booking.status === 'confirmed' || booking.status === 'payment_orphaned') {
       return { outcome: booking.status === 'confirmed' ? 'already_confirmed' : 'orphaned', booking };
+    }
+
+    // A cancelled booking was confirmed once and may be refunded: a redelivered completion must not
+    // turn it into `payment_orphaned` (spec 2026-11-20-booking-cancellation).
+    if (booking.status === 'cancelled') {
+      return { outcome: 'ignored', booking };
     }
 
     const now = this.clock.now();
@@ -435,7 +456,7 @@ export class BookingService {
 }
 
 /** `2026-06-23 09:00 UTC`: email clients cannot show the reader's zone, the app can. */
-function utcLabel(instant: Date): string {
+export function utcLabel(instant: Date): string {
   return `${instant.toISOString().slice(0, 16).replace('T', ' ')} UTC`;
 }
 

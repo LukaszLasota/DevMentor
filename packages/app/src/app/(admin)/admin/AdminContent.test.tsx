@@ -5,6 +5,8 @@ const mocks = vi.hoisted(() => ({ requirePageRole: vi.fn() }));
 
 vi.mock("@/lib/session", () => ({ requirePageRole: mocks.requirePageRole }));
 vi.mock("./HealthPanel", () => ({ HealthPanel: () => <div>health panel</div> }));
+vi.mock("./AttentionPanel", () => ({ AttentionPanel: () => <div>attention panel</div> }));
+vi.mock("./ReportsPanel", () => ({ ReportsPanel: () => <div>reports panel</div> }));
 
 const { AdminContent } = await import("./AdminContent");
 
@@ -19,6 +21,8 @@ describe("AdminContent", () => {
     expect(mocks.requirePageRole).toHaveBeenCalledWith("/admin", "operator");
     expect(screen.getByRole("heading", { name: "Admin" })).toBeTruthy();
     expect(screen.getByText("health panel")).toBeTruthy();
+    expect(screen.getByText("attention panel")).toBeTruthy();
+    expect(screen.getByText("reports panel")).toBeTruthy();
     expect(screen.queryByRole("status")).toBeNull();
   });
 

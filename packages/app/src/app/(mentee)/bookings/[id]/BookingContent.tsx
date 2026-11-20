@@ -4,6 +4,8 @@ import { isAppError, type BookingView } from "@devmentor/core/http";
 import { Alert, AlertDescription, AlertTitle, LocalTime } from "@devmentor/ui";
 import { requirePageSession } from "@/lib/session";
 import { BookingPending } from "./BookingPending";
+import { CancelBooking } from "./CancelBooking";
+import { ReportProblem } from "./ReportProblem";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -26,7 +28,8 @@ async function loadOwn(userId: string, id: string): Promise<BookingView | null> 
 
 /**
  * /bookings/[id] body (spec #29, UI/UX): the state of the mentee's own booking after Stripe Checkout.
- * Pending re-reads itself until the webhook lands. No copy promises a response time (R09).
+ * Pending re-reads itself until the webhook lands. A confirmed booking that has not started can be
+ * cancelled (spec 2026-11-20-booking-cancellation). No copy promises a response time (R09).
  */
 export async function BookingContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -38,6 +41,7 @@ export async function BookingContent({ params }: { params: Promise<{ id: string 
   }
 
   const mentorLink = booking.mentor.slug === null ? null : `/m/${booking.mentor.slug}`;
+  const price = formatMoney(booking.priceCents, booking.currency);
   const what = (
     <>
       {booking.lengthMinutes}-minute text session with {booking.mentor.displayName} on <LocalTime iso={booking.startsAt} />
@@ -50,11 +54,32 @@ export async function BookingContent({ params }: { params: Promise<{ id: string 
       {booking.status === "pending_payment" ? (
         <BookingPending />
       ) : booking.status === "confirmed" ? (
-        <Alert tone="success">
-          <AlertTitle>Booked</AlertTitle>
+        <>
+          <Alert tone="success">
+            <AlertTitle>Booked</AlertTitle>
+            <AlertDescription>
+              <p>{what}.</p>
+              <p>You paid {price}. The mentor has been told by email.</p>
+            </AlertDescription>
+          </Alert>
+          {booking.cancellation === null ? null : (
+            <CancelBooking bookingId={booking.id} refundDue={booking.cancellation.refundDue} freeUntil={booking.cancellation.freeUntil} price={price} />
+          )}
+        </>
+      ) : booking.status === "cancelled" ? (
+        <Alert>
+          <AlertTitle>Cancelled</AlertTitle>
           <AlertDescription>
-            <p>{what}.</p>
-            <p>You paid {formatMoney(booking.priceCents, booking.currency)}. The mentor has been told by email.</p>
+            <p>
+              {what}. Cancelled on <LocalTime iso={booking.cancelledAt as string} />.
+            </p>
+            <p>
+              {booking.refundStatus === "not_due"
+                ? `The ${price} fee was not refunded: the booking was cancelled 24 hours or less before the start.`
+                : booking.refundStatus === "failed"
+                  ? `We will refund ${price} by hand and email you.`
+                  : `Your ${price} is being refunded in full to your card (usually 5–10 days).`}
+            </p>
           </AlertDescription>
         </Alert>
       ) : booking.status === "payment_orphaned" ? (
@@ -74,6 +99,13 @@ export async function BookingContent({ params }: { params: Promise<{ id: string 
             )}
           </AlertDescription>
         </Alert>
+      )}
+      {booking.status !== "confirmed" && booking.status !== "cancelled" ? null : booking.reportedAt === null ? (
+        <ReportProblem bookingId={booking.id} />
+      ) : (
+        <p role="status" className="text-body-small text-muted-foreground">
+          Reported on <LocalTime iso={booking.reportedAt} />. The DevMentor team will reply by email. Reporting does not refund automatically.
+        </p>
       )}
     </>
   );
