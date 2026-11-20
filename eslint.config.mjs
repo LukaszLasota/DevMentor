@@ -53,8 +53,10 @@ const eslintConfig = defineConfig([
       pkg("db", "validators are client-safe; they must not import the database package."),
       pkg("core", "validators are client-safe; import nothing else from core."),
       {
-        group: ["server-only", "node:*", "pino", "jose", "awilix", "../../*", "../../../*"],
-        message: "validators are client-safe: import only zod and files inside validators/.",
+        // `domain/` is the one client-safe core folder validators may use (spec 2026-10-21-mentor-page:
+        // the stack-tag vocabulary feeds the Zod enum); it guards its own imports in domain/index.test.ts.
+        group: ["server-only", "node:*", "pino", "jose", "awilix", "../../*", "../../../*", "!../../domain", "!../../domain/**"],
+        message: "validators are client-safe: import only zod, files inside validators/ and core/src/domain/.",
       },
     ]),
   },
