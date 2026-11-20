@@ -1,16 +1,16 @@
 # Handoff — 2026-11-20-mentor-prices
 
-**Last updated:** 2026-11-20T10:57:52Z
+**Last updated:** 2026-11-20T11:09:52Z
 **Branch:** feat/mentor-prices
-**PR:** https://github.com/LukaszLasota/DevMentor/pull/51 (draft)
-**Current phase/step:** Phase 3 Step 3.1
-**Last commit:** 9031f12 — feat(api): PUT /api/mentors/me/prices
+**PR:** https://github.com/LukaszLasota/DevMentor/pull/51
+**Current phase/step:** complete (all Tasks rows done)
+**Last commit:** 71e3ae8 — review fixes
 
 ## What just happened
-- Checkpoint 2: prices schema, updatePrices, the price requirements of mentorOfferReady, DTOs and the route landed; all green.
+- All Steps plus the review fix landed; full gate green locally; CI green at 49c7a5c.
 
 ## Next concrete action
-- Step 3.1 — /mentor/prices page and sidebar item.
+- Human: second review (risk-high, money + migration), manual QA, add the PLATFORM_* variables to the local env file, merge.
 
 ## Blockers / open questions
 - none (ci.yml cannot be pushed by this token; not needed)

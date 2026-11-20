@@ -19,11 +19,11 @@ Engine: om-auto-create-pr-loop (forced by the brief, regardless of step count)
 | 2 | 2.1 | mentorPricesUpdateSchema | inline | done | 779890d |
 | 2 | 2.2 | updatePrices, price requirements in mentorOfferReady and DTO prices | inline | done | 950dd11 |
 | 2 | 2.3 | PUT /api/mentors/me/prices | inline | done | 9031f12 |
-| 3 | 3.1 | /mentor/prices page and sidebar item | inline | done | self |
-| 3 | 3.2 | Set your prices step on /mentor with the out-of-bounds price named | inline | done | self |
-| 3 | 3.3 | Prices on the public /m/[slug] page | inline | done | self |
-| 4 | 4.1 | Integration tests for prices; slot flow sets prices | inline | done | self |
-| 4 | 4.1-review-fix | Public prices only when offer-ready; one amount regex; shared range text; typed keys; tests | inline | done | self |
+| 3 | 3.1 | /mentor/prices page and sidebar item | inline | done | ca56d1a |
+| 3 | 3.2 | Set your prices step on /mentor with the out-of-bounds price named | inline | done | a3f3b31 |
+| 3 | 3.3 | Prices on the public /m/[slug] page | inline | done | 0470eff |
+| 4 | 4.1 | Integration tests for prices; slot flow sets prices | inline | done | 49c7a5c |
+| 4 | 4.1-review-fix | Public prices only when offer-ready; one amount regex; shared range text; typed keys; tests | inline | done | 71e3ae8 |
 
 ## Goal
 

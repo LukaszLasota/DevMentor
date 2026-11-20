@@ -8,6 +8,6 @@
 |---|---|---|
 | npm run lint | ✅ pass | 0 errors |
 | npm run typecheck | ✅ pass | |
-| npm run test:coverage | ✅ pass | 153 files, 1590 tests, 100% |
+| npm run test:coverage | ✅ pass | 153 files, 1587 tests, 100% |
 | npm run build | ✅ pass | `/api/mentors/me/prices` ƒ |
 | Integration / UI | ⏭️ skipped | no UI in this window; no Docker here (CI) |

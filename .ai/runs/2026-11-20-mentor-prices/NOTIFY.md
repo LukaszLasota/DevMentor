@@ -17,3 +17,8 @@
 ## 2026-11-20T10:57:52Z — checkpoint 2 (Phase 2)
 - Lint, typecheck, unit 100% (1590), build green.
 - Decision: public DTO `prices` follows the spec literally (both set and settings available); the page shows them only when offer-ready.
+
+## 2026-11-20T11:09:52Z — final gate and review
+- Phase 3 closed straight into the final gate (no separate checkpoint 3). Full gate green locally; CI green at 49c7a5c.
+- Independent review: major fixed (public prices gated by offer-readiness), minors fixed in 71e3ae8.
+- Run complete; PR flipped to ready.
