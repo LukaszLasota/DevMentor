@@ -73,9 +73,13 @@ describe("E01 product components", () => {
   });
 
   it("SlotsPanel shows the empty state with the next step", () => {
-    render(<SlotsPanel slots={[]} showPast={false} onShowPastChange={vi.fn()} onRemove={vi.fn()} />);
+    const { rerender } = render(<SlotsPanel slots={[]} showPast={false} onShowPastChange={vi.fn()} onRemove={vi.fn()} />);
     expect(screen.getByText("No upcoming slots.")).toBeTruthy();
     expect(screen.getByText("Publish one so mentees can book you.")).toBeTruthy();
+
+    rerender(<SlotsPanel slots={[]} showPast onShowPastChange={vi.fn()} onRemove={vi.fn()} />);
+    expect(screen.getByText("No past slots.")).toBeTruthy();
+    expect(screen.queryByText("Publish one so mentees can book you.")).toBeNull();
   });
 
   it("SlotsPanel lists states, toggles past slots and removes after confirmation", async () => {

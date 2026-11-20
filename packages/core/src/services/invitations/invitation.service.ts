@@ -394,7 +394,14 @@ export class InvitationService {
       orderBy: { createdAt: 'asc' },
     });
 
-    return Promise.all(rows.map((row) => this.withD13(row, now)));
+    const views: InvitationView[] = [];
+
+    // One query at a time: a single EntityManager is not meant for parallel queries.
+    for (const row of rows) {
+      views.push(await this.withD13(row, now));
+    }
+
+    return views;
   }
 
   /** The D13 snapshot (bookable slots and met/pending/missed) for an accepted invitation; others keep nulls. */

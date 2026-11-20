@@ -4,7 +4,7 @@ import type { SlotView } from "@devmentor/core/http";
 import { slotCreateSchema } from "@devmentor/core/validators";
 import { apiCall, CrudForm, ErrorMessage, SlotsPanel } from "@devmentor/ui";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 type Scope = "upcoming" | "past";
 
@@ -17,14 +17,22 @@ export function SlotsEditor({ initial }: { initial: SlotView[] }) {
   const router = useRouter();
   const [slots, setSlots] = useState(initial);
   const [scope, setScope] = useState<Scope>("upcoming");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; retry: Scope } | null>(null);
   const [formKey, setFormKey] = useState(0);
+  // Only the latest read may update the list: fast toggles can answer out of order.
+  const latest = useRef(0);
 
   async function load(next: Scope) {
+    const request = ++latest.current;
     const result = await apiCall<{ items: SlotView[] }>(`/api/availability/slots?scope=${next}`);
 
+    if (request !== latest.current) {
+      return;
+    }
+
     if (!result.ok) {
-      setError(result.error.message);
+      // Try again re-reads what was asked for, not what is still shown.
+      setError({ message: result.error.message, retry: next });
       return;
     }
 
@@ -37,7 +45,7 @@ export function SlotsEditor({ initial }: { initial: SlotView[] }) {
     const result = await apiCall(`/api/availability/slots/${id}`, { method: "DELETE" });
 
     if (!result.ok) {
-      setError(result.error.message);
+      setError({ message: result.error.message, retry: scope });
       return;
     }
 
@@ -68,7 +76,7 @@ export function SlotsEditor({ initial }: { initial: SlotView[] }) {
           }}
         />
       </section>
-      {error ? <ErrorMessage message={error} onRetry={() => void load(scope)} /> : null}
+      {error ? <ErrorMessage message={error.message} onRetry={() => void load(error.retry)} /> : null}
       <SlotsPanel
         slots={slots.map((slot) => ({ ...slot, past: scope === "past" }))}
         showPast={scope === "past"}

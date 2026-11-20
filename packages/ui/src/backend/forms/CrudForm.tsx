@@ -85,7 +85,8 @@ function initialValue(field: CrudFormField<string>, value: DefaultValue | undefi
   const type = field.type ?? "text";
 
   if (type === "datetime") {
-    // A default is a UTC instant; the input shows it on the mentor's wall clock.
+    // A default is a UTC instant; the input shows it on the mentor's wall clock. The conversion runs in
+    // the initializer, so a server render uses the server's zone: pass `timeZone` with a default.
     return utcToLocal(value === undefined ? "" : String(value), zoneOf(field));
   }
 
@@ -124,7 +125,13 @@ function conversionErrors(fields: CrudFormField<string>[], values: Record<string
   const errors: FieldErrors = {};
 
   for (const field of fields) {
-    if (field.type === "datetime" && localToUtc(String(values[field.name]), zoneOf(field)).kind === "gap") {
+    if (field.type !== "datetime") {
+      continue;
+    }
+
+    if (values[field.name] === "") {
+      errors[field.name] = [`Enter the ${field.label.toLowerCase()}.`];
+    } else if (localToUtc(String(values[field.name]), zoneOf(field)).kind === "gap") {
       errors[field.name] = [`This time does not exist in ${zoneOf(field)} because the clocks change. Pick another time.`];
     }
   }

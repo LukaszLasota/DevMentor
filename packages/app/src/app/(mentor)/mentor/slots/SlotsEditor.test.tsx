@@ -131,4 +131,37 @@ describe("SlotsEditor", () => {
     expect(await screen.findByText("Try again later.")).toBeTruthy();
     expect(within(screen.getByRole("table")).getByText("Past")).toBeTruthy();
   });
+
+  it("retries the scope that failed, not the one still shown", async () => {
+    const user = userEvent.setup();
+    render(<SlotsEditor initial={[TOMORROW]} />);
+    fetchMock
+      .mockResolvedValueOnce(respond(503, { ok: false, error: { code: "SERVICE_UNAVAILABLE", message: "Try again later." } }))
+      .mockResolvedValueOnce(respond(200, { ok: true, data: { items: [] } }));
+
+    await user.click(screen.getByRole("checkbox", { name: "Show past" }));
+    await user.click(await screen.findByRole("button", { name: "Try again" }));
+
+    expect(await screen.findByText("No past slots.")).toBeTruthy();
+    expect(call(1)[0]).toBe("/api/availability/slots?scope=past");
+  });
+
+  it("ignores an older answer that arrives after a newer one", async () => {
+    const user = userEvent.setup();
+    let answerFirst: (response: Response) => void = () => {};
+    render(<SlotsEditor initial={[TOMORROW]} />);
+    fetchMock
+      .mockImplementationOnce(() => new Promise<Response>((resolve) => (answerFirst = resolve)))
+      .mockResolvedValueOnce(respond(200, { ok: true, data: { items: [TOMORROW] } }));
+
+    // Both clicks ask for past slots (the toggle flips only once an answer lands).
+    await user.click(screen.getByRole("checkbox", { name: "Show past" }));
+    await user.click(screen.getByRole("checkbox", { name: "Show past" }));
+    expect(await within(await screen.findByRole("table")).findByText("Past")).toBeTruthy();
+    answerFirst(respond(200, { ok: true, data: { items: [] } }));
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(within(screen.getByRole("table")).getByText("Past")).toBeTruthy();
+    expect(screen.queryByText("No past slots.")).toBeNull();
+  });
 });

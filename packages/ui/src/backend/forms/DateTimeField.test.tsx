@@ -75,12 +75,12 @@ describe("CrudForm datetime field (spec #25)", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it("passes an empty value through so the schema names what is missing", async () => {
+  it("asks for a time when the field is empty", async () => {
     const { onSubmit, user } = renderForm();
 
     await user.click(screen.getByRole("button", { name: "Publish slot" }));
 
-    expect(screen.getByText("Pick a start time on a whole minute.")).toBeTruthy();
+    expect(screen.getByText("Enter the start time.")).toBeTruthy();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
