@@ -6,7 +6,7 @@ import type { Clock } from '../time/clock';
 import { apiHandler } from './apiHandler';
 import { CSRF_HEADER, CSRF_HEADER_VALUE } from './envelope';
 import { ConflictError, ForbiddenError, NotFoundError } from './errors';
-import { getSession, SESSION_RESPONSE, sendSessionMessage, submitSessionAnswer } from './sessions';
+import { decideSessionNote, getSession, getSessionNote, SESSION_RESPONSE, sendSessionMessage, sendSessionNote, submitSessionAnswer } from './sessions';
 
 // The handlers run through the real apiHandler with a fake SessionService: its rules are tested in
 // `session.service.test.ts` and end to end in `packages/app/integration/text-session.test.ts`.
@@ -23,8 +23,12 @@ const SESSION_ID = '7a2e1d4b-3c5f-4d6e-9f0a-1b2c3d4e5f60';
 const GET = apiHandler(getSession, SESSION_RESPONSE);
 const SEND = apiHandler(sendSessionMessage, SESSION_RESPONSE);
 const ANSWER = apiHandler(submitSessionAnswer, SESSION_RESPONSE);
+const NOTE_GET = apiHandler(getSessionNote, SESSION_RESPONSE);
+const NOTE_SEND = apiHandler(sendSessionNote, SESSION_RESPONSE);
+const NOTE_DECIDE = apiHandler(decideSessionNote, SESSION_RESPONSE);
 const LONG = 'Use a queue for the retries and keep it idempotent.';
 
+let sessionNoteService: { get: ReturnType<typeof vi.fn>; send: ReturnType<typeof vi.fn>; decide: ReturnType<typeof vi.fn> };
 let sessionService: { get: ReturnType<typeof vi.fn>; send: ReturnType<typeof vi.fn>; answer: ReturnType<typeof vi.fn> };
 
 beforeEach(() => {
@@ -34,6 +38,7 @@ beforeEach(() => {
     send: vi.fn(async () => ({ id: 'm-1' })),
     answer: vi.fn(async () => ({ body: LONG })),
   };
+  sessionNoteService = { get: vi.fn(async () => ({ state: 'none' })), send: vi.fn(async () => ({ state: 'waiting' })), decide: vi.fn(async () => ({ state: 'approved' })) };
   scope.cradle = {
     env: parseEnv({ DATABASE_URL: 'postgres://u:p@localhost:5432/db', SESSION_SECRET: SECRET }),
     clock,
@@ -41,6 +46,7 @@ beforeEach(() => {
     em: { findOne: vi.fn(async (_entity: unknown, where: { id: string }) => (where.id === user.id ? user : null)) },
     accountService: { reconcileOperator: vi.fn(async (u: User) => u) },
     sessionService,
+    sessionNoteService,
   };
 });
 
@@ -115,3 +121,32 @@ describe('POST /api/sessions/[id]/answer', () => {
     expect(sessionService.answer).not.toHaveBeenCalled();
   });
 });
+
+describe('session note routes', () => {
+  it('reads the note for the caller, never cached', async () => {
+    const response = await NOTE_GET(await request('GET'), params());
+
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(await response.json()).toEqual({ ok: true, data: { state: 'none' } });
+    expect(sessionNoteService.get).toHaveBeenCalledWith(USER_ID, SESSION_ID);
+    expect((await NOTE_GET(await request('GET'), params('x'))).status).toBe(404);
+  });
+
+  it('sends a version with the trimmed body only; 400 for a short one, 403 without CSRF', async () => {
+    expect(await (await NOTE_SEND(await request('POST', { body: { body: `  ${LONG}  `, version: 9 } }), params())).json()).toEqual({ ok: true, data: { state: 'waiting' } });
+    expect(sessionNoteService.send).toHaveBeenCalledWith(USER_ID, SESSION_ID, { body: LONG });
+    expect((await NOTE_SEND(await request('POST', { body: { body: 'short' } }), params())).status).toBe(400);
+    expect((await NOTE_SEND(await request('POST', { csrf: false, body: { body: LONG } }), params())).status).toBe(403);
+  });
+
+  it('decides with the parsed decision; maps 409 codes', async () => {
+    expect(await (await NOTE_DECIDE(await request('POST', { body: { decision: 'approved', version: 1 } }), params())).json()).toEqual({ ok: true, data: { state: 'approved' } });
+    expect(sessionNoteService.decide).toHaveBeenCalledWith(USER_ID, SESSION_ID, { decision: 'approved', version: 1 });
+    expect((await NOTE_DECIDE(await request('POST', { body: { decision: 'declined', version: 1 } }), params())).status).toBe(400);
+
+    sessionNoteService.decide.mockRejectedValueOnce(new ConflictError('Not waiting.', { code: 'NOTE_NOT_PENDING' }));
+    const late = await NOTE_DECIDE(await request('POST', { body: { decision: 'approved', version: 1 } }), params());
+    expect([late.status, (await late.json()).error.code]).toEqual([409, 'NOTE_NOT_PENDING']);
+  });
+});
+

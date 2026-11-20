@@ -20,7 +20,8 @@ export const MENTEE_DECIDES_MESSAGE = 'Only the mentee approves or declines the 
 export const NOTE_NOT_OPEN_MESSAGE = 'You can write the note when the session has ended.';
 export const NOTE_PENDING_MESSAGE = 'The mentee has not decided on the last version yet.';
 export const NOTE_APPROVED_MESSAGE = 'The note is already approved.';
-export const NOTE_LIMIT_MESSAGE = `A note can have at most ${NOTE_MAX_VERSIONS} versions.`;
+// A literal, not built from `NOTE_MAX_VERSIONS`: module scope must not read db values (entry tests mock db).
+export const NOTE_LIMIT_MESSAGE = 'A note can have at most 10 versions.';
 export const NOTE_NOT_PENDING_MESSAGE = 'This version is not waiting for a decision.';
 
 export type NoteState = 'none' | 'waiting' | 'declined' | 'approved';

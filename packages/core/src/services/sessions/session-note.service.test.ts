@@ -4,6 +4,7 @@ import {
   LockMode,
   MentorProfile,
   NOTE_APPROVED_UNIQUE,
+  NOTE_MAX_VERSIONS,
   NOTE_WAITING_UNIQUE,
   SessionAnswer,
   SessionNoteVersion,
@@ -99,6 +100,12 @@ async function rejection(promise: Promise<unknown>): Promise<unknown> {
     (error: unknown) => error,
   );
 }
+
+describe('NOTE_LIMIT_MESSAGE', () => {
+  it('names the limit the database enforces', () => {
+    expect(NOTE_LIMIT_MESSAGE).toBe(`A note can have at most ${NOTE_MAX_VERSIONS} versions.`);
+  });
+});
 
 describe('SessionNoteService.get', () => {
   it('lets the mentor start from the written answer once the session has ended', async () => {

@@ -8,6 +8,9 @@ vi.mock('@devmentor/core/http', () => ({
   getSession: 'getSession',
   sendSessionMessage: 'sendSessionMessage',
   submitSessionAnswer: 'submitSessionAnswer',
+  getSessionNote: 'getSessionNote',
+  sendSessionNote: 'sendSessionNote',
+  decideSessionNote: 'decideSessionNote',
   SESSION_RESPONSE: 'SESSION_RESPONSE',
 }));
 
@@ -22,5 +25,12 @@ describe('session routes', () => {
 
   it('POST /api/sessions/[id]/answer wires submitSessionAnswer with no-store', async () => {
     expect((await import('./[id]/answer/route')).POST).toEqual({ handler: 'submitSessionAnswer', options: 'SESSION_RESPONSE' });
+  });
+
+  it('/api/sessions/[id]/note wires GET getSessionNote and POST sendSessionNote; decision wires decideSessionNote', async () => {
+    const note = await import('./[id]/note/route');
+    expect(note.GET).toEqual({ handler: 'getSessionNote', options: 'SESSION_RESPONSE' });
+    expect(note.POST).toEqual({ handler: 'sendSessionNote', options: 'SESSION_RESPONSE' });
+    expect((await import('./[id]/note/decision/route')).POST).toEqual({ handler: 'decideSessionNote', options: 'SESSION_RESPONSE' });
   });
 });
