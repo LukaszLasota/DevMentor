@@ -34,6 +34,8 @@ describe('@devmentor/core/validators', () => {
         'isWholeMinuteUtc',
         'slotCreateSchema',
         'mentorProfileUpdateSchema',
+        'AMOUNT_MESSAGE',
+        'mentorPricesUpdateSchema',
         'PASSWORD_MAX_LENGTH',
         'PASSWORD_MIN_LENGTH',
         'RETURN_TO_MAX_LENGTH',
