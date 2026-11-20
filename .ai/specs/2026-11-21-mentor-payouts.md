@@ -1,6 +1,6 @@
 # Mentors connect Stripe and are paid each session minus the 20% fee
 
-Status: approved — scope and order chosen by the session owner on 2026-11-20 (#26 and #35 together, Stripe test mode on the stub, transfer only after the session); autonomous defaults below
+Status: implemented (branch feat/mentor-payouts) — scope and order chosen by the session owner on 2026-11-20 (#26 and #35 together, Stripe test mode on the stub, transfer only after the session); autonomous defaults below
 Issues: #26 (E01-S06, Connect onboarding) and #35 (E01-S07, fee and payout) · Epic: #16 · Depends on: #29 (booking and Checkout), #30 (cancellation), #31 (sessions) · Builds on and narrows: `.ai/specs/2026-10-21-stripe-connect-payouts.md` (approved for 1.1; this spec answers its topology gate and simplifies its provisioning) · Source: `.ai/specs/product-brief.md` (R12, R14, R16, D11, D15, Q04)
 
 ## 📝 TLDR
@@ -94,3 +94,11 @@ R12/D15 (20% fee, operator-configurable — via env here), R14/D11 (Checkout + C
 5. Routes; `/mentor/payouts`; `/admin` Payouts and Mark resolved; component tests.
 6. Integration: mentor connects through the stub, refresh shows enabled; a session older than a day is released, the stub records one transfer of 80% bound to the session's charge; a second release changes nothing; a dropped transfer response is adopted on the next run; a mentor without Connect is held; a refunded charge is held; a mentee is refused.
 Each step ends with `npm run validate` green at 100% coverage; steps 1 and 6 run `npm run test:integration`.
+
+## Implementation notes
+- `ConnectService.reconcile` is shared: the mentor's **Refresh status** and every payout check call it, so the guard always uses a status read at Stripe a moment ago (or the stored one when Stripe does not answer).
+- A payout row is created on first sight as `held` (`connect_not_enabled`) with its frozen amounts, then moved by the checks; the claim is the only path to `transferring`.
+- An unreadable charge (Stripe down) leaves the payout untouched for the next run, counted as in progress.
+- "Payouts" joins the mentor's sidebar; the operator's release and the held/failed list sit on `/admin` next to the refunds and reports.
+- Rate limits on start/refresh were left out (the `RateLimiter` subjects are email and IP; mentors are invited); Stripe's own limits apply.
+
