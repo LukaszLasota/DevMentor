@@ -29,6 +29,24 @@ export interface CheckoutSession {
   amountTotal: number | null;
   /** Upper-case ISO 4217, or `null`. */
   currency: string | null;
+  /** The PaymentIntent a completed session paid through (what a refund names), or `null`. */
+  paymentIntentId: string | null;
+}
+
+/** Our refund states (spec 2026-11-20-booking-cancellation): Stripe's five folded into three. */
+export type RefundState = 'pending' | 'succeeded' | 'failed';
+
+/** A Stripe refund as booking code sees it; `id` is `null` when Stripe said the charge was already refunded. */
+export interface Refund {
+  id: string | null;
+  status: RefundState;
+}
+
+/** A full refund of one booking's Checkout payment. */
+export interface RefundInput {
+  /** Our booking id: `metadata.booking_id` and the idempotency key (`refund-<bookingId>`). */
+  bookingId: string;
+  sessionId: string;
 }
 
 /** The Stripe client's outcome classes, so callers decide once per class (503, operator, retry). */
@@ -44,4 +62,11 @@ export interface CheckoutGateway {
    * `expired` is returned as it is, so the caller can confirm a payment that beat the expiry.
    */
   expireSession(sessionId: string): Promise<CheckoutResult<CheckoutSession>>;
+  /**
+   * Refunds the session's payment in full, idempotent by booking id. A charge Stripe reports as already
+   * refunded answers `succeeded` (a retry after the idempotency key expired is never a second refund).
+   */
+  refund(input: RefundInput): Promise<CheckoutResult<Refund>>;
+  /** Reads a refund's current state (a `pending` one may have settled since). */
+  getRefund(refundId: string): Promise<CheckoutResult<Refund>>;
 }

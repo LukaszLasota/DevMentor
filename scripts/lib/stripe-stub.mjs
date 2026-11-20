@@ -4,8 +4,13 @@
 // hosted page whose Pay / Cancel buttons act like the mentee on Stripe, and delivers signed webhooks
 // (`checkout.session.completed` / `checkout.session.expired`) to the app the way Stripe does.
 //
+// It also refunds a paid session's PaymentIntent (`POST /v1/refunds`, `GET /v1/refunds/:id`; spec
+// 2026-11-20-booking-cancellation).
+//
 // Test control (other processes, e.g. Vitest workers): `GET /__stub/events` lists every event and
-// its delivery status; `POST /__stub/events/<id>/resend` delivers it again (a Stripe redelivery).
+// its delivery status; `POST /__stub/events/<id>/resend` delivers it again (a Stripe redelivery);
+// `GET /__stub/refunds` lists refunds; `POST /__stub/refunds/fail-next` makes the next new refund
+// fail with a 400 (as Stripe does for, e.g., a disputed charge).
 import { createHmac, randomBytes } from 'node:crypto';
 import { createServer } from 'node:http';
 
@@ -67,6 +72,9 @@ export function createStripeStub({ secretKey, webhookSecret, webhookUrl, now = (
   const productNames = new Map();
   const byIdempotencyKey = new Map();
   const events = [];
+  const refunds = new Map();
+  const refundByIdempotencyKey = new Map();
+  let failNextRefund = false;
 
   async function deliver(event) {
     const body = JSON.stringify(event.payload);
@@ -133,6 +141,7 @@ export function createStripeStub({ secretKey, webhookSecret, webhookUrl, now = (
       customer_email: form.get('customer_email'),
       amount_total: amount,
       currency,
+      payment_intent: null,
       success_url: form.get('success_url'),
       cancel_url: form.get('cancel_url'),
     };
@@ -144,12 +153,60 @@ export function createStripeStub({ secretKey, webhookSecret, webhookUrl, now = (
     return { status: 200, body: view(session) };
   }
 
+  function createRefund(form, idempotencyKey) {
+    if (idempotencyKey && refundByIdempotencyKey.has(idempotencyKey)) {
+      return { status: 200, body: { ...refunds.get(refundByIdempotencyKey.get(idempotencyKey)) } };
+    }
+
+    const paymentIntent = form.get('payment_intent');
+    const session = [...sessions.values()].find((candidate) => candidate.payment_intent && candidate.payment_intent === paymentIntent);
+
+    if (!session) {
+      return { status: 400, error: ['invalid_request_error', `No such payment_intent: '${paymentIntent}'`, 'resource_missing'] };
+    }
+
+    if ([...refunds.values()].some((refund) => refund.payment_intent === paymentIntent)) {
+      return { status: 400, error: ['invalid_request_error', 'Charge has already been refunded.', 'charge_already_refunded'] };
+    }
+
+    if (failNextRefund) {
+      failNextRefund = false;
+      return { status: 400, error: ['invalid_request_error', 'The charge is disputed.', 'charge_disputed'] };
+    }
+
+    const refund = {
+      id: id('re_test'),
+      object: 'refund',
+      status: 'succeeded',
+      amount: Number(form.get('amount') ?? session.amount_total),
+      currency: session.currency,
+      payment_intent: paymentIntent,
+      metadata: { booking_id: form.get('metadata[booking_id]') ?? undefined },
+    };
+    refunds.set(refund.id, refund);
+
+    if (idempotencyKey) refundByIdempotencyKey.set(idempotencyKey, refund.id);
+
+    return { status: 200, body: { ...refund } };
+  }
+
   async function handle(req, res) {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const route = `${req.method} ${url.pathname}`;
 
     if (route === 'GET /__stub/events') {
       sendJson(res, 200, events.map(({ id: eventId, type, deliveries, payload }) => ({ id: eventId, type, deliveries, sessionId: payload.data.object.id })));
+      return;
+    }
+
+    if (route === 'GET /__stub/refunds') {
+      sendJson(res, 200, [...refunds.values()]);
+      return;
+    }
+
+    if (route === 'POST /__stub/refunds/fail-next') {
+      failNextRefund = true;
+      sendJson(res, 200, { failNext: true });
       return;
     }
 
@@ -186,7 +243,7 @@ export function createStripeStub({ secretKey, webhookSecret, webhookUrl, now = (
       }
 
       if (page[3] === 'complete') {
-        Object.assign(session, { status: 'complete', payment_status: 'paid', url: null });
+        Object.assign(session, { status: 'complete', payment_status: 'paid', url: null, payment_intent: id('pi_test') });
         await emit('checkout.session.completed', session);
       }
 
@@ -213,6 +270,24 @@ export function createStripeStub({ secretKey, webhookSecret, webhookUrl, now = (
       return;
     }
 
+    if (route === 'POST /v1/refunds') {
+      const result = createRefund(new URLSearchParams(await readBody(req)), req.headers['idempotency-key']);
+
+      if (result.error) stripeError(res, result.status, ...result.error);
+      else sendJson(res, result.status, result.body);
+      return;
+    }
+
+    const refundRoute = /^GET \/v1\/refunds\/(re_test_\w+)$/.exec(route);
+
+    if (refundRoute) {
+      const refund = refunds.get(refundRoute[1]);
+
+      if (refund) sendJson(res, 200, { ...refund });
+      else stripeError(res, 404, 'invalid_request_error', 'No such refund', 'resource_missing');
+      return;
+    }
+
     const sessionRoute = /^(GET|POST) \/v1\/checkout\/sessions\/(cs_test_\w+)(\/expire)?$/.exec(route);
     const session = sessionRoute ? sessions.get(sessionRoute[2]) : undefined;
 
@@ -231,7 +306,7 @@ export function createStripeStub({ secretKey, webhookSecret, webhookUrl, now = (
     }
   }
 
-  return { handle, sessions, events };
+  return { handle, sessions, events, refunds };
 }
 
 /**

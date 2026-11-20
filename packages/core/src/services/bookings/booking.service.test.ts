@@ -206,6 +206,7 @@ const session = (booking: Booking, fields: Partial<CheckoutSession> = {}): Check
   clientReferenceId: booking.id,
   amountTotal: booking.priceCents,
   currency: booking.currency,
+  paymentIntentId: `pi_${booking.id}`,
   ...fields,
 });
 

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { StripeClient, StripeOutcome, StripeRequest } from './stripe-client';
-import { stripeCheckoutSessionSchema, StripeCheckoutGateway } from './stripe-checkout-gateway';
+import { stripeCheckoutSessionSchema, StripeCheckoutGateway, stripeRefundSchema } from './stripe-checkout-gateway';
 
 const RAW_SESSION = {
   id: 'cs_test_1',
@@ -37,13 +37,80 @@ describe('stripeCheckoutSessionSchema', () => {
       clientReferenceId: 'booking-1',
       amountTotal: 15000,
       currency: 'PLN',
+      paymentIntentId: null,
     });
   });
 
   it('maps missing optional fields to null', () => {
     expect(
       stripeCheckoutSessionSchema.parse({ id: 'cs_2', status: 'complete', payment_status: 'paid', expires_at: 1, currency: null }),
-    ).toMatchObject({ url: null, clientReferenceId: null, amountTotal: null, currency: null });
+    ).toMatchObject({ url: null, clientReferenceId: null, amountTotal: null, currency: null, paymentIntentId: null });
+  });
+
+  it('reads the PaymentIntent as an id or as an expanded object', () => {
+    expect(stripeCheckoutSessionSchema.parse({ ...RAW_SESSION, payment_intent: 'pi_1' }).paymentIntentId).toBe('pi_1');
+    expect(stripeCheckoutSessionSchema.parse({ ...RAW_SESSION, payment_intent: { id: 'pi_2', object: 'payment_intent' } }).paymentIntentId).toBe('pi_2');
+    expect(stripeCheckoutSessionSchema.parse({ ...RAW_SESSION, payment_intent: null }).paymentIntentId).toBeNull();
+  });
+});
+
+describe('stripeRefundSchema', () => {
+  it.each([
+    ['pending', 'pending'],
+    ['requires_action', 'pending'],
+    ['succeeded', 'succeeded'],
+    ['failed', 'failed'],
+    ['canceled', 'failed'],
+  ])('folds Stripe %s into %s', (stripe, ours) => {
+    expect(stripeRefundSchema.parse({ id: 're_1', object: 'refund', status: stripe, amount: 15000 })).toEqual({ id: 're_1', status: ours });
+  });
+});
+
+describe('StripeCheckoutGateway.refund', () => {
+  const PAID = { ...RAW_SESSION, status: 'complete', payment_status: 'paid', url: null, payment_intent: 'pi_1' };
+
+  it('reads the session, then refunds its PaymentIntent in full, idempotent by booking id', async () => {
+    const { gateway, request } = setup({ kind: 'ok', data: PAID }, { kind: 'ok', data: { id: 're_1', status: 'succeeded' } });
+
+    await expect(gateway.refund({ bookingId: 'booking-1', sessionId: 'cs_test_1' })).resolves.toEqual({ kind: 'ok', data: { id: 're_1', status: 'succeeded' } });
+    expect(request.mock.calls[0]?.[0]).toMatchObject({ method: 'GET', path: '/v1/checkout/sessions/cs_test_1' });
+    expect(request.mock.calls[1]?.[0]).toMatchObject({
+      method: 'POST',
+      path: '/v1/refunds',
+      idempotencyKey: 'refund-booking-1',
+      params: { payment_intent: 'pi_1', metadata: { booking_id: 'booking-1' } },
+    });
+    expect(request.mock.calls[1]?.[0].params).not.toHaveProperty('amount');
+  });
+
+  it('passes a failed session read through and refuses a session without a PaymentIntent', async () => {
+    await expect(setup({ kind: 'retryable' }).gateway.refund({ bookingId: 'b', sessionId: 'cs' })).resolves.toEqual({ kind: 'retryable' });
+
+    const unpaid = setup({ kind: 'ok', data: RAW_SESSION });
+    await expect(unpaid.gateway.refund({ bookingId: 'b', sessionId: 'cs' })).resolves.toEqual({
+      kind: 'rejected',
+      status: 400,
+      code: 'payment_intent_missing',
+    });
+    expect(unpaid.request).toHaveBeenCalledTimes(1);
+  });
+
+  it('treats an already refunded charge as succeeded and passes other outcomes through', async () => {
+    const already = setup({ kind: 'ok', data: PAID }, { kind: 'rejected', status: 400, code: 'charge_already_refunded' });
+    await expect(already.gateway.refund({ bookingId: 'b', sessionId: 'cs' })).resolves.toEqual({ kind: 'ok', data: { id: null, status: 'succeeded' } });
+
+    const other = setup({ kind: 'ok', data: PAID }, { kind: 'rejected', status: 400, code: 'charge_disputed' });
+    await expect(other.gateway.refund({ bookingId: 'b', sessionId: 'cs' })).resolves.toEqual({ kind: 'rejected', status: 400, code: 'charge_disputed' });
+
+    const down = setup({ kind: 'ok', data: PAID }, { kind: 'retryable' });
+    await expect(down.gateway.refund({ bookingId: 'b', sessionId: 'cs' })).resolves.toEqual({ kind: 'retryable' });
+  });
+
+  it('reads a refund by id', async () => {
+    const { gateway, request } = setup({ kind: 'ok', data: { id: 're_1', status: 'pending' } });
+
+    await expect(gateway.getRefund('re_1')).resolves.toEqual({ kind: 'ok', data: { id: 're_1', status: 'pending' } });
+    expect(request.mock.calls[0]?.[0]).toMatchObject({ method: 'GET', path: '/v1/refunds/re_1' });
   });
 });
 

@@ -211,6 +211,64 @@ describe('hosted page', () => {
   });
 });
 
+describe('Refund API', () => {
+  async function paidSession() {
+    const { body } = await createSession();
+    await fetch(`${body.url}/complete`, { method: 'POST', redirect: 'manual' });
+
+    return (await (await api(`/v1/checkout/sessions/${body.id}`)).json());
+  }
+
+  const refund = (fields, idempotencyKey) =>
+    api('/v1/refunds', { method: 'POST', body: new URLSearchParams(fields), idempotencyKey }).then(async (response) => ({
+      status: response.status,
+      body: await response.json(),
+    }));
+
+  it('gives a paid session a PaymentIntent and refunds it in full, idempotent by key', async () => {
+    const session = await paidSession();
+    expect(session.payment_intent).toMatch(/^pi_test_\w+$/);
+
+    const first = await refund({ payment_intent: session.payment_intent, 'metadata[booking_id]': 'booking-1' }, 'refund-booking-1');
+    const again = await refund({ payment_intent: session.payment_intent, 'metadata[booking_id]': 'booking-1' }, 'refund-booking-1');
+
+    expect(first).toEqual({
+      status: 200,
+      body: {
+        id: expect.stringMatching(/^re_test_\w+$/),
+        object: 'refund',
+        status: 'succeeded',
+        amount: 15000,
+        currency: 'pln',
+        payment_intent: session.payment_intent,
+        metadata: { booking_id: 'booking-1' },
+      },
+    });
+    expect(again.body).toEqual(first.body);
+    expect(await (await api(`/v1/refunds/${first.body.id}`)).json()).toEqual(first.body);
+    expect(await (await fetch(`${stub.url}/__stub/refunds`)).json()).toEqual([first.body]);
+  });
+
+  it('refuses a second refund without the key, an unknown PaymentIntent and an unknown refund like Stripe', async () => {
+    const session = await paidSession();
+    await refund({ payment_intent: session.payment_intent });
+
+    expect((await refund({ payment_intent: session.payment_intent })).body.error.code).toBe('charge_already_refunded');
+    expect((await refund({ payment_intent: 'pi_test_missing' })).body.error.code).toBe('resource_missing');
+    expect((await refund({})).status).toBe(400);
+    expect((await api('/v1/refunds/re_test_missing')).status).toBe(404);
+  });
+
+  it('fails the next new refund on request, then refunds again', async () => {
+    const session = await paidSession();
+    expect((await fetch(`${stub.url}/__stub/refunds/fail-next`, { method: 'POST' })).status).toBe(200);
+
+    const failed = await refund({ payment_intent: session.payment_intent });
+    expect(failed).toMatchObject({ status: 400, body: { error: { code: 'charge_disputed' } } });
+    expect((await refund({ payment_intent: session.payment_intent })).status).toBe(200);
+  });
+});
+
 describe('test control', () => {
   it('records the receiver status, and resends an event on request', async () => {
     receiverStatus = 500;

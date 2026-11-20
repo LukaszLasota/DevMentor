@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { CheckoutGateway, CheckoutResult, CheckoutSession, CheckoutSessionInput } from './checkout-gateway';
+import type { CheckoutGateway, CheckoutResult, CheckoutSession, CheckoutSessionInput, Refund, RefundInput } from './checkout-gateway';
 import type { StripeClient } from './stripe-client';
 
 /** The fields of a Stripe Checkout Session this platform reads; everything else is dropped. */
@@ -13,6 +13,8 @@ export const stripeCheckoutSessionSchema = z
     client_reference_id: z.string().nullable().optional(),
     amount_total: z.number().int().nullable().optional(),
     currency: z.string().nullable().optional(),
+    // An id, or the object when a caller expanded it; webhook payloads carry the id.
+    payment_intent: z.union([z.string(), z.object({ id: z.string() })]).nullable().optional(),
   })
   .transform(
     (session): CheckoutSession => ({
@@ -24,10 +26,22 @@ export const stripeCheckoutSessionSchema = z
       clientReferenceId: session.client_reference_id ?? null,
       amountTotal: session.amount_total ?? null,
       currency: session.currency ? session.currency.toUpperCase() : null,
+      paymentIntentId: typeof session.payment_intent === 'object' ? (session.payment_intent?.id ?? null) : (session.payment_intent ?? null),
+    }),
+  );
+
+/** A Stripe refund: its five states folded into ours (`requires_action` waits like `pending`). */
+export const stripeRefundSchema = z
+  .object({ id: z.string().min(1), status: z.enum(['pending', 'requires_action', 'succeeded', 'failed', 'canceled']) })
+  .transform(
+    (refund): Refund => ({
+      id: refund.id,
+      status: refund.status === 'succeeded' ? 'succeeded' : refund.status === 'failed' || refund.status === 'canceled' ? 'failed' : 'pending',
     }),
   );
 
 const SESSIONS_PATH = '/v1/checkout/sessions';
+const REFUNDS_PATH = '/v1/refunds';
 
 /** Checkout over the shared Stripe client: card only (spec Q2), one line item, idempotent by booking id. */
 export class StripeCheckoutGateway implements CheckoutGateway {
@@ -82,5 +96,41 @@ export class StripeCheckoutGateway implements CheckoutGateway {
     }
 
     return expired;
+  }
+
+  async refund({ bookingId, sessionId }: RefundInput): Promise<CheckoutResult<Refund>> {
+    const session = await this.stripeClient.request({
+      method: 'GET',
+      path: `${SESSIONS_PATH}/${encodeURIComponent(sessionId)}`,
+      schema: stripeCheckoutSessionSchema,
+    });
+
+    if (session.kind !== 'ok') {
+      return session;
+    }
+
+    if (session.data.paymentIntentId === null) {
+      // Not paid through this session: nothing to refund here; the operator looks (R16).
+      return { kind: 'rejected', status: 400, code: 'payment_intent_missing' };
+    }
+
+    const refund = await this.stripeClient.request({
+      method: 'POST',
+      path: REFUNDS_PATH,
+      idempotencyKey: `refund-${bookingId}`,
+      schema: stripeRefundSchema,
+      // No amount: a full refund.
+      params: { payment_intent: session.data.paymentIntentId, metadata: { booking_id: bookingId } },
+    });
+
+    if (refund.kind === 'rejected' && refund.code === 'charge_already_refunded') {
+      return { kind: 'ok', data: { id: null, status: 'succeeded' } };
+    }
+
+    return refund;
+  }
+
+  getRefund(refundId: string): Promise<CheckoutResult<Refund>> {
+    return this.stripeClient.request({ method: 'GET', path: `${REFUNDS_PATH}/${encodeURIComponent(refundId)}`, schema: stripeRefundSchema });
   }
 }
