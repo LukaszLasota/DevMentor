@@ -36,6 +36,8 @@ Prices (#24), slots (#25), mentor list (#27), booking (#29), slug renaming, page
 
 ## Progress
 
+PR: #48
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Domain primitives
@@ -63,5 +65,6 @@ Prices (#24), slots (#25), mentor list (#27), booking (#29), slug renaming, page
 
 - [x] Post-implementation fixes: export lists, sidebar link test — fec4176; ui lint rule — a6e79cd; findOwn/findPublicBySlug — b060c68
 
-- [x] 5.1 Integration test mentor-page — cb937c0 (run pending: needs Docker, owner approval)
-- [ ] 5.2 Full validation gate
+- [x] 5.1 Integration test mentor-page — cb937c0 (green in CI run 44710277743)
+- [x] Post-review fix: draft-save round trip, proxy 404, slug transliteration, editor refresh — 4ff39d5; stories — 32ef026
+- [x] 5.2 Full validation gate — local validate + CI 44710277743 (integration ran in CI; the agent sandbox has no Docker)
