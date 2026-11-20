@@ -7,13 +7,8 @@ export {
   EmailVerificationToken,
 } from './entities/auth/email-verification-token.entity';
 export { Invitation, STACK_TAGS, type StackTag } from './entities/invitations/invitation.entity';
-export {
-  BIO_MAX_LENGTH,
-  DISPLAY_NAME_MAX_LENGTH,
-  MENTOR_PROFILE_SLUG_KEY,
-  MentorProfile,
-  SLUG_COLUMN_LENGTH,
-} from './entities/mentors/mentor-profile.entity';
+// The named slug key: `MentorProfileService` retries a slug collision only on this constraint.
+export { MENTOR_PROFILE_SLUG_KEY, MentorProfile } from './entities/mentors/mentor-profile.entity';
 export type { DbOptions } from './config';
 // Re-exported so no package other than db imports @mikro-orm/* directly.
 export type { EntityManager, MikroORM } from '@mikro-orm/postgresql';

@@ -8,6 +8,7 @@ describe('@devmentor/db public entry', () => {
       'EmailVerificationToken',
       'Invitation',
       'LockMode',
+      'MENTOR_PROFILE_SLUG_KEY',
       'MentorProfile',
       'ROLES',
       'STACK_TAGS',
