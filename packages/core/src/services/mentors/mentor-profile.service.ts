@@ -81,7 +81,7 @@ export interface MentorOwnerView {
   priceBounds: { p25: PriceBounds; p50: PriceBounds } | null;
 }
 
-function pageFields(profile: MentorProfile): MentorPageFields {
+export function pageFields(profile: MentorProfile): MentorPageFields {
   return {
     displayName: profile.displayName ?? null,
     publicWorkUrl: profile.publicWorkUrl ?? null,
@@ -90,7 +90,7 @@ function pageFields(profile: MentorProfile): MentorPageFields {
   };
 }
 
-function offerState(profile: MentorProfile, bookableSlots: number, settings: PlatformSettings | null): MentorOfferState {
+export function offerState(profile: MentorProfile, bookableSlots: number, settings: PlatformSettings | null): MentorOfferState {
   return {
     publishedAt: profile.publishedAt ?? null,
     settings,

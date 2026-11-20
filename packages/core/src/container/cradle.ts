@@ -12,6 +12,7 @@ import type { PlatformSettingsService } from '../services/operator/platform-sett
 import type { SlotService } from '../services/availability/slot.service';
 import type { HealthService } from '../services/health/health.service';
 import type { InvitationService } from '../services/invitations/invitation.service';
+import type { MentorListService } from '../services/mentors/mentor-list.service';
 import type { MentorProfileService } from '../services/mentors/mentor-profile.service';
 import type { Clock } from '../time/clock';
 
@@ -36,5 +37,6 @@ export interface Cradle {
   accountService: AccountService;
   invitationService: InvitationService;
   mentorProfileService: MentorProfileService;
+  mentorListService: MentorListService;
   slotService: SlotService;
 }
