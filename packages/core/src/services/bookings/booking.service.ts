@@ -2,6 +2,8 @@ import { ACTIVE_BOOKING_SLOT_UNIQUE, Booking, isUniqueViolation, LockMode, Mento
 import type { Cradle } from '../../container/cradle';
 import type { SessionLength } from '../../domain/session-lengths';
 import { ConflictError, ForbiddenError, NotFoundError, ServiceUnavailableError } from '../../http/errors';
+import type { MailMessage } from '../../mail/mail-sender';
+import { formatMoney } from '../../money/money';
 import type { BookingStartInput } from '../../validators/bookings/booking-start.schema';
 import { meetsLeadTime } from '../availability/lead-time';
 import { activeBookingsWhere } from '../availability/slot.service';
@@ -68,6 +70,8 @@ export class BookingService {
   private readonly slotService: Cradle['slotService'];
   private readonly platformSettingsService: Cradle['platformSettingsService'];
   private readonly checkoutGateway: Cradle['checkoutGateway'];
+  private readonly events: Cradle['events'];
+  private readonly mailSender: Cradle['mailSender'];
 
   constructor({
     em,
@@ -77,7 +81,14 @@ export class BookingService {
     slotService,
     platformSettingsService,
     checkoutGateway,
-  }: Pick<Cradle, 'em' | 'clock' | 'env' | 'logger' | 'slotService' | 'platformSettingsService' | 'checkoutGateway'>) {
+    events,
+    mailSender,
+  }: Pick<
+    Cradle,
+    'em' | 'clock' | 'env' | 'logger' | 'slotService' | 'platformSettingsService' | 'checkoutGateway' | 'events' | 'mailSender'
+  >) {
+    this.events = events;
+    this.mailSender = mailSender;
     this.em = em;
     this.clock = clock;
     this.env = env;
@@ -213,6 +224,36 @@ export class BookingService {
     return { outcome: 'confirmed', booking };
   }
 
+  /**
+   * After a confirmation commits: `bookings.booking.confirmed`, then one email to the mentee and one
+   * to the mentor (spec Q5). Each mail is best effort — a delivery failure is logged and never undoes
+   * or retries the booking. No copy promises a response time (R09).
+   */
+  async announceConfirmed(bookingId: string): Promise<void> {
+    const booking = await this.em.findOne(Booking, { id: bookingId }, { populate: ['mentorProfile.user', 'mentee'] });
+
+    if (booking === null || booking.status !== 'confirmed') {
+      return;
+    }
+
+    const profile = booking.mentorProfile.getEntity();
+    await this.events.emit('bookings.booking.confirmed', {
+      bookingId: booking.id,
+      mentorProfileId: profile.id,
+      menteeId: booking.mentee.id,
+      startsAt: booking.startsAt,
+      leadMinutes: booking.leadMinutes as number,
+    });
+
+    for (const message of confirmationMails(booking, this.env.APP_URL ?? '')) {
+      try {
+        await this.mailSender.send(message);
+      } catch (error) {
+        this.logger.error({ booking: { id: booking.id }, err: error }, 'Booking confirmation email failed');
+      }
+    }
+  }
+
   /** Applies an expired Checkout Session: a booking still held is released; anything else stays. */
   async applyExpired(em: Cradle['em'], session: CheckoutSession): Promise<void> {
     if (session.clientReferenceId === null) {
@@ -321,6 +362,40 @@ export class BookingService {
 
     await this.em.transactional((em) => this.applyExpired(em, session));
   }
+}
+
+/** `2026-06-23 09:00 UTC`: email clients cannot show the reader's zone, the app can. */
+function utcLabel(instant: Date): string {
+  return `${instant.toISOString().slice(0, 16).replace('T', ' ')} UTC`;
+}
+
+/** The two confirmation emails (mentee, then mentor). Plain text; no response-time wording (R09). */
+export function confirmationMails(booking: Booking, appUrl: string): MailMessage[] {
+  const profile = booking.mentorProfile.getEntity();
+  const mentor = profile.user.getEntity();
+  const when = utcLabel(booking.startsAt);
+  const length = `${booking.lengthMinutes}-minute`;
+  const localTime = 'Open DevMentor to see it in your time zone.';
+
+  return [
+    {
+      to: booking.mentee.getEntity().email,
+      subject: `Booked: ${length} session with ${profile.displayName ?? 'your mentor'}`,
+      text: [
+        `Your ${length} text session with ${profile.displayName ?? 'your mentor'} is booked for ${when}. ${localTime}`,
+        `You paid ${formatMoney(booking.priceCents, booking.currency)}.`,
+        `${appUrl}/bookings/${booking.id}`,
+      ].join('\n\n'),
+    },
+    {
+      to: mentor.email,
+      subject: `New booking: ${length} session on ${when}`,
+      text: [
+        `A mentee booked a ${length} text session with you for ${when}. ${localTime}`,
+        `${appUrl}/mentor/slots`,
+      ].join('\n\n'),
+    },
+  ];
 }
 
 function priceOf(profile: MentorProfile, length: SessionLength): number {

@@ -8,6 +8,7 @@ import type { CheckoutSession } from '../payments/checkout-gateway';
 import { FakeCheckoutGateway } from '../payments/fake-checkout-gateway';
 import {
   BOOKING_NOT_FOUND_MESSAGE,
+  confirmationMails,
   BookingService,
   CHECKOUT_LIFETIME_MS,
   HOLD_GRACE_MS,
@@ -154,7 +155,11 @@ function setup({
   const gateway = new FakeCheckoutGateway();
   const logger = { warn: vi.fn(), error: vi.fn(), info: vi.fn() };
   const slotService = { countBookable: vi.fn(async () => bookable) };
+  const events = { emit: vi.fn(async () => undefined) };
+  const mailSender = { send: vi.fn<(message: { to: string }) => Promise<void>>(async () => undefined) };
   const service = new BookingService({
+    events: events as unknown as Cradle['events'],
+    mailSender,
     em: em as unknown as Cradle['em'],
     clock: { now: () => NOW },
     env: parseEnv({ DATABASE_URL: 'postgres://u:p@localhost:5432/db', APP_URL: appUrl ?? '' }),
@@ -164,7 +169,7 @@ function setup({
     checkoutGateway: gateway,
   });
 
-  return { service, em, gateway, logger, bookings, slotService };
+  return { service, em, gateway, logger, bookings, slotService, events, mailSender };
 }
 
 function bookableMentor(startsAt = hoursFromNow(24)) {
@@ -543,5 +548,95 @@ describe('BookingService.getOwn', () => {
 
     expect(await rejection(service.getOwn(randomUUID(), booking.id))).toMatchObject({ status: 404, message: BOOKING_NOT_FOUND_MESSAGE });
     expect(await rejection(service.getOwn(MENTEE.id, randomUUID()))).toMatchObject({ status: 404 });
+  });
+});
+
+describe('BookingService.announceConfirmed', () => {
+  function confirmed(status: Booking['status'] = 'confirmed', appUrl: string | null = 'https://app.devmentor.test') {
+    const { profile, slot } = bookableMentor(new Date('2026-06-23T09:00:00.000Z'));
+    (profile.user as unknown as User).email = 'ada@devmentor.test';
+    const mentee = ref(Object.assign(new User(), { id: MENTEE.id, email: MENTEE.email }));
+    const booking = makeBooking(slot, { status, confirmedAt: NOW, leadMinutes: 1020, mentee: mentee as unknown as Booking['mentee'] });
+    const ctx = setup({ profiles: [profile], slots: [slot], bookings: [booking], appUrl });
+
+    return { ...ctx, booking, profile };
+  }
+
+  it('emits bookings.booking.confirmed and mails the mentee and the mentor', async () => {
+    const { service, em, events, mailSender, booking, profile } = confirmed();
+
+    await service.announceConfirmed(booking.id);
+
+    expect(em.findOne).toHaveBeenCalledWith(Booking, { id: booking.id }, { populate: ['mentorProfile.user', 'mentee'] });
+    expect(events.emit).toHaveBeenCalledWith('bookings.booking.confirmed', {
+      bookingId: booking.id,
+      mentorProfileId: profile.id,
+      menteeId: MENTEE.id,
+      startsAt: booking.startsAt,
+      leadMinutes: 1020,
+    });
+    expect(mailSender.send.mock.calls.map(([message]) => message.to)).toEqual([MENTEE.email, 'ada@devmentor.test']);
+  });
+
+  it('sends relative links when APP_URL is missing', async () => {
+    const { service, mailSender, booking } = confirmed('confirmed', null);
+
+    await service.announceConfirmed(booking.id);
+
+    expect(mailSender.send.mock.calls[1]?.[0]).toMatchObject({ text: expect.stringContaining('\n\n/mentor/slots') });
+  });
+
+  it('keeps going when one email fails, and logs it', async () => {
+    const { service, mailSender, logger, booking } = confirmed();
+    mailSender.send.mockRejectedValueOnce(new Error('smtp down'));
+
+    await service.announceConfirmed(booking.id);
+
+    expect(mailSender.send).toHaveBeenCalledTimes(2);
+    expect(logger.error).toHaveBeenCalledWith({ booking: { id: booking.id }, err: expect.any(Error) }, 'Booking confirmation email failed');
+  });
+
+  it('does nothing for a booking that is unknown or not confirmed', async () => {
+    const { service, events, mailSender, booking } = confirmed('payment_orphaned');
+
+    await service.announceConfirmed(booking.id);
+    await service.announceConfirmed(randomUUID());
+
+    expect(events.emit).not.toHaveBeenCalled();
+    expect(mailSender.send).not.toHaveBeenCalled();
+  });
+});
+
+describe('confirmationMails', () => {
+  it('tells the mentee and the mentor the time in UTC, the length and the price — never a response time', () => {
+    const profile = makeMentor();
+    (profile.user as unknown as User).email = 'ada@devmentor.test';
+    const slot = makeSlot(profile, new Date('2026-06-23T09:00:00.000Z'));
+    const mentee = ref(Object.assign(new User(), { id: MENTEE.id, email: MENTEE.email }));
+    const booking = makeBooking(slot, { mentee: mentee as unknown as Booking['mentee'] });
+
+    const [toMentee, toMentor] = confirmationMails(booking, 'https://app.test');
+
+    expect(toMentee).toEqual({
+      to: MENTEE.email,
+      subject: 'Booked: 25-minute session with Ada',
+      text: `Your 25-minute text session with Ada is booked for 2026-06-23 09:00 UTC. Open DevMentor to see it in your time zone.\n\nYou paid PLN\u00a0150.00.\n\nhttps://app.test/bookings/${booking.id}`,
+    });
+    expect(toMentor).toEqual({
+      to: 'ada@devmentor.test',
+      subject: 'New booking: 25-minute session on 2026-06-23 09:00 UTC',
+      text: 'A mentee booked a 25-minute text session with you for 2026-06-23 09:00 UTC. Open DevMentor to see it in your time zone.\n\nhttps://app.test/mentor/slots',
+    });
+    expect(JSON.stringify([toMentee, toMentor])).not.toMatch(/respond|reply within|guarantee|hours? to/i);
+  });
+
+  it('names "your mentor" when the profile has no display name', () => {
+    const profile = makeMentor({ displayName: null });
+    const slot = makeSlot(profile, hoursFromNow(24));
+    const mentee = ref(Object.assign(new User(), { id: MENTEE.id, email: MENTEE.email }));
+
+    expect(confirmationMails(makeBooking(slot, { mentee: mentee as unknown as Booking['mentee'] }), '')[0]?.subject).toBe(
+      'Booked: 25-minute session with your mentor',
+    );
   });
 });

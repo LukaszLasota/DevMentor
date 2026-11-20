@@ -151,7 +151,7 @@ describe('DI container', () => {
     expect(first.cradle.stripeInboxService).toBe(first.cradle.stripeInboxService);
     expect(first.cradle.stripeInboxService).not.toBe(second.cradle.stripeInboxService);
     expect(first.cradle.stripeEventHandlers).not.toBe(second.cradle.stripeEventHandlers);
-    expect(first.cradle.stripeEventHandlers.size).toBe(0);
+    expect([...first.cradle.stripeEventHandlers.keys()]).toEqual(['checkout.session.completed', 'checkout.session.expired']);
     expect(first.cradle.rateLimiter).toBe(first.cradle.rateLimiter);
     expect(first.cradle.rateLimiter).not.toBe(second.cradle.rateLimiter);
   });

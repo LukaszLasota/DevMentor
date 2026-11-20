@@ -23,6 +23,11 @@ export interface DomainEvents {
    * commits; `startsAt` is the UTC instant.
    */
   'availability.slot.published': { mentorProfileId: string; slotId: string; startsAt: Date };
+  /**
+   * A mentee's payment confirmed a booking (spec 2026-11-20-booking-stripe-checkout). Emitted after
+   * the webhook transaction commits; `leadMinutes` is the R09 booking-to-start measurement.
+   */
+  'bookings.booking.confirmed': { bookingId: string; mentorProfileId: string; menteeId: string; startsAt: Date; leadMinutes: number };
 }
 
 export type DomainEventName = keyof DomainEvents;
