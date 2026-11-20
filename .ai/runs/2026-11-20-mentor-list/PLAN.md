@@ -18,7 +18,7 @@ Engine: om-auto-create-pr-loop (forced by the brief, regardless of step count)
 | 1 | 1.5 | GET /api/mentors | inline | done | 91bf44c |
 | 2 | 2.1 | Public /mentors list page with filter and states | inline | done | self |
 | 2 | 2.2 | Find a mentor link on / and the publish copy mentioning /mentors | inline | done | self |
-| 3 | 3.1 | Integration test for the mentor list | inline | todo | — |
+| 3 | 3.1 | Integration test for the mentor list | inline | done | self |
 
 ## Goal
 
