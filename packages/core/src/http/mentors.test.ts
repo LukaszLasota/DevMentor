@@ -5,7 +5,7 @@ import { signSession } from '../security/session-token';
 import type { Clock } from '../time/clock';
 import { apiHandler } from './apiHandler';
 import { CSRF_HEADER, CSRF_HEADER_VALUE } from './envelope';
-import { NotFoundError, ValidationError } from './errors';
+import { NotFoundError, ServiceUnavailableError, ValidationError } from './errors';
 import {
   getOwnMentorPage,
   getPublicMentorPage,
@@ -13,6 +13,7 @@ import {
   publishOwnMentorPage,
   unpublishOwnMentorPage,
   updateOwnMentorPage,
+  updateOwnMentorPrices,
 } from './mentors';
 
 // The handlers run through the real apiHandler (CSRF, envelope, error mapping, headers) with a fake
@@ -39,6 +40,7 @@ function setup(roles: Role[] = ['mentee', 'mentor']) {
     publish: vi.fn(async () => OWNER),
     unpublish: vi.fn(async () => OWNER),
     getPublicBySlug: vi.fn(async () => PUBLIC),
+    updatePrices: vi.fn(async () => OWNER),
   };
   const em = { findOne: vi.fn(async (_entity: unknown, where: { id: string }) => (where.id === user.id ? user : null)) };
   const accountService = { reconcileOperator: vi.fn(async (u: User) => u) };
@@ -77,6 +79,7 @@ const routes = {
   put: apiHandler(updateOwnMentorPage, MENTOR_OWNER_RESPONSE),
   publish: apiHandler(publishOwnMentorPage, MENTOR_OWNER_RESPONSE),
   unpublish: apiHandler(unpublishOwnMentorPage, MENTOR_OWNER_RESPONSE),
+  prices: apiHandler(updateOwnMentorPrices, MENTOR_OWNER_RESPONSE),
 };
 
 beforeEach(() => {
@@ -172,6 +175,52 @@ describe('owner routes /api/mentors/me', () => {
     const res = await route(await request(method === 'PUT' ? 'PUT' : 'POST', { csrf: false, body: {} }), noParams);
 
     expect(res.status).toBe(403);
+  });
+});
+
+describe('PUT /api/mentors/me/prices (#24)', () => {
+  it('passes both parsed price strings for the session mentor, with no-store', async () => {
+    const { mentorProfileService } = setup();
+
+    const res = await routes.prices(await request('PUT', { body: { price25: '150', price50: '300.50', currency: 'USD' } }), noParams);
+
+    expect(res.status).toBe(200);
+    expect(mentorProfileService.updatePrices).toHaveBeenCalledWith(USER_ID, { price25: '150', price50: '300.50' });
+    expect(res.headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('answers 400 for malformed amounts and keeps the service\'s range errors and 503', async () => {
+    const { mentorProfileService } = setup();
+    mentorProfileService.updatePrices
+      .mockRejectedValueOnce(new ValidationError('A price is outside the allowed range; nothing was saved.', { price25: ['Allowed: PLN 50.00–PLN 300.00'], price50: ['Allowed: PLN 100.00–PLN 600.00'] }))
+      .mockRejectedValueOnce(new ServiceUnavailableError('Prices cannot be set right now.'));
+
+    const malformed = await routes.prices(await request('PUT', { body: { price25: '1e3', price50: '-5' } }), noParams);
+    const outside = await routes.prices(await request('PUT', { body: { price25: '1', price50: '9000' } }), noParams);
+    const unavailable = await routes.prices(await request('PUT', { body: { price25: '150', price50: '300' } }), noParams);
+
+    expect(malformed.status).toBe(400);
+    expect(Object.keys((await malformed.json()).error.fieldErrors).sort()).toEqual(['price25', 'price50']);
+    expect(outside.status).toBe(400);
+    expect(Object.keys((await outside.json()).error.fieldErrors).sort()).toEqual(['price25', 'price50']);
+    expect(unavailable.status).toBe(503);
+    expect(unavailable.headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('answers 401 signed out, 403 for a non-mentor, 403 without CSRF and 404 without a profile', async () => {
+    const { mentorProfileService } = setup(['mentee', 'operator']);
+    const body = { price25: '150', price50: '300' };
+
+    const anonymous = await routes.prices(await request('PUT', { signedIn: false, body }), noParams);
+    const operator = await routes.prices(await request('PUT', { body }), noParams);
+    setup();
+    const noCsrf = await routes.prices(await request('PUT', { csrf: false, body }), noParams);
+    const { mentorProfileService: withoutProfile } = setup();
+    withoutProfile.updatePrices.mockRejectedValueOnce(new NotFoundError('Mentor profile not found.'));
+    const missing = await routes.prices(await request('PUT', { body }), noParams);
+
+    expect([anonymous.status, operator.status, noCsrf.status, missing.status]).toEqual([401, 403, 403, 404]);
+    expect(mentorProfileService.updatePrices).not.toHaveBeenCalled();
   });
 });
 
