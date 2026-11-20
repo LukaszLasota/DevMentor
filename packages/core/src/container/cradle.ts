@@ -8,6 +8,7 @@ import type { PasswordHasher } from '../security/password';
 import type { RateLimiter } from '../security/rate-limit';
 import type { AccountService } from '../services/auth/account.service';
 import type { GithubOAuthService } from '../services/auth/github-oauth.service';
+import type { PlatformSettingsService } from '../services/operator/platform-settings.service';
 import type { SlotService } from '../services/availability/slot.service';
 import type { HealthService } from '../services/health/health.service';
 import type { InvitationService } from '../services/invitations/invitation.service';
@@ -27,6 +28,7 @@ export interface Cradle {
   events: EventBus;
   mailSender: MailSender;
   passwordHasher: PasswordHasher;
+  platformSettingsService: PlatformSettingsService;
   em: EntityManager;
   rateLimiter: RateLimiter;
   healthService: HealthService;

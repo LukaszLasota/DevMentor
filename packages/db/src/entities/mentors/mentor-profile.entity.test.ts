@@ -10,6 +10,8 @@ import {
   MENTOR_STACK_TAGS_CHECK,
   MentorProfile,
   MentorProfileSchema,
+  PRICE_25_POSITIVE_CHECK,
+  PRICE_50_POSITIVE_CHECK,
   PUBLISHED_SLUG_CHECK,
 } from './mentor-profile.entity';
 
@@ -44,6 +46,8 @@ describe('MentorProfile entity', () => {
       'id',
       'initialPublishDueAt',
       'lastPublishedAvailabilityAt',
+      'price25Cents',
+      'price50Cents',
       'publicWorkUrl',
       'publishedAt',
       'slug',
@@ -57,6 +61,8 @@ describe('MentorProfile entity', () => {
     expect(column('stackTags')).toEqual({ field: 'stack_tags', type: 'text[]', nullable: false });
     expect(column('slug')).toEqual({ field: 'slug', type: 'varchar(60)', nullable: true });
     expect(column('publishedAt')).toEqual({ field: 'published_at', type: 'timestamptz', nullable: true });
+    expect(column('price25Cents')).toEqual({ field: 'price_25_cents', type: 'int', nullable: true });
+    expect(column('price50Cents')).toEqual({ field: 'price_50_cents', type: 'int', nullable: true });
     expect(column('lastPublishedAvailabilityAt')).toEqual({
       field: 'last_published_availability_at',
       type: 'timestamptz',
@@ -78,6 +84,8 @@ describe('MentorProfile entity', () => {
       ['mentor_profiles_stack_tags_check', MENTOR_STACK_TAGS_CHECK],
       ['mentor_profiles_bio_length_check', BIO_LENGTH_CHECK],
       ['mentor_profiles_published_slug_check', PUBLISHED_SLUG_CHECK],
+      ['mentor_profiles_price_25_cents_check', PRICE_25_POSITIVE_CHECK],
+      ['mentor_profiles_price_50_cents_check', PRICE_50_POSITIVE_CHECK],
     ]);
     expect(MENTOR_STACK_TAGS_CHECK).toBe(
       "array_position(stack_tags, null) is null and stack_tags <@ array['typescript', 'react', 'python', 'ai-agents']::text[]",

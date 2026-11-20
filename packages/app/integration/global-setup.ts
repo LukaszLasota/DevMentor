@@ -108,6 +108,9 @@ export default async function setup(project: TestProject) {
       GITHUB_CLIENT_ID: 'integration-client',
       GITHUB_CLIENT_SECRET: 'integration-secret',
       OPERATOR_EMAILS: OPERATOR_EMAIL,
+      // Mentor prices (founder decision 2026-11-20, spec 2026-10-21-mentor-prices).
+      PLATFORM_CURRENCY: 'PLN',
+      PLATFORM_PRICE_BOUNDS: JSON.stringify({ '25': { minCents: 5000, maxCents: 30000 }, '50': { minCents: 10000, maxCents: 60000 } }),
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });

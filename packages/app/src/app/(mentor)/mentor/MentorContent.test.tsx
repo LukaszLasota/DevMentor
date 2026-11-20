@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({ requirePageRole: vi.fn(), findOwn: vi.fn() }))
 
 vi.mock("@/lib/session", () => ({ requirePageRole: mocks.requirePageRole }));
 vi.mock("@devmentor/core", () => ({
+  formatMoney: (cents: number, currency: string) => `${currency} ${(cents / 100).toFixed(2)}`,
   withScope: <T,>(fn: (cradle: unknown) => Promise<T>) => fn({ mentorProfileService: { findOwn: mocks.findOwn } }),
 }));
 
@@ -15,7 +16,7 @@ const noQuery = () => Promise.resolve({});
 
 beforeEach(() => {
   mocks.requirePageRole.mockReset().mockResolvedValue({ id: "u1", roles: ["mentee", "mentor"] });
-  mocks.findOwn.mockReset().mockResolvedValue({ initialPublishDueAt: DUE.toISOString(), publishedAt: null, offerReadiness: [] });
+  mocks.findOwn.mockReset().mockResolvedValue({ initialPublishDueAt: DUE.toISOString(), publishedAt: null, offerReadiness: [], prices: null, priceBounds: null });
 });
 
 describe("MentorContent", () => {
@@ -36,11 +37,60 @@ describe("MentorContent", () => {
 
     expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual([
       "To do: Publish your pageEdit your page",
-      "To do: Set your prices",
+      "To do: Set your pricesSet prices",
       "To do: Publish a slotAdd a slot",
     ]);
     expect(screen.getByRole("link", { name: "Edit your page" }).getAttribute("href")).toBe("/mentor/profile");
     expect(screen.getByRole("link", { name: "Add a slot" }).getAttribute("href")).toBe("/mentor/slots");
+  });
+
+  it("marks the prices step done when both prices are within the current bounds", async () => {
+    mocks.findOwn.mockResolvedValue({
+      initialPublishDueAt: DUE.toISOString(),
+      publishedAt: null,
+      offerReadiness: [
+        { key: "price25", met: true },
+        { key: "price50", met: true },
+      ],
+      prices: { price25Cents: 15000, price50Cents: 30000, currency: "PLN" },
+      priceBounds: { p25: { minCents: 5000, maxCents: 30000 }, p50: { minCents: 10000, maxCents: 60000 } },
+    });
+
+    render(await MentorContent({ searchParams: noQuery() }));
+
+    expect(screen.getAllByRole("listitem")[1]?.textContent).toBe("Done: Set your prices");
+  });
+
+  it.each([
+    [{ price25Cents: 15000, price50Cents: 70000 }, "Your 50-minute price PLN 700.00 is above the allowed PLN 600.00 — save a new price."],
+    [{ price25Cents: 4000, price50Cents: 30000 }, "Your 25-minute price PLN 40.00 is below the allowed PLN 50.00 — save a new price."],
+  ])("names a stored price outside the tightened bounds (%j)", async (prices, message) => {
+    mocks.findOwn.mockResolvedValue({
+      initialPublishDueAt: DUE.toISOString(),
+      publishedAt: null,
+      offerReadiness: [],
+      prices: { ...prices, currency: "PLN" },
+      priceBounds: { p25: { minCents: 5000, maxCents: 30000 }, p50: { minCents: 10000, maxCents: 60000 } },
+    });
+
+    render(await MentorContent({ searchParams: noQuery() }));
+
+    expect(screen.getByText(message)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Set prices" }).getAttribute("href")).toBe("/mentor/prices");
+  });
+
+  it("names nothing when settings are missing even with stored prices", async () => {
+    mocks.findOwn.mockResolvedValue({
+      initialPublishDueAt: DUE.toISOString(),
+      publishedAt: null,
+      offerReadiness: [],
+      prices: null,
+      priceBounds: null,
+    });
+
+    render(await MentorContent({ searchParams: noQuery() }));
+
+    expect(screen.queryByText(/save a new price/)).toBeNull();
   });
 
   it("marks the slot step done only with a bookable slot (hasBookableSlot)", async () => {
@@ -51,6 +101,8 @@ describe("MentorContent", () => {
         { key: "published", met: false },
         { key: "hasBookableSlot", met: true },
       ],
+      prices: null,
+      priceBounds: null,
     });
 
     render(await MentorContent({ searchParams: noQuery() }));
@@ -59,7 +111,7 @@ describe("MentorContent", () => {
   });
 
   it("marks the page step done once the page is published", async () => {
-    mocks.findOwn.mockResolvedValue({ initialPublishDueAt: DUE.toISOString(), publishedAt: DUE.toISOString(), offerReadiness: [] });
+    mocks.findOwn.mockResolvedValue({ initialPublishDueAt: DUE.toISOString(), publishedAt: DUE.toISOString(), offerReadiness: [], prices: null, priceBounds: null });
 
     render(await MentorContent({ searchParams: noQuery() }));
 
@@ -67,7 +119,7 @@ describe("MentorContent", () => {
   });
 
   it.each([
-    ["a profile without a date", { initialPublishDueAt: null, publishedAt: null, offerReadiness: [] }],
+    ["a profile without a date", { initialPublishDueAt: null, publishedAt: null, offerReadiness: [], prices: null, priceBounds: null }],
     ["no profile (mentor granted by hand)", null],
   ])("with %s the heading has no date", async (_case, own) => {
     mocks.findOwn.mockResolvedValue(own);

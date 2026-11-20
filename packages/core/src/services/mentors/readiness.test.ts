@@ -16,13 +16,37 @@ describe('mentorPagePublishable', () => {
 });
 
 describe('mentorOfferReady', () => {
-  it('needs a published page and a bookable slot (#24 adds prices)', () => {
-    expect(mentorOfferReady.keys).toEqual(['published', 'hasBookableSlot']);
-    expect(mentorOfferReady.isMet({ publishedAt: new Date(), bookableSlots: 1 })).toBe(true);
-    expect(mentorOfferReady.evaluate({ publishedAt: new Date(), bookableSlots: 0 })).toEqual([
-      { key: 'published', met: true },
-      { key: 'hasBookableSlot', met: false },
-    ]);
-    expect(mentorOfferReady.isMet({ publishedAt: null, bookableSlots: 3 })).toBe(false);
+  const SETTINGS = {
+    currency: 'PLN',
+    bounds: { '25': { minCents: 5000, maxCents: 30000 }, '50': { minCents: 10000, maxCents: 60000 } },
+  };
+  const READY = { publishedAt: new Date(), settings: SETTINGS, price25Cents: 15000, price50Cents: 30000, bookableSlots: 1 };
+  const unmet = (state: Partial<typeof READY> | Record<string, unknown>) =>
+    mentorOfferReady
+      .evaluate({ ...READY, ...state } as typeof READY)
+      .filter((item) => !item.met)
+      .map((item) => item.key);
+
+  it('needs a published page, settings, both prices within the current bounds and a bookable slot', () => {
+    expect(mentorOfferReady.keys).toEqual(['published', 'settings', 'price25', 'price50', 'hasBookableSlot']);
+    expect(mentorOfferReady.isMet(READY)).toBe(true);
+    expect(unmet({ publishedAt: null })).toEqual(['published']);
+    expect(unmet({ bookableSlots: 0 })).toEqual(['hasBookableSlot']);
+  });
+
+  it('reports missing settings as unmet (no exception), which also leaves both prices unmet', () => {
+    expect(unmet({ settings: null })).toEqual(['settings', 'price25', 'price50']);
+  });
+
+  it.each([
+    ['a missing 25-minute price', { price25Cents: null }, ['price25']],
+    ['a 50-minute price above the bound', { price50Cents: 60001 }, ['price50']],
+    ['a 25-minute price below the bound', { price25Cents: 4999 }, ['price25']],
+  ])('is unmet with %s', (_case, state, keys) => {
+    expect(unmet(state)).toEqual(keys);
+  });
+
+  it('accepts prices exactly at the bounds', () => {
+    expect(unmet({ price25Cents: 5000, price50Cents: 60000 })).toEqual([]);
   });
 });

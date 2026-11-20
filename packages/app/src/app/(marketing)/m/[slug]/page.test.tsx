@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ findPublicBySlug: vi.fn(), notFound: vi.fn() }));
 
 vi.mock("@devmentor/core", () => ({
+  formatMoney: (cents: number, currency: string) => `${currency} ${(cents / 100).toFixed(2)}`,
   withScope: <T,>(fn: (cradle: unknown) => Promise<T>) =>
     fn({ mentorProfileService: { findPublicBySlug: mocks.findPublicBySlug } }),
 }));
@@ -24,6 +25,7 @@ const PAGE = {
   bio: "Wrote the first program.\nFor an engine that was never built.",
   stackTags: ["python", "ai-agents"],
   offerReady: false,
+  prices: null as { price25Cents: number; price50Cents: number; currency: string } | null,
   slots: [] as { id: string; startsAt: string; meetsLeadTime: boolean }[],
 };
 const props = (slug: string) => ({ params: Promise.resolve({ slug }), searchParams: Promise.resolve({}) });
@@ -57,6 +59,7 @@ describe("/m/[slug]", () => {
     mocks.findPublicBySlug.mockResolvedValue({
       ...PAGE,
       offerReady: true,
+      prices: { price25Cents: 15000, price50Cents: 30000, currency: "PLN" },
       slots: [
         { id: "a", startsAt: "2026-06-22T16:30:00.000Z", meetsLeadTime: false },
         { id: "b", startsAt: "2026-06-23T09:00:00.000Z", meetsLeadTime: true },
@@ -71,8 +74,18 @@ describe("/m/[slug]", () => {
     expect(items[0]?.textContent).toContain("Starts in less than two hours — no longer bookable");
     expect(items[1]?.getAttribute("aria-disabled")).toBeNull();
     expect(screen.queryByText("Not bookable yet")).toBeNull();
+    expect(screen.getByRole("list", { name: "Session prices" }).textContent).toBe("25 minPLN 150.0050 minPLN 300.00");
     expect(screen.queryByRole("button")).toBeNull();
     expect(document.body.textContent).not.toMatch(/\b(ratings?|scores?|reviews?|rank(ing)?|stars?|guaranteed|reserved)\b/i);
+  });
+
+  it("shows no prices for a mentor who is not offer-ready, even with stored prices", async () => {
+    mocks.findPublicBySlug.mockResolvedValue({ ...PAGE, prices: { price25Cents: 15000, price50Cents: 30000, currency: "PLN" } });
+
+    render(await MentorSharePage(props("ada-lovelace")));
+
+    expect(screen.getByText("Not bookable yet")).toBeTruthy();
+    expect(screen.queryByRole("list", { name: "Session prices" })).toBeNull();
   });
 
   it("calls notFound() for a page that is not public", async () => {

@@ -25,7 +25,7 @@ describe("AccountNav", () => {
 
     render(await AccountNav());
 
-    expect(screen.getAllByRole("link").map((link) => link.textContent)).toEqual(["Mentors", "Mentor workspace", "Your page", "Open times", "Dashboard"]);
+    expect(screen.getAllByRole("link").map((link) => link.textContent)).toEqual(["Mentors", "Mentor workspace", "Your page", "Prices", "Open times", "Dashboard"]);
     expect(screen.getByRole("link", { name: "Mentors" }).getAttribute("aria-current")).toBe("page");
   });
 

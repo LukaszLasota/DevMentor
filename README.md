@@ -107,6 +107,10 @@ Until a GitHub OAuth App is set up, sign in through a local GitHub stub (`script
 
    `/api/auth/github?login=<persona>` starts the same flow directly. Accounts are created on the first sign-in, or ahead of time with `npm run db:seed` ("Seed demo accounts"). If port 3000 is taken, run `PORT=3001 npm run dev` and set `APP_URL=http://localhost:3001`.
 
+### Mentor prices (platform currency and bounds)
+
+`PLATFORM_CURRENCY` and `PLATFORM_PRICE_BOUNDS` set the one platform currency and the allowed 25- and 50-minute prices in minor units (decision 2026-11-20: PLN; 25 min 50.00–300.00, 50 min 100.00–600.00). `.env.example` and the integration runner (`packages/app/integration/global-setup.ts`) carry these values; copy them into an existing `.env`. Set both or neither: a half-set or malformed pair refuses boot, and without them prices cannot be saved (503) and no mentor is bookable. The operator changes the bounds by hand (R16): a later save is checked against the new bounds; stored prices are not rewritten.
+
 ### Seed demo accounts
 
 ```bash

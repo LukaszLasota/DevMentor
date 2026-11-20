@@ -48,6 +48,7 @@ export {
   publishOwnMentorPage,
   unpublishOwnMentorPage,
   updateOwnMentorPage,
+  updateOwnMentorPrices,
   type MentorSlugParams,
 } from './mentors';
 export type { MentorOwnerView, MentorPublicView } from '../services/mentors/mentor-profile.service';
