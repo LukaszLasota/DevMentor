@@ -18,7 +18,10 @@ export const DESCRIPTION_MAX = 160;
 export function previewDescription(bio: string): string {
   const line = bio.replace(/\s+/g, " ").trim();
 
-  return line.length <= DESCRIPTION_MAX ? line : `${line.slice(0, DESCRIPTION_MAX - 1).trimEnd()}…`;
+  // By code point, so an emoji is never cut in half.
+  const chars = Array.from(line);
+
+  return chars.length <= DESCRIPTION_MAX ? line : `${chars.slice(0, DESCRIPTION_MAX - 1).join("").trimEnd()}…`;
 }
 
 /**

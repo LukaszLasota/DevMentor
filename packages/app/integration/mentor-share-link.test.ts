@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { afterAll, describe, expect, inject, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 import { createAgentBrowser } from './agent-browser';
 import { seedOfferReadyMentor, type MentorFixture } from './fixtures/mentors';
 import { psql } from './psql';
@@ -15,7 +15,9 @@ process.env.LOG_LEVEL = 'silent';
 const baseUrl = inject('baseUrl');
 const run = randomUUID().slice(0, 8);
 const batch = `sl-share-${run}`;
+// The seeding browser signs mentors in; the visitor is a separate session that never signs in.
 const browser = createAgentBrowser(`devmentor-share-link-${process.pid}`);
+const visitor = createAgentBrowser(`devmentor-share-link-visitor-${process.pid}`);
 const R01 = 'Sessions are text — no video call. 25 or 50 minutes.';
 const NO_SCORES = /\b(ratings?|scores?|reviews?|rank(ing)?|stars?|top mentor|popular)\b/i;
 const PUBLIC_KEYS = ['avatarUrl', 'bio', 'displayName', 'offerReady', 'prices', 'publicWorkUrl', 'slots', 'slug', 'stackTags'];
@@ -24,26 +26,28 @@ let unpriced: MentorFixture;
 
 /** The `<main>` of the page, text only, with non-breaking spaces normalised. */
 async function mainText(slug: string): Promise<string> {
-  await browser.open(`${baseUrl}/m/${slug}`);
-  await browser.waitForText(R01);
-  return (await browser.text('main')).replace(/ /g, ' ');
+  await visitor.open(`${baseUrl}/m/${slug}`);
+  await visitor.waitForText(R01);
+  return (await visitor.text('main')).replace(/\u00a0/g, ' ');
 }
+
+beforeAll(async () => {
+  ready = await seedOfferReadyMentor(browser, { login: `sh-ready-${run}`, displayName: `Share Ready ${run}`, stackTags: ['typescript', 'ai-agents'], batch });
+  unpriced = await seedOfferReadyMentor(browser, { login: `sh-unpriced-${run}`, displayName: `Share Unpriced ${run}`, stackTags: ['react'], batch, prices: false });
+});
 
 afterAll(async () => {
   await browser.close();
+  await visitor.close();
   await psql(`delete from invitations where batch = '${batch}'`);
   await psql(`delete from users where email like 'sh-%-${run}@devmentor.test'`);
 });
 
 describe('share-link page: what a signed-out visitor sees (agent-browser)', () => {
   it('an offer-ready mentor: work, description, tags, both prices, open times and the text-session line', async () => {
-    ready = await seedOfferReadyMentor(browser, { login: `sh-ready-${run}`, displayName: `Share Ready ${run}`, stackTags: ['typescript', 'ai-agents'], batch });
-    unpriced = await seedOfferReadyMentor(browser, { login: `sh-unpriced-${run}`, displayName: `Share Unpriced ${run}`, stackTags: ['react'], batch, prices: false });
-    // Signed out from here on: a fresh session name has no cookie.
-    await browser.close();
-
     const text = await mainText(ready.slug as string);
 
+    expect(await visitor.cookie('dm_session')).toBeUndefined();
     expect(text).toContain(`Share Ready ${run}`);
     expect(text).toContain(`github.com/sh-ready-${run}`);
     expect(text).toContain(`Share Ready ${run} ships production systems.`);
@@ -55,8 +59,8 @@ describe('share-link page: what a signed-out visitor sees (agent-browser)', () =
     expect(text).toContain(R01);
     expect(text).not.toContain('Not bookable yet');
     expect(text).not.toMatch(NO_SCORES);
-    expect(await browser.count('main button')).toBe(0);
-    expect(await browser.count('main input[type="search"]')).toBe(0);
+    expect(await visitor.count('main button')).toBe(0);
+    expect(await visitor.count('main input[type="search"]')).toBe(0);
   });
 
   it('a published mentor without prices: the text-session line and only "Not bookable yet"', async () => {
@@ -66,16 +70,17 @@ describe('share-link page: what a signed-out visitor sees (agent-browser)', () =
     expect(text).toContain(R01);
     expect(text).not.toContain('PLN');
     expect(text).not.toContain('Times are shown in your time zone');
-    expect(await browser.count('main ul[aria-label="Open times"]')).toBe(0);
+    expect(await visitor.count('main ul[aria-label="Open times"]')).toBe(0);
   });
 
   it('previews carry the name and description; the page is noindex', async () => {
-    const html = await (await fetch(`${baseUrl}/m/${ready.slug}`)).text();
+    const opened = await visitor.open(`${baseUrl}/m/${ready.slug}`);
+    await visitor.waitForText(R01);
 
-    expect(html).toContain(`<title>Share Ready ${run} · DevMentor</title>`);
-    expect(html).toContain('name="robots" content="noindex, nofollow"');
-    expect(html).toContain(`property="og:title" content="Share Ready ${run} · DevMentor"`);
-    expect(html).toContain(`property="og:url" content="${baseUrl}/m/${ready.slug}"`);
+    expect(opened.title).toBe(`Share Ready ${run} · DevMentor`);
+    expect(await visitor.attr('meta[name="robots"]', 'content')).toBe('noindex, nofollow');
+    expect(await visitor.attr('meta[property="og:title"]', 'content')).toBe(`Share Ready ${run} · DevMentor`);
+    expect(await visitor.attr('meta[property="og:url"]', 'content')).toBe(`${baseUrl}/m/${ready.slug}`);
   });
 
   it('the API answers the composed allowlist with no-store', async () => {

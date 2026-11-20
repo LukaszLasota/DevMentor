@@ -115,8 +115,11 @@ describe("/m/[slug]", () => {
   it("leaves the Open Graph url out without APP_URL", async () => {
     env.APP_URL = undefined;
 
-    expect((await generateMetadata(props("ada-lovelace"))).openGraph).not.toHaveProperty("url");
-    env.APP_URL = "https://app.devmentor.test";
+    try {
+      expect((await generateMetadata(props("ada-lovelace"))).openGraph).not.toHaveProperty("url");
+    } finally {
+      env.APP_URL = "https://app.devmentor.test";
+    }
   });
 
   it("gives an unknown slug a generic title, no mentor data, noindex — and no notFound()", async () => {
@@ -133,5 +136,6 @@ describe("/m/[slug]", () => {
     expect(description.endsWith("…")).toBe(true);
     expect(description).not.toContain("\n");
     expect(previewDescription("  short\n bio ")).toBe("short bio");
+    expect(previewDescription("🚀".repeat(200))).toBe(`${"🚀".repeat(DESCRIPTION_MAX - 1)}…`);
   });
 });
