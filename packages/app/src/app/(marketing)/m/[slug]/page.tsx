@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { formatMoney } from "@devmentor/core";
+import { formatMoney, getEnv } from "@devmentor/core";
 import { MentorPageView } from "@devmentor/ui/mentors";
 import { loadPublicMentor } from "./load-public-mentor";
 
@@ -11,10 +11,40 @@ import { loadPublicMentor } from "./load-public-mentor";
 // touches the database.
 export const instant = false;
 
-export async function generateMetadata({ params }: PageProps<"/m/[slug]">): Promise<Metadata> {
-  const page = await loadPublicMentor((await params).slug);
+/** Longest share-preview description; the full bio stays on the page. */
+export const DESCRIPTION_MAX = 160;
 
-  return { title: page === null ? "Page not found · DevMentor" : `${page.displayName} · DevMentor` };
+/** The bio on one line, cut at 160 characters with an ellipsis (share previews, search snippets). */
+export function previewDescription(bio: string): string {
+  const line = bio.replace(/\s+/g, " ").trim();
+
+  return line.length <= DESCRIPTION_MAX ? line : `${line.slice(0, DESCRIPTION_MAX - 1).trimEnd()}…`;
+}
+
+/**
+ * Always `noindex` (Q1). A known mentor gets the display name as the title, the bio as the
+ * description and Open Graph for link previews; an unknown slug gets a generic title and no mentor
+ * data. Never calls `notFound()`: the 404 status comes from the proxy and the page.
+ */
+export async function generateMetadata({ params }: PageProps<"/m/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const page = await loadPublicMentor(slug);
+  const robots = { index: false, follow: false };
+
+  if (page === null) {
+    return { title: "DevMentor", robots };
+  }
+
+  const title = `${page.displayName} · DevMentor`;
+  const description = previewDescription(page.bio);
+  const appUrl = getEnv().APP_URL;
+
+  return {
+    title,
+    description,
+    robots,
+    openGraph: { title, description, type: "profile", ...(appUrl === undefined ? {} : { url: `${appUrl}/m/${slug}` }) },
+  };
 }
 
 export default async function MentorSharePage({ params }: PageProps<"/m/[slug]">) {

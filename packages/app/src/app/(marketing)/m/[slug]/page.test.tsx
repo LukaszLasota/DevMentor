@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ findPublicBySlug: vi.fn(), notFound: vi.fn() }));
 
+const env = vi.hoisted(() => ({ APP_URL: "https://app.devmentor.test" as string | undefined }));
+
 vi.mock("@devmentor/core", () => ({
+  getEnv: () => env,
   formatMoney: (cents: number, currency: string) => `${currency} ${(cents / 100).toFixed(2)}`,
   withScope: <T,>(fn: (cradle: unknown) => Promise<T>) =>
     fn({ mentorProfileService: { findPublicBySlug: mocks.findPublicBySlug } }),
@@ -15,7 +18,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-const { default: MentorSharePage, generateMetadata, instant } = await import("./page");
+const { default: MentorSharePage, DESCRIPTION_MAX, generateMetadata, instant, previewDescription } = await import("./page");
 
 const PAGE = {
   slug: "ada-lovelace",
@@ -95,10 +98,40 @@ describe("/m/[slug]", () => {
     expect(mocks.notFound).toHaveBeenCalledOnce();
   });
 
-  it("titles the page with the display name, or as not found", async () => {
-    expect(await generateMetadata(props("ada-lovelace"))).toEqual({ title: "Ada Lovelace · DevMentor" });
+  it("describes a known mentor for previews: title, one-line bio, Open Graph; always noindex", async () => {
+    expect(await generateMetadata(props("ada-lovelace"))).toEqual({
+      title: "Ada Lovelace · DevMentor",
+      description: "Wrote the first program. For an engine that was never built.",
+      robots: { index: false, follow: false },
+      openGraph: {
+        title: "Ada Lovelace · DevMentor",
+        description: "Wrote the first program. For an engine that was never built.",
+        type: "profile",
+        url: "https://app.devmentor.test/m/ada-lovelace",
+      },
+    });
+  });
 
+  it("leaves the Open Graph url out without APP_URL", async () => {
+    env.APP_URL = undefined;
+
+    expect((await generateMetadata(props("ada-lovelace"))).openGraph).not.toHaveProperty("url");
+    env.APP_URL = "https://app.devmentor.test";
+  });
+
+  it("gives an unknown slug a generic title, no mentor data, noindex — and no notFound()", async () => {
     mocks.findPublicBySlug.mockResolvedValue(null);
-    expect(await generateMetadata(props("nobody"))).toEqual({ title: "Page not found · DevMentor" });
+
+    expect(await generateMetadata(props("nobody"))).toEqual({ title: "DevMentor", robots: { index: false, follow: false } });
+    expect(mocks.notFound).not.toHaveBeenCalled();
+  });
+
+  it("cuts a long bio at 160 characters on one line", () => {
+    const description = previewDescription(`${"word ".repeat(50)}\n\nend`);
+
+    expect(description).toHaveLength(DESCRIPTION_MAX);
+    expect(description.endsWith("…")).toBe(true);
+    expect(description).not.toContain("\n");
+    expect(previewDescription("  short\n bio ")).toBe("short bio");
   });
 });
