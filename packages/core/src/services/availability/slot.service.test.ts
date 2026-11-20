@@ -19,12 +19,16 @@ const at = (iso: string) => new Date(iso);
 const hoursFromNow = (hours: number) => new Date(NOW.getTime() + hours * 3_600_000);
 
 type Where = Record<string, unknown>;
-type Range = { $gt?: Date; $gte?: Date; $lte?: Date };
+type Range = { $gt?: Date; $gte?: Date; $lte?: Date; $in?: string[] };
 
 /** Equality, `{ $gt | $gte | $lte }` on dates, and a string compared with a reference's `id`. */
 function matches(row: object, where: Where): boolean {
   return Object.entries(where).every(([key, expected]) => {
     const actual = (row as Where)[key];
+
+    if (expected !== null && typeof expected === 'object' && '$in' in expected) {
+      return ((expected as Range).$in as string[]).includes((actual as { id: string }).id);
+    }
 
     if (expected !== null && typeof expected === 'object' && !(expected instanceof Date)) {
       const range = expected as Range;
@@ -70,7 +74,7 @@ function fakeEm(profiles: MentorProfile[], slots: Slot[]) {
     findOne: vi.fn<(entity: unknown, where: Where, options?: object) => Promise<object | null>>(async (entity, where) =>
       table(entity).find((row) => matches(row, where)) ?? null,
     ),
-    find: vi.fn(async (entity: unknown, where: Where, options: { orderBy: { startsAt: 'asc' | 'desc' }; limit: number }) =>
+    find: vi.fn(async (entity: unknown, where: Where, options: { orderBy: { startsAt: 'asc' | 'desc' }; limit?: number }) =>
       (table(entity) as Slot[])
         .filter((row) => matches(row, where))
         .sort((a, b) => (a.startsAt.getTime() - b.startsAt.getTime()) * (options.orderBy.startsAt === 'asc' ? 1 : -1))
@@ -324,6 +328,40 @@ describe('SlotService.remove', () => {
   });
 });
 
+describe('SlotService.bookableSummaryFor (#27)', () => {
+  it('summarises several mentors in one query: count and earliest bookable start; mentors without any are absent', async () => {
+    const ada = makeProfile();
+    const bob = makeProfile();
+    const cy = makeProfile();
+    const { em, service } = setup(
+      [ada, bob, cy],
+      [
+        makeSlot(ada, hoursFromNow(48)),
+        makeSlot(ada, hoursFromNow(2)),
+        makeSlot(ada, hoursFromNow(1.9)),
+        makeSlot(bob, hoursFromNow(30)),
+        makeSlot(bob, hoursFromNow(10), NOW),
+        makeSlot(cy, hoursFromNow(1)),
+      ],
+    );
+
+    const summary = await service.bookableSummaryFor([ada.id, bob.id, cy.id], NOW);
+
+    expect([...summary.entries()]).toEqual([
+      [ada.id, { count: 2, nextStartsAt: hoursFromNow(2) }],
+      [bob.id, { count: 1, nextStartsAt: hoursFromNow(30) }],
+    ]);
+    expect(em.find).toHaveBeenCalledOnce();
+  });
+
+  it('runs no query for no ids', async () => {
+    const { em, service } = setup();
+
+    expect((await service.bookableSummaryFor([], NOW)).size).toBe(0);
+    expect(em.find).not.toHaveBeenCalled();
+  });
+});
+
 describe('SlotService public reads', () => {
   it('counts only future, active slots that meet the lead time (inclusive at two hours)', async () => {
     const mine = makeProfile();
@@ -338,6 +376,7 @@ describe('SlotService public reads', () => {
     );
 
     expect(await service.countBookable(mine.id, NOW)).toBe(1);
+    expect(await service.countBookable(makeProfile().id, NOW)).toBe(0);
   });
 
   it('lists a page\'s future active slots ascending with their lead-time state', async () => {

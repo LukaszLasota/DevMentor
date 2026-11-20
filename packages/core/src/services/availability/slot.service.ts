@@ -24,6 +24,12 @@ export interface SlotView {
 
 export type SlotScope = 'upcoming' | 'past';
 
+/** Bookable slots of one mentor at `now`: how many, and the earliest start (spec #27). */
+export interface BookableSummary {
+  count: number;
+  nextStartsAt: Date;
+}
+
 export function toSlotView(slot: Slot, now: Date): SlotView {
   return { id: slot.id, startsAt: slot.startsAt.toISOString(), meetsLeadTime: meetsLeadTime(slot.startsAt, now) };
 }
@@ -134,13 +140,41 @@ export class SlotService {
     return { id: slot.id };
   }
 
-  /** Future, non-removed slots that meet the lead time at `now`: the `hasBookableSlot` and D13 count. */
+  /**
+   * Future, non-removed slots that meet the lead time at `now` (inclusive at two hours), per mentor,
+   * for many mentors in **one** query (spec #27); mentors with none are absent from the map; no ids,
+   * no query. The rows are grouped here: core cannot use MikroORM's raw SQL helpers, and 1.0 holds at
+   * most 50 mentors × 200 slots.
+   */
+  async bookableSummaryFor(mentorProfileIds: readonly string[], now: Date): Promise<Map<string, BookableSummary>> {
+    const summary = new Map<string, BookableSummary>();
+
+    if (mentorProfileIds.length === 0) {
+      return summary;
+    }
+
+    const slots = await this.em.find(
+      Slot,
+      { mentorProfile: { $in: [...mentorProfileIds] }, removedAt: null, startsAt: { $gte: new Date(now.getTime() + LEAD_TIME_MS) } },
+      { orderBy: { startsAt: 'asc' } },
+    );
+
+    for (const slot of slots) {
+      const entry = summary.get(slot.mentorProfile.id);
+
+      if (entry === undefined) {
+        summary.set(slot.mentorProfile.id, { count: 1, nextStartsAt: slot.startsAt });
+      } else {
+        entry.count += 1;
+      }
+    }
+
+    return summary;
+  }
+
+  /** The `hasBookableSlot` and D13 count: one mentor's `bookableSummaryFor` entry, 0 without one. */
   async countBookable(mentorProfileId: string, now: Date): Promise<number> {
-    return this.em.count(Slot, {
-      mentorProfile: mentorProfileId,
-      removedAt: null,
-      startsAt: { $gte: new Date(now.getTime() + LEAD_TIME_MS) },
-    });
+    return (await this.bookableSummaryFor([mentorProfileId], now)).get(mentorProfileId)?.count ?? 0;
   }
 
   /** Future, non-removed slots for a public page, ascending, each with its lead-time state at `now`. */
