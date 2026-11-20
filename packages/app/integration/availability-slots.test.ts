@@ -64,6 +64,16 @@ async function onboardMentor(page: Browser, login: string): Promise<string> {
   return `dm_session=${await page.cookie('dm_session')}`;
 }
 
+/** Polls `check` until it returns true (the UI action's request lands asynchronously), max ~10 s. */
+async function eventually(check: () => Promise<boolean>): Promise<void> {
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    if (await check()) return;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+
+  throw new Error('condition not met within 10 s');
+}
+
 const api = (path: string, cookie: string, init: RequestInit = {}) =>
   fetch(`${baseUrl}${path}`, { ...init, headers: { ...CSRF, cookie, ...(init.headers ?? {}) } });
 const publishSlot = (cookie: string, startsAt: string) =>
@@ -149,8 +159,8 @@ describe('availability slots: publish → public page with lead-time state → r
     // Rows are ascending: the one-hour slot first, tomorrow's second.
     await browser.click('main table tbody tr:nth-child(2) button');
     await browser.clickButton('Remove slot');
-    await browser.waitForText('Less than 2 h away');
 
+    await eventually(async () => (await psql(`select removed_at is not null from slots where id = '${tomorrow.id}'`)) === 't');
     const remaining = (await (await api('/api/availability/slots', cookie)).json()).data.items;
     expect(remaining.map((slot: { id: string }) => slot.id)).not.toContain(tomorrow.id);
     // Only the one-hour slot is left: not bookable, so the mentor is no longer offer-ready.
