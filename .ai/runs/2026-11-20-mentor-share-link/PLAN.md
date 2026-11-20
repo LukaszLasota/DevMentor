@@ -12,7 +12,7 @@ Engine: om-auto-create-pr-loop (forced by the brief, regardless of step count)
 | Phase | Step | Title | Exec | Status | Commit |
 |-------|------|-------|------|--------|--------|
 | 1 | 1.1 | One slot read at one instant in the public read; no-store on GET /api/mentors/[slug] | inline | done | self |
-| 1 | 1.2 | MentorPageView section order and both display states asserted | inline | todo | — |
+| 1 | 1.2 | MentorPageView section order and both display states asserted | inline | done | self |
 | 1 | 1.3 | Request-scoped loadPublicMentor | inline | todo | — |
 | 1 | 1.4 | Metadata (noindex, title, description, Open Graph) and error.tsx | inline | todo | — |
 | 2 | 2.1 | Share-link integration test | inline | todo | — |
