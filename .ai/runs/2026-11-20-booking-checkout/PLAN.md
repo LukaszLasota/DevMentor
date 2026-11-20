@@ -11,7 +11,7 @@ Engine: om-auto-create-pr-loop
 
 | Phase | Step | Title | Exec | Status | Commit |
 |-------|------|-------|------|--------|--------|
-| 1 | 1.1 | Booking entity, migration and snapshot | inline | todo | |
+| 1 | 1.1 | Booking entity, migration and snapshot | inline | done | self |
 | 1 | 1.2 | bookingStartSchema validator | inline | todo | |
 | 2 | 2.1 | Occupancy: bookableLengths, booking-aware counts, owner booking state, remove under the profile lock | inline | todo | |
 | 2 | 2.2 | BookingService.start with hold, deadline and stale-hold release through Stripe | inline | todo | |

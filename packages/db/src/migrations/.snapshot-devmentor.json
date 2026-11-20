@@ -5,6 +5,404 @@
   ],
   "tables": [
     {
+      "name": "bookings",
+      "schema": "public",
+      "columns": {
+        "checkout_session_id": {
+          "name": "checkout_session_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "confirmed_at": {
+          "name": "confirmed_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "currency": {
+          "name": "currency",
+          "type": "varchar(3)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 3,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "string"
+        },
+        "ends_at": {
+          "name": "ends_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "hold_expires_at": {
+          "name": "hold_expires_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "lead_minutes": {
+          "name": "lead_minutes",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "length_minutes": {
+          "name": "length_minutes",
+          "type": "smallint",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "smallint"
+        },
+        "mentee_id": {
+          "name": "mentee_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "mentor_profile_id": {
+          "name": "mentor_profile_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "price_cents": {
+          "name": "price_cents",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "slot_id": {
+          "name": "slot_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "starts_at": {
+          "name": "starts_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "indexes": [
+        {
+          "columnNames": [
+            "checkout_session_id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "bookings_checkout_session_id_unique",
+          "primary": false,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "mentor_profile_id",
+            "status"
+          ],
+          "composite": true,
+          "constraint": false,
+          "keyName": "bookings_mentor_profile_status_idx",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "columnNames": [
+            "slot_id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "bookings_slot_active_uq",
+          "primary": false,
+          "unique": true,
+          "where": "(status = ANY (ARRAY['pending_payment'::text, 'confirmed'::text]))"
+        },
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "bookings_pkey",
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [
+        {
+          "name": "bookings_confirmed_check",
+          "expression": "(status <> 'confirmed'::text) OR ((confirmed_at IS NOT NULL) AND (lead_minutes IS NOT NULL))",
+          "definition": "CHECK (((status <> 'confirmed'::text) OR ((confirmed_at IS NOT NULL) AND (lead_minutes IS NOT NULL))))"
+        },
+        {
+          "name": "bookings_currency_check",
+          "expression": "((currency)::text ~ '^[A-Z]{3}$'::text)",
+          "definition": "CHECK ((((currency)::text ~ '^[A-Z]{3}$'::text)))",
+          "columnName": "currency"
+        },
+        {
+          "name": "bookings_ends_check",
+          "expression": "(ends_at = (starts_at + make_interval(mins => (length_minutes)::integer)))",
+          "definition": "CHECK (((ends_at = (starts_at + make_interval(mins => (length_minutes)::integer)))))"
+        },
+        {
+          "name": "bookings_length_check",
+          "expression": "(length_minutes = ANY (ARRAY[25, 50]))",
+          "definition": "CHECK (((length_minutes = ANY (ARRAY[25, 50]))))",
+          "columnName": "length_minutes"
+        },
+        {
+          "name": "bookings_price_check",
+          "expression": "(price_cents > 0)",
+          "definition": "CHECK (((price_cents > 0)))",
+          "columnName": "price_cents"
+        },
+        {
+          "name": "bookings_status_check",
+          "expression": "(status = ANY (ARRAY['pending_payment'::text, 'confirmed'::text, 'expired'::text, 'failed'::text, 'payment_orphaned'::text]))",
+          "definition": "CHECK (((status = ANY (ARRAY['pending_payment'::text, 'confirmed'::text, 'expired'::text, 'failed'::text, 'payment_orphaned'::text]))))",
+          "columnName": "status"
+        }
+      ],
+      "triggers": [],
+      "foreignKeys": {
+        "bookings_mentee_id_foreign": {
+          "columnNames": [
+            "mentee_id"
+          ],
+          "constraintName": "bookings_mentee_id_foreign",
+          "localTableName": "public.bookings",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.users",
+          "deleteRule": "restrict"
+        },
+        "bookings_mentor_profile_id_foreign": {
+          "columnNames": [
+            "mentor_profile_id"
+          ],
+          "constraintName": "bookings_mentor_profile_id_foreign",
+          "localTableName": "public.bookings",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.mentor_profiles",
+          "deleteRule": "restrict"
+        },
+        "bookings_slot_id_foreign": {
+          "columnNames": [
+            "slot_id"
+          ],
+          "constraintName": "bookings_slot_id_foreign",
+          "localTableName": "public.bookings",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.slots",
+          "deleteRule": "restrict"
+        }
+      },
+      "comment": null
+    },
+    {
       "name": "auth_rate_limits",
       "schema": "public",
       "columns": {
