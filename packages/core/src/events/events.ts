@@ -13,6 +13,11 @@ export interface DomainEvents {
    * acceptance transaction commits, never inside it; `publishDueAt` is the invitation's publish-by date.
    */
   'invitations.invitation.accepted': { invitationId: string; userId: string; publishDueAt: Date };
+  /**
+   * A mentor page became public: the first publish or a republish after unpublishing. Emitted after
+   * the publish transaction commits, only by the call that set `published_at`.
+   */
+  'mentors.profile.published': { mentorProfileId: string; slug: string };
 }
 
 export type DomainEventName = keyof DomainEvents;
