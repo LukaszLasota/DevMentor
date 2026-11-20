@@ -62,11 +62,13 @@ export {
   cancelOwnBooking,
   getOwnBooking,
   releaseOwnBooking,
+  reportOwnBooking,
   retryBookingRefund,
   startBooking,
   type BookingIdParams,
 } from './bookings';
 export type { AttentionItem } from '../services/bookings/booking-cancellation.service';
+export type { ReportItem } from '../services/bookings/booking-report.service';
 export type { BookingStarted, BookingView } from '../services/bookings/booking.service';
 export { listMySlots, publishSlot, removeSlot, type SlotIdParams } from './availability';
 export type { OwnerSlotView, SlotView } from '../services/availability/slot.service';

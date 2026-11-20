@@ -9,6 +9,7 @@ vi.mock('@devmentor/core/http', () => ({
   getOwnBooking: 'getOwnBooking',
   releaseOwnBooking: 'releaseOwnBooking',
   cancelOwnBooking: 'cancelOwnBooking',
+  reportOwnBooking: 'reportOwnBooking',
   retryBookingRefund: 'retryBookingRefund',
   BOOKING_RESPONSE: 'BOOKING_RESPONSE',
 }));
@@ -32,5 +33,9 @@ describe('booking routes', () => {
 
   it('POST /api/admin/bookings/[id]/refund wires retryBookingRefund with no-store', async () => {
     expect((await import('../admin/bookings/[id]/refund/route')).POST).toEqual({ handler: 'retryBookingRefund', options: 'BOOKING_RESPONSE' });
+  });
+
+  it('POST /api/bookings/[id]/report wires reportOwnBooking with no-store', async () => {
+    expect((await import('./[id]/report/route')).POST).toEqual({ handler: 'reportOwnBooking', options: 'BOOKING_RESPONSE' });
   });
 });

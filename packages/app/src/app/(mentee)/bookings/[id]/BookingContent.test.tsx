@@ -12,6 +12,7 @@ vi.mock("@devmentor/core/http", () => ({
 }));
 vi.mock("@/lib/session", () => ({ requirePageSession: mocks.requirePageSession }));
 vi.mock("./BookingPending", () => ({ BookingPending: () => <p>pending-poller</p> }));
+vi.mock("./ReportProblem", () => ({ ReportProblem: ({ bookingId }: { bookingId: string }) => <p>report-form {bookingId}</p> }));
 vi.mock("./CancelBooking", () => ({
   CancelBooking: (props: object) => <p data-testid="cancel">{JSON.stringify(props)}</p>,
 }));
@@ -36,6 +37,7 @@ const VIEW = {
   cancellation: null as { refundDue: boolean; freeUntil: string } | null,
   cancelledAt: null as string | null,
   refundStatus: null as string | null,
+  reportedAt: null as string | null,
 };
 const params = (id = ID) => ({ params: Promise.resolve({ id }) });
 
@@ -95,6 +97,25 @@ describe("/bookings/[id]", () => {
     expect(screen.getByText(/Cancelled on/)).toBeTruthy();
     expect(screen.getByText(line)).toBeTruthy();
     expect(screen.queryByTestId("cancel")).toBeNull();
+  });
+
+  it.each(["confirmed", "cancelled"])("%s: offers Report a problem until it is reported, then says when", async (status) => {
+    mocks.getOwn.mockResolvedValue({ ...VIEW, status, cancelledAt: "2026-06-21T09:00:00.000Z", refundStatus: "not_due" });
+    const { unmount } = render(await BookingContent(params()));
+    expect(screen.getByText(`report-form ${ID}`)).toBeTruthy();
+    unmount();
+
+    mocks.getOwn.mockResolvedValue({ ...VIEW, status, cancelledAt: "2026-06-21T09:00:00.000Z", refundStatus: "not_due", reportedAt: "2026-06-24T09:00:00.000Z" });
+    render(await BookingContent(params()));
+    expect(screen.queryByText(/report-form/)).toBeNull();
+    expect(screen.getByText(/Reported on/).textContent).toContain("The DevMentor team will reply by email. Reporting does not refund automatically.");
+  });
+
+  it.each(["pending_payment", "expired", "payment_orphaned"])("%s: no report form", async (status) => {
+    mocks.getOwn.mockResolvedValue({ ...VIEW, status });
+    render(await BookingContent(params()));
+
+    expect(screen.queryByText(/report-form/)).toBeNull();
   });
 
   it("pending: the self-refreshing waiting state", async () => {

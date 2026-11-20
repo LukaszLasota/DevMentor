@@ -16,6 +16,7 @@ import { createStripeEventHandlers } from '../services/payments/stripe-event-han
 import { StripeInboxService } from '../services/payments/stripe-inbox.service';
 import { SlotService } from '../services/availability/slot.service';
 import { BookingCancellationService } from '../services/bookings/booking-cancellation.service';
+import { BookingReportService } from '../services/bookings/booking-report.service';
 import { BookingService } from '../services/bookings/booking.service';
 import { HealthService } from '../services/health/health.service';
 import { InvitationService } from '../services/invitations/invitation.service';
@@ -72,6 +73,7 @@ async function buildContainer(): Promise<AwilixContainer<Cradle>> {
     slotService: asClass(SlotService).scoped(),
     bookingService: asClass(BookingService).scoped(),
     bookingCancellationService: asClass(BookingCancellationService).scoped(),
+    bookingReportService: asClass(BookingReportService).scoped(),
     stripeEventHandlers: asFunction(createStripeEventHandlers).scoped(),
     stripeInboxService: asClass(StripeInboxService).scoped(),
   });
