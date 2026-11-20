@@ -40,26 +40,28 @@ Prices (#24), slots (#25), mentor list (#27), booking (#29), slug renaming, page
 
 ### Phase 1: Domain primitives
 
-- [ ] 1.1 Stack-tag vocabulary in core/domain and invite-cli switch
-- [ ] 1.2 Slug helpers
-- [ ] 1.3 Readiness primitive
+- [x] 1.1 Stack-tag vocabulary in core/domain and invite-cli switch — 916e9ff
+- [x] 1.2 Slug helpers — 916e9ff
+- [x] 1.3 Readiness primitive — 916e9ff
 
 ### Phase 2: Data
 
-- [ ] 2.1 MentorProfile entity widening, migration and drift test
+- [x] 2.1 MentorProfile entity widening, migration and drift test — 59c240d
 
 ### Phase 3: Core services and API
 
-- [ ] 3.1 mentorProfileUpdateSchema
-- [ ] 3.2 Mentor readiness definitions, MentorProfileService, event, container
-- [ ] 3.3 Mentor HTTP handlers and API routes
+- [x] 3.1 mentorProfileUpdateSchema — be85708
+- [x] 3.2 Mentor readiness definitions, MentorProfileService, event, container — 4c3600a
+- [x] 3.3 Mentor HTTP handlers and API routes — 567deb6
 
 ### Phase 4: UI and pages
 
-- [ ] 4.1 UI adjustments and marketing import rule
-- [ ] 4.2 /mentor/profile, /mentor page step and public /m/[slug]
+- [x] 4.1 UI adjustments and marketing import rule — 8f41245
+- [x] 4.2 /mentor/profile, /mentor page step and public /m/[slug] — 9b36024
 
 ### Phase 5: Verification
 
-- [ ] 5.1 Integration test mentor-page
+- [x] Post-implementation fixes: export lists, sidebar link test — fec4176; ui lint rule — a6e79cd; findOwn/findPublicBySlug — b060c68
+
+- [x] 5.1 Integration test mentor-page — cb937c0 (run pending: needs Docker, owner approval)
 - [ ] 5.2 Full validation gate
