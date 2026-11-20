@@ -47,3 +47,11 @@ export {
   type SessionMessageInput,
   type SessionReadQuery,
 } from './sessions/session-message.schema';
+export {
+  NOTE_MAX,
+  NOTE_MIN,
+  sessionNoteDecisionSchema,
+  sessionNoteSchema,
+  type SessionNoteDecisionInput,
+  type SessionNoteInput,
+} from './sessions/session-note.schema';

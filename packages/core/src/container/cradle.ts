@@ -16,6 +16,7 @@ import type { StripeInboxService } from '../services/payments/stripe-inbox.servi
 import type { SlotService } from '../services/availability/slot.service';
 import type { BookingCancellationService } from '../services/bookings/booking-cancellation.service';
 import type { BookingReportService } from '../services/bookings/booking-report.service';
+import type { SessionNoteService } from '../services/sessions/session-note.service';
 import type { SessionService } from '../services/sessions/session.service';
 import type { BookingService } from '../services/bookings/booking.service';
 import type { HealthService } from '../services/health/health.service';
@@ -53,6 +54,7 @@ export interface Cradle {
   bookingCancellationService: BookingCancellationService;
   bookingReportService: BookingReportService;
   sessionService: SessionService;
+  sessionNoteService: SessionNoteService;
   stripeEventHandlers: StripeEventHandlers;
   stripeInboxService: StripeInboxService;
 }

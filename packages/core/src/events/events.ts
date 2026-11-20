@@ -37,6 +37,12 @@ export interface DomainEvents {
   'bookings.booking.reported': { bookingId: string; reportId: string };
   /** The mentor submitted the session's written answer (spec 2026-11-20-text-session, AC3). Emitted after the insert commits. */
   'sessions.answer.submitted': { bookingId: string; answerId: string };
+  /** The mentor sent a version of the session note (spec 2026-11-20-session-note). After commit. */
+  'sessions.note.sent': { bookingId: string; version: number };
+  /** The mentee declined a note version; `declineCount` is the declines in a row (R15's review trigger at 2). */
+  'sessions.note.declined': { bookingId: string; version: number; declineCount: number };
+  /** The mentee approved a note version: the note is final and private to the two parties (R03). */
+  'sessions.note.approved': { bookingId: string; version: number };
 }
 
 export type DomainEventName = keyof DomainEvents;
