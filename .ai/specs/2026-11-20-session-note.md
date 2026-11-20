@@ -1,6 +1,6 @@
 # The mentor drafts a session note; the mentee approves it or declines it with a comment
 
-Status: approved (autonomous defaults; independent review applied)
+Status: implemented (branch feat/session-note; autonomous defaults; independent review applied)
 Issue: #32 (E04-S02) · Epic: #19 · Depends on: #31 (`.ai/specs/2026-11-20-text-session.md`) · Source: `.ai/specs/product-brief.md` (R15, R03, D20, D02)
 
 ## 📝 TLDR
@@ -104,3 +104,9 @@ One phase (one PR): the model is small and each step depends on the previous.
 4. `SessionNote` on `/sessions/[id]`; component tests.
 5. Integration: session ends → mentor sends → mentee declines with a comment → mentor sees it and sends version 2 → mentee approves → both see it, a third user 404, emails, constraints.
 Each step ends with `npm run validate` green at 100% coverage; steps 1 and 5 run `npm run test:integration`.
+
+## Implementation notes
+- `declineCount` is the declined version's number: a new version is sent only after a decline, so declining version n is the n-th decline in a row.
+- `NOTE_LIMIT_MESSAGE` names the limit as a literal (a test pins it to `NOTE_MAX_VERSIONS`): module scope in `core` must not read `@devmentor/db` values, because the entry tests mock that package.
+- The decline form is a plain form, not `CrudForm`: its schema is a discriminated union, and `CrudForm` takes an object schema.
+
