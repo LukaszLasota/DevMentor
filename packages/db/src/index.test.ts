@@ -26,6 +26,7 @@ describe('@devmentor/db public entry', () => {
       'NOTE_VERSION_UNIQUE',
       'NOTE_WAITING_UNIQUE',
       'ONBOARDING_STATUSES',
+      'PAYOUT_BOOKING_UNIQUE',
       'Payout',
       'ROLES',
       'SESSION_ANSWER_BOOKING_UNIQUE',

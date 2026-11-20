@@ -17,7 +17,7 @@ export {
   ONBOARDING_STATUSES,
   type OnboardingStatus,
 } from './entities/payments/connect-account.entity';
-export { HOLD_REASONS, Payout, type HoldReason, type PayoutStatus } from './entities/payments/payout.entity';
+export { HOLD_REASONS, Payout, PAYOUT_BOOKING_UNIQUE, type HoldReason, type PayoutStatus } from './entities/payments/payout.entity';
 export {
   ACTIVE_BOOKING_SLOT_UNIQUE,
   ACTIVE_BOOKING_STATUSES,

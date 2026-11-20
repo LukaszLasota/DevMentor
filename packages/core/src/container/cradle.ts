@@ -10,6 +10,8 @@ import type { AccountService } from '../services/auth/account.service';
 import type { GithubOAuthService } from '../services/auth/github-oauth.service';
 import type { PlatformSettingsService } from '../services/operator/platform-settings.service';
 import type { CheckoutGateway } from '../services/payments/checkout-gateway';
+import type { ConnectService } from '../services/payments/connect.service';
+import type { PayoutService } from '../services/payments/payout.service';
 import type { ConnectGateway } from '../services/payments/connect-gateway';
 import type { StripeClient } from '../services/payments/stripe-client';
 import type { StripeEventHandlers } from '../services/payments/stripe-event-handlers';
@@ -57,6 +59,8 @@ export interface Cradle {
   bookingReportService: BookingReportService;
   sessionService: SessionService;
   sessionNoteService: SessionNoteService;
+  connectService: ConnectService;
+  payoutService: PayoutService;
   stripeEventHandlers: StripeEventHandlers;
   stripeInboxService: StripeInboxService;
 }

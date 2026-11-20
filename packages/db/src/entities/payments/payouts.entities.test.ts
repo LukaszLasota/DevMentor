@@ -6,7 +6,7 @@ import { BookingReport } from '../bookings/booking-report.entity';
 import { entities } from '../index';
 import { MentorProfile } from '../mentors/mentor-profile.entity';
 import { CONNECT_ACCOUNT_MENTOR_UNIQUE, ConnectAccount, ConnectAccountSchema, ONBOARDING_STATUSES } from './connect-account.entity';
-import { HOLD_REASONS, PAYOUT_CHECKS, PAYOUT_STATUSES, Payout, PayoutSchema } from './payout.entity';
+import { HOLD_REASONS, PAYOUT_BOOKING_UNIQUE, PAYOUT_CHECKS, PAYOUT_STATUSES, Payout, PayoutSchema } from './payout.entity';
 
 // Metadata discovery only; the constructor does not open a connection.
 const orm = new MikroORM(createConfig({ clientUrl: 'postgres://u:p@localhost:5432/db', pool: { min: 0, max: 1 }, debug: false }));
@@ -50,6 +50,7 @@ describe('Payout entity', () => {
     expect(payouts.properties.booking.kind).toBe(ReferenceKind.ONE_TO_ONE);
     expect(payouts.properties.booking.targetMeta?.class).toBe(Booking);
     expect(payouts.properties.booking.unique).toBe(true);
+    expect(PAYOUT_BOOKING_UNIQUE).toBe('payouts_booking_id_unique');
     expect(payouts.properties.transferId.unique).toBe(true);
     expect(payouts.properties.attempt.default).toBe(1);
     expect(Object.fromEntries(payouts.checks.map((check) => [check.name, check.expression]))).toEqual(PAYOUT_CHECKS);

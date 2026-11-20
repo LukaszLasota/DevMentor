@@ -14,6 +14,9 @@ export type PayoutStatus = (typeof PAYOUT_STATUSES)[number];
 export const HOLD_REASONS = ['connect_not_enabled', 'disputed', 'charge_reversed'] as const;
 export type HoldReason = (typeof HOLD_REASONS)[number];
 
+/** Named so `PayoutService` reads the stored row after losing the insert race for one booking. */
+export const PAYOUT_BOOKING_UNIQUE = 'payouts_booking_id_unique';
+
 const list = (values: readonly string[]) => values.map((value) => `'${value}'`).join(', ');
 
 export const PAYOUT_CHECKS = {

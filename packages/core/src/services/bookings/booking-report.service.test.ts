@@ -3,7 +3,7 @@ import { Booking, BOOKING_REPORT_BOOKING_UNIQUE, BookingReport, MentorProfile, U
 import { describe, expect, it, vi } from 'vitest';
 import { parseEnv } from '../../config/env';
 import type { Cradle } from '../../container/cradle';
-import { ALREADY_REPORTED_MESSAGE, BookingReportService, NOT_REPORTABLE_MESSAGE } from './booking-report.service';
+import { ALREADY_REPORTED_MESSAGE, BookingReportService, NOT_REPORTABLE_MESSAGE, REPORT_NOT_FOUND_MESSAGE } from './booking-report.service';
 import { BOOKING_NOT_FOUND_MESSAGE } from './booking.service';
 
 const NOW = new Date('2026-06-22T16:00:00.000Z');
@@ -31,12 +31,18 @@ function setup({ status = 'confirmed' as Booking['status'], operators = 'ops-a@d
   const em = {
     findOne: vi.fn(async (entity: unknown, where: { id?: string; mentee?: string; booking?: string }) => {
       if (entity === BookingReport) {
-        return reports.find((report) => report.booking.id === where.booking) ?? null;
+        return reports.find((report) => (where.id !== undefined ? report.id === where.id : report.booking.id === where.booking)) ?? null;
       }
 
       return where.id === booking.id && where.mentee === MENTEE_ID ? booking : null;
     }),
     find: vi.fn(async () => reports),
+    nativeUpdate: vi.fn(async (_entity: unknown, where: { id: string }, data: Partial<BookingReport>) => {
+      const report = reports.find((candidate) => candidate.id === where.id && candidate.resolvedAt == null);
+      if (report) Object.assign(report, data);
+      return report ? 1 : 0;
+    }),
+    clear: vi.fn(),
     create: vi.fn((_entity: unknown, data: { booking: string; message: string }) => {
       const report = Object.assign(new BookingReport(), { id: randomUUID(), booking: ref(booking), message: data.message, createdAt: NOW });
       reports.push(report);
@@ -49,6 +55,7 @@ function setup({ status = 'confirmed' as Booking['status'], operators = 'ops-a@d
   const mailSender = { send: vi.fn<(message: { to: string; subject: string; text: string }) => Promise<void>>(async () => undefined) };
   const service = new BookingReportService({
     em: em as unknown as Cradle['em'],
+    clock: { now: () => NOW },
     env: parseEnv({ DATABASE_URL: 'postgres://u:p@localhost:5432/db', OPERATOR_EMAILS: operators, APP_URL: appUrl ?? '' }),
     logger: logger as unknown as Cradle['logger'],
     events: events as unknown as Cradle['events'],
@@ -167,6 +174,7 @@ describe('BookingReportService.list', () => {
         bookingStatus: 'confirmed',
         message: MESSAGE,
         createdAt: NOW.toISOString(),
+        resolvedAt: null,
         startsAt: NOW.toISOString(),
         menteeEmail: 'mentee@devmentor.test',
         mentorName: 'Ada',
@@ -176,3 +184,22 @@ describe('BookingReportService.list', () => {
     await expect(unnamed.service.list()).resolves.toMatchObject([{ mentorName: '' }]);
   });
 });
+
+describe('BookingReportService.resolve', () => {
+  it('marks a report resolved once and keeps its first time', async () => {
+    const { service, booking, reports } = setup();
+    await service.report(MENTEE_ID, booking.id, { message: MESSAGE });
+    const id = reports[0]?.id as string;
+
+    await expect(service.resolve(id)).resolves.toEqual({ resolvedAt: NOW.toISOString() });
+    (reports[0] as BookingReport).resolvedAt = new Date('2026-06-20T00:00:00.000Z');
+    await expect(service.resolve(id)).resolves.toEqual({ resolvedAt: '2026-06-20T00:00:00.000Z' });
+  });
+
+  it('answers 404 for an unknown report', async () => {
+    const { service } = setup();
+
+    await expect(service.resolve(randomUUID())).rejects.toMatchObject({ status: 404, message: REPORT_NOT_FOUND_MESSAGE });
+  });
+});
+

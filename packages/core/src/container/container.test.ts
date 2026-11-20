@@ -155,6 +155,8 @@ describe('DI container', () => {
     expect(first.cradle.bookingReportService).not.toBe(second.cradle.bookingReportService);
     expect(first.cradle.sessionService).not.toBe(second.cradle.sessionService);
     expect(first.cradle.sessionNoteService).not.toBe(second.cradle.sessionNoteService);
+    expect(first.cradle.connectService).not.toBe(second.cradle.connectService);
+    expect(first.cradle.payoutService).not.toBe(second.cradle.payoutService);
     expect(first.cradle.stripeInboxService).toBe(first.cradle.stripeInboxService);
     expect(first.cradle.stripeInboxService).not.toBe(second.cradle.stripeInboxService);
     expect(first.cradle.stripeEventHandlers).not.toBe(second.cradle.stripeEventHandlers);
