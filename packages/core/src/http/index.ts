@@ -41,6 +41,16 @@ export {
   type InvitationAccepted,
   type InvitationTokenParams,
 } from './invitations';
+export {
+  getOwnMentorPage,
+  getPublicMentorPage,
+  MENTOR_OWNER_RESPONSE,
+  publishOwnMentorPage,
+  unpublishOwnMentorPage,
+  updateOwnMentorPage,
+  type MentorSlugParams,
+} from './mentors';
+export type { MentorOwnerView, MentorPublicView } from '../services/mentors/mentor-profile.service';
 export { INVALID_CREDENTIALS_MESSAGE, VerificationLinkInvalidError } from '../services/auth/account.service';
 export { OAUTH_STATE_COOKIE } from './oauth-state-cookie';
 export { clearSessionCookie, readSessionCookie, SESSION_COOKIE, sessionCookie } from './session-cookie';
