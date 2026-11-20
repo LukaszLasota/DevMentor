@@ -140,7 +140,7 @@ export class BookingService {
       customerEmail: mentee.email,
       expiresAt: deadline,
       successUrl: `${appUrl}/bookings/${booking.id}`,
-      cancelUrl: `${appUrl}/m/${slug}?checkout=cancelled`,
+      cancelUrl: `${appUrl}/m/${slug}?checkout=cancelled&booking=${booking.id}`,
     });
 
     if (session.kind !== 'ok' || session.data.url === null) {
@@ -153,6 +153,40 @@ export class BookingService {
     await this.em.nativeUpdate(Booking, { id: booking.id }, { checkoutSessionId: session.data.id });
 
     return { bookingId: booking.id, checkoutUrl: session.data.url };
+  }
+
+  /**
+   * The mentee left Stripe with Cancel: release their own hold now instead of after the deadline, so
+   * the time (and their own retry) is open again. Stripe is asked first — a session paid meanwhile is
+   * confirmed instead. Anything but the caller's own held booking is left alone; returns its view.
+   */
+  async releaseOwnHold(menteeId: string, bookingId: string): Promise<BookingView> {
+    const booking = await this.em.findOne(Booking, { id: bookingId, mentee: menteeId });
+
+    if (booking === null) {
+      throw new NotFoundError(BOOKING_NOT_FOUND_MESSAGE);
+    }
+
+    if (booking.status === 'pending_payment' && booking.checkoutSessionId != null) {
+      const result = await this.checkoutGateway.expireSession(booking.checkoutSessionId);
+
+      if (result.kind === 'ok' && result.data.status === 'complete') {
+        const session = result.data;
+        const { outcome } = await this.em.transactional((em) => this.applyCompleted(em, session));
+
+        if (outcome === 'confirmed') {
+          await this.announceConfirmed(booking.id);
+        }
+      } else if (result.kind === 'ok' && result.data.status === 'expired') {
+        const session = result.data;
+        await this.em.transactional((em) => this.applyExpired(em, session));
+      }
+
+      // The transaction ran in its own fork; read the committed state, not this scope's cached row.
+      this.em.clear();
+    }
+
+    return this.getOwn(menteeId, bookingId);
   }
 
   /** The caller's own booking; anyone else's (or an unknown id) → 404. */

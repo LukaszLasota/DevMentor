@@ -4,7 +4,7 @@ import { parseEnv } from '../config/env';
 import { signSession } from '../security/session-token';
 import type { Clock } from '../time/clock';
 import { apiHandler } from './apiHandler';
-import { BOOKING_RESPONSE, getOwnBooking, startBooking } from './bookings';
+import { BOOKING_RESPONSE, getOwnBooking, releaseOwnBooking, startBooking } from './bookings';
 import { CSRF_HEADER, CSRF_HEADER_VALUE } from './envelope';
 import { ConflictError, ForbiddenError, NotFoundError, ServiceUnavailableError } from './errors';
 
@@ -26,12 +26,13 @@ const STARTED = { bookingId: BOOKING_ID, checkoutUrl: 'https://checkout.test/cs_
 const VIEW = { id: BOOKING_ID, status: 'confirmed' };
 const START = apiHandler(startBooking, BOOKING_RESPONSE);
 const GET = apiHandler(getOwnBooking, BOOKING_RESPONSE);
+const RELEASE = apiHandler(releaseOwnBooking, BOOKING_RESPONSE);
 
-let bookingService: { start: ReturnType<typeof vi.fn>; getOwn: ReturnType<typeof vi.fn> };
+let bookingService: { start: ReturnType<typeof vi.fn>; getOwn: ReturnType<typeof vi.fn>; releaseOwnHold: ReturnType<typeof vi.fn> };
 
 beforeEach(() => {
   const user = Object.assign(new User(), { id: USER_ID, email: 'mentee@devmentor.test', roles: ['mentee'], sessionVersion: 0 });
-  bookingService = { start: vi.fn(async () => STARTED), getOwn: vi.fn(async () => VIEW) };
+  bookingService = { start: vi.fn(async () => STARTED), getOwn: vi.fn(async () => VIEW), releaseOwnHold: vi.fn(async () => VIEW) };
   scope.cradle = {
     env: parseEnv({ DATABASE_URL: 'postgres://u:p@localhost:5432/db', SESSION_SECRET: SECRET }),
     clock,
@@ -106,5 +107,20 @@ describe('GET /api/bookings/[id]', () => {
     expect((await GET(await request('GET'), idParams('nope'))).status).toBe(404);
     expect(bookingService.getOwn).not.toHaveBeenCalled();
     expect((await GET(await request('GET', { signedIn: false }), idParams(BOOKING_ID))).status).toBe(401);
+  });
+});
+
+describe('POST /api/bookings/[id]/release', () => {
+  it('releases the caller\'s own hold with the CSRF header', async () => {
+    const response = await RELEASE(await request('POST'), idParams(BOOKING_ID));
+
+    expect(await response.json()).toEqual({ ok: true, data: VIEW });
+    expect(bookingService.releaseOwnHold).toHaveBeenCalledWith(USER_ID, BOOKING_ID);
+  });
+
+  it('answers 403 without the CSRF header and 404 for a malformed id', async () => {
+    expect((await RELEASE(await request('POST', { csrf: false }), idParams(BOOKING_ID))).status).toBe(403);
+    expect((await RELEASE(await request('POST'), idParams('x'))).status).toBe(404);
+    expect(bookingService.releaseOwnHold).not.toHaveBeenCalled();
   });
 });

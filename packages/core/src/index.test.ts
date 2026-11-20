@@ -86,6 +86,7 @@ describe('public entries', () => {
         'clearSessionCookie',
         'createFetchJson',
         'readSessionCookie',
+        'releaseOwnBooking',
         'receiveStripeWebhook',
         'requireRole',
         'requireSession',

@@ -119,6 +119,7 @@ function fakeEm(profiles: MentorProfile[], slots: Slot[], bookings: Booking[]) {
       pending.push(booking);
       return booking;
     }),
+    clear: vi.fn(),
     nativeUpdate: vi.fn(async (_entity: unknown, where: Where, data: Partial<Booking>) => {
       const rows = bookings.filter((row) => matches(row, where));
       rows.forEach((row) => Object.assign(row, data));
@@ -231,7 +232,7 @@ describe('BookingService.start', () => {
         customerEmail: MENTEE.email,
         expiresAt: new Date(NOW.getTime() + CHECKOUT_LIFETIME_MS),
         successUrl: `https://app.devmentor.test/bookings/${booking?.id}`,
-        cancelUrl: 'https://app.devmentor.test/m/ada?checkout=cancelled',
+        cancelUrl: `https://app.devmentor.test/m/ada?checkout=cancelled&booking=${booking?.id}`,
       },
     ]);
     expect(started).toEqual({ bookingId: booking?.id, checkoutUrl: `https://checkout.fake.test/cs_fake_${booking?.id}` });
@@ -638,5 +639,75 @@ describe('confirmationMails', () => {
     expect(confirmationMails(makeBooking(slot, { mentee: mentee as unknown as Booking['mentee'] }), '')[0]?.subject).toBe(
       'Booked: 25-minute session with your mentor',
     );
+  });
+});
+
+describe('BookingService.releaseOwnHold', () => {
+  function own(fields: Partial<Booking> = {}) {
+    const { profile, slot } = bookableMentor();
+    const booking = makeBooking(slot, { checkoutSessionId: 'cs_own', ...fields });
+    const ctx = setup({ profiles: [profile], slots: [slot], bookings: [booking] });
+
+    return { ...ctx, booking };
+  }
+
+  it('expires the mentee\'s own held session at Stripe and releases the time', async () => {
+    const { service, gateway, booking, em } = own();
+    const expire = vi
+      .spyOn(gateway, 'expireSession')
+      .mockResolvedValueOnce({ kind: 'ok', data: session(booking, { status: 'expired', paymentStatus: 'unpaid' }) });
+
+    await expect(service.releaseOwnHold(MENTEE.id, booking.id)).resolves.toMatchObject({ id: booking.id, status: 'expired' });
+    expect(expire).toHaveBeenCalledWith('cs_own');
+    expect(em.clear).toHaveBeenCalledOnce();
+  });
+
+  it('confirms and announces instead when the session was paid meanwhile', async () => {
+    const { service, gateway, booking, events } = own();
+    vi.spyOn(gateway, 'expireSession').mockResolvedValueOnce({ kind: 'ok', data: session(booking) });
+    (booking as unknown as { mentee: unknown }).mentee = ref(Object.assign(new User(), { id: MENTEE.id, email: MENTEE.email }));
+    (booking.mentorProfile.getEntity().user as unknown as User).email = 'ada@devmentor.test';
+
+    await expect(service.releaseOwnHold(MENTEE.id, booking.id)).resolves.toMatchObject({ status: 'confirmed' });
+    expect(events.emit).toHaveBeenCalledWith('bookings.booking.confirmed', expect.objectContaining({ bookingId: booking.id }));
+  });
+
+  it('announces nothing when a paid session no longer matches the hold', async () => {
+    const { service, gateway, booking, events } = own();
+    vi.spyOn(gateway, 'expireSession').mockResolvedValueOnce({ kind: 'ok', data: session(booking, { amountTotal: 1 }) });
+
+    await expect(service.releaseOwnHold(MENTEE.id, booking.id)).resolves.toMatchObject({ status: 'payment_orphaned' });
+    expect(events.emit).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['Stripe cannot answer', { kind: 'retryable' } as const],
+    ['the session is still open', 'open' as const],
+  ])('keeps the hold when %s', async (_case, answer) => {
+    const { service, gateway, booking } = own();
+    vi.spyOn(gateway, 'expireSession').mockResolvedValueOnce(
+      answer === 'open' ? { kind: 'ok', data: session(booking, { status: 'open', paymentStatus: 'unpaid' }) } : answer,
+    );
+
+    await expect(service.releaseOwnHold(MENTEE.id, booking.id)).resolves.toMatchObject({ status: 'pending_payment' });
+  });
+
+  it.each([
+    ['confirmed', { status: 'confirmed' as const }],
+    ['without a session', { checkoutSessionId: null }],
+  ])('leaves a booking that is %s alone, without calling Stripe', async (_case, fields) => {
+    const { service, gateway, booking, em } = own(fields);
+    const expire = vi.spyOn(gateway, 'expireSession');
+
+    await service.releaseOwnHold(MENTEE.id, booking.id);
+
+    expect(expire).not.toHaveBeenCalled();
+    expect(em.clear).not.toHaveBeenCalled();
+  });
+
+  it('answers 404 for another mentee\'s booking', async () => {
+    const { service, booking } = own();
+
+    expect(await rejection(service.releaseOwnHold(randomUUID(), booking.id))).toMatchObject({ status: 404 });
   });
 });

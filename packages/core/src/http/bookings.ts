@@ -25,13 +25,27 @@ export async function startBooking({ req, cradle }: HandlerArgs<RouteParams>): P
   return cradle.bookingService.start({ id: user.id, email: user.email }, input);
 }
 
-/** `GET /api/bookings/[id]` → the caller's own booking; anyone else's, unknown or malformed → 404. */
-export async function getOwnBooking({ req, params, cradle }: HandlerArgs<BookingIdParams>): Promise<BookingView> {
-  const user = await requireSession(req, cradle);
-
+function bookingId(params: BookingIdParams): string {
   if (!z.uuid().safeParse(params.id).success) {
     throw new NotFoundError(BOOKING_NOT_FOUND_MESSAGE);
   }
 
-  return cradle.bookingService.getOwn(user.id, params.id);
+  return params.id;
+}
+
+/** `GET /api/bookings/[id]` → the caller's own booking; anyone else's, unknown or malformed → 404. */
+export async function getOwnBooking({ req, params, cradle }: HandlerArgs<BookingIdParams>): Promise<BookingView> {
+  const user = await requireSession(req, cradle);
+
+  return cradle.bookingService.getOwn(user.id, bookingId(params));
+}
+
+/**
+ * `POST /api/bookings/[id]/release` → the caller's own booking after releasing its hold (Cancel on
+ * Stripe Checkout); a booking that is not held is returned unchanged.
+ */
+export async function releaseOwnBooking({ req, params, cradle }: HandlerArgs<BookingIdParams>): Promise<BookingView> {
+  const user = await requireSession(req, cradle);
+
+  return cradle.bookingService.releaseOwnHold(user.id, bookingId(params));
 }

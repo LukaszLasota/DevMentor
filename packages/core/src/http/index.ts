@@ -57,7 +57,7 @@ export {
 export type { MentorOwnerView, MentorPublicView } from '../services/mentors/mentor-profile.service';
 export type { MentorListItem } from '../services/mentors/mentor-list-item';
 export { receiveStripeWebhook, STRIPE_WEBHOOK_RESPONSE } from './stripe-webhook';
-export { BOOKING_RESPONSE, getOwnBooking, startBooking, type BookingIdParams } from './bookings';
+export { BOOKING_RESPONSE, getOwnBooking, releaseOwnBooking, startBooking, type BookingIdParams } from './bookings';
 export type { BookingStarted, BookingView } from '../services/bookings/booking.service';
 export { listMySlots, publishSlot, removeSlot, type SlotIdParams } from './availability';
 export type { SlotView } from '../services/availability/slot.service';

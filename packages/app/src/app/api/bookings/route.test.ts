@@ -7,6 +7,7 @@ vi.mock('@devmentor/core/http', () => ({
   apiHandler: (handler: unknown, options: unknown) => ({ handler, options }),
   startBooking: 'startBooking',
   getOwnBooking: 'getOwnBooking',
+  releaseOwnBooking: 'releaseOwnBooking',
   BOOKING_RESPONSE: 'BOOKING_RESPONSE',
 }));
 
@@ -17,5 +18,9 @@ describe('booking routes', () => {
 
   it('GET /api/bookings/[id] wires getOwnBooking with no-store', async () => {
     expect((await import('./[id]/route')).GET).toEqual({ handler: 'getOwnBooking', options: 'BOOKING_RESPONSE' });
+  });
+
+  it('POST /api/bookings/[id]/release wires releaseOwnBooking with no-store', async () => {
+    expect((await import('./[id]/release/route')).POST).toEqual({ handler: 'releaseOwnBooking', options: 'BOOKING_RESPONSE' });
   });
 });
