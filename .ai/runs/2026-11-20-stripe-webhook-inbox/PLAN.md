@@ -11,7 +11,7 @@ Engine: om-auto-create-pr-loop (--loop forwarded)
 
 | Phase | Step | Title | Exec | Status | Commit |
 |-------|------|-------|------|--------|--------|
-| 1 | 1.1 | Additive fetchJson option returning non-2xx status and body | inline | todo | |
+| 1 | 1.1 | Additive fetchJson option returning non-2xx status and body | inline | done | self |
 | 1 | 1.2 | STRIPE_* env keys, URL-override boot refusal, .env.example | inline | todo | |
 | 1 | 1.3 | Stripe client: form encoding, pinned version, idempotency key, outcome classification | inline | todo | |
 | 1 | 1.4 | CheckoutGateway port, fake and Stripe adapter | inline | todo | |

@@ -147,4 +147,49 @@ describe('fetchJson', () => {
     await expect(fetchJson('https://api.example.test/x')).resolves.toEqual({ ok: 1 });
     globalFetch.mockRestore();
   });
+
+  describe('withStatus', () => {
+    it('resolves a non-2xx response with its status and parsed body instead of throwing', async () => {
+      const { fetchJson, logger } = setup(async () =>
+        Response.json({ error: { type: 'invalid_request_error', code: 'resource_missing' } }, { status: 404 }),
+      );
+
+      await expect(fetchJson(URL_WITH_SECRET, { method: 'POST', withStatus: true })).resolves.toEqual({
+        status: 404,
+        body: { error: { type: 'invalid_request_error', code: 'resource_missing' } },
+      });
+      expect(logger.warn).not.toHaveBeenCalled();
+    });
+
+    it('resolves a 2xx response with its status and body', async () => {
+      const { fetchJson, fetchMock } = setup(async () => Response.json({ id: 'cs_1' }));
+
+      await expect(fetchJson(URL_WITH_SECRET, { withStatus: true })).resolves.toEqual({ status: 200, body: { id: 'cs_1' } });
+      expect(new Headers(fetchMock.mock.calls[0][1].headers).get('accept')).toBe('application/json');
+    });
+
+    it('gives a null body for an empty, non-JSON or unreadable body', async () => {
+      const empty = setup(async () => new Response(null, { status: 500 }));
+      await expect(empty.fetchJson(URL_WITH_SECRET, { withStatus: true })).resolves.toEqual({ status: 500, body: null });
+
+      const html = setup(async () => new Response('<html>', { status: 502 }));
+      await expect(html.fetchJson(URL_WITH_SECRET, { withStatus: true })).resolves.toEqual({ status: 502, body: null });
+
+      const errored = new ReadableStream({
+        start(controller) {
+          controller.error(new Error('stream broke'));
+        },
+      });
+      const broken = setup(async () => new Response(errored, { status: 200 }));
+      await expect(broken.fetchJson(URL_WITH_SECRET, { withStatus: true })).resolves.toEqual({ status: 200, body: null });
+    });
+
+    it('still throws 503 on a network failure', async () => {
+      const { fetchJson } = setup(async () => {
+        throw new TypeError('fetch failed');
+      });
+
+      await expect(fetchJson(URL_WITH_SECRET, { withStatus: true })).rejects.toBeInstanceOf(ServiceUnavailableError);
+    });
+  });
 });
