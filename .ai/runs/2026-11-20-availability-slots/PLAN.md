@@ -21,8 +21,12 @@ Engine: om-auto-create-pr-loop (forced by the brief, regardless of step count)
 | 3 | 3.2 | MentorPageView shows slots when offer-ready without prices | inline | done | 66cd9ee |
 | 3 | 3.3 | /mentor/slots page, sidebar item and the /mentor slot step | inline | done | 695c1dd |
 | 3 | 3.4 | Slots on the public /m/[slug] page | inline | done | 5d068f3 |
-| 4 | 4.1 | invite-cli D13 columns | dispatch:cheap | done | self |
-| 4 | 4.2 | Integration tests for slots | inline | done | self |
+| 4 | 4.1 | invite-cli D13 columns | dispatch:cheap | done | 461f488 |
+| 4 | 4.2 | Integration tests for slots | inline | done | 64f4265 |
+| 4 | 4.2-review-fix | Wait for the removal before reading slots | inline | done | 5ebc9a8 |
+| 4 | 4.2-ci-fix | Step state matched across the screen-reader word | inline | done | db16e02 |
+| 4 | 4.2-review-fix-2 | Slot publish races against PostgreSQL | inline | done | 89fbc52 |
+| 4 | 4.2-review-fix-3 | Sequential D13 reads, past empty state, empty datetime message, latest-read guard | inline | done | 4942efa |
 
 ## Goal
 

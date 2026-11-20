@@ -20,3 +20,16 @@
 - Decision: reuse the Storybook `SlotsPanel` from `@devmentor/ui` (exists since PR #37) instead of a colocated copy; the page container is `SlotsEditor.tsx`.
 - Decision: the datetime field names no zone in the server render (it cannot know the viewer's) and fills it in after hydration.
 - UI skipped pass: app-level screenshots (reason above).
+
+## 2026-11-20T10:22:50Z — delegation: step 4.1
+- Step 4.1 dispatched to an executor subagent at the cheap tier (Sonnet), per the plan's Exec column; verified: one commit (461f488), pushed, Tasks row flipped, core tests and coverage green.
+- Executor decisions: accepted invitation without acceptedBy/profile counts 0 and uses the invitation's publishDueAt; no due date known → missed.
+
+## 2026-11-20T10:22:50Z — CI fix
+- CI integration failed once at 5ebc9a8 on a test assertion only ("Done:" is a separate screen-reader word in innerText); fixed in db16e02; CI green (run 44716723528).
+
+## 2026-11-20T10:22:50Z — independent review
+- Fresh-context review subagent: no blockers; major = no real-DB concurrency test → 89fbc52; minors → 4942efa; nits recorded.
+
+## 2026-11-20T10:22:50Z — final gate
+- Full validation green locally; integration green in CI. Run complete; PR flipped to ready.
