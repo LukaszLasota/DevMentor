@@ -1,25 +1,24 @@
 # Handoff — 2026-11-20-mentor-prices
 
-**Last updated:** 2026-11-20T10:43:32Z
+**Last updated:** 2026-11-20T10:51:29Z
 **Branch:** feat/mentor-prices
-**PR:** not yet opened
-**Current phase/step:** Phase 1 Step 1.1
-**Last commit:** — (run folder + spec decision)
+**PR:** https://github.com/LukaszLasota/DevMentor/pull/51 (draft)
+**Current phase/step:** Phase 2 Step 2.1
+**Last commit:** 289bd9c — fix(db): explicit price column names
 
 ## What just happened
-- Founder decision recorded in the spec (PLN; 25 min 50–300, 50 min 100–600); run folder committed; #24 claimed.
+- Checkpoint 1: money module, price env, settings service and price columns landed; lint/typecheck/unit 100%/build green.
 
 ## Next concrete action
-- Step 1.1 — dispatch to a cheap-tier executor.
+- Step 2.1 — mentorPricesUpdateSchema.
 
 ## Blockers / open questions
-- none
+- none (ci.yml cannot be pushed by this token; not needed)
 
 ## Environment caveats
-- Dev runtime runnable: no (no database or Docker in the agent sandbox)
-- Browser / UI checks: Storybook locally; app browser checks in CI
-- Database/migration state: clean (main)
+- Dev runtime runnable: no (agent sandbox); CI is the browser/DB evidence
+- Database/migration state: Migration20261120140000 hand-written + snapshot
 
 ## Worktree
-- Path: /home/lukasz/projects/devMentor/my-app (main checkout; git worktree add is blocked in this sandbox)
+- Path: /home/lukasz/projects/devMentor/my-app (main checkout)
 - Created this run: no
