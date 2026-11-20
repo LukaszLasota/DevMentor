@@ -21,7 +21,7 @@ Engine: om-auto-create-pr-loop (forced by the brief, regardless of step count)
 | 3 | 3.2 | MentorPageView shows slots when offer-ready without prices | inline | done | 66cd9ee |
 | 3 | 3.3 | /mentor/slots page, sidebar item and the /mentor slot step | inline | done | 695c1dd |
 | 3 | 3.4 | Slots on the public /m/[slug] page | inline | done | 5d068f3 |
-| 4 | 4.1 | invite-cli D13 columns | dispatch:cheap | todo | — |
+| 4 | 4.1 | invite-cli D13 columns | dispatch:cheap | done | self |
 | 4 | 4.2 | Integration tests for slots | inline | todo | — |
 
 ## Goal

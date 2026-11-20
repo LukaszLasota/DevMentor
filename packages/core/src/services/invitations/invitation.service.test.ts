@@ -165,10 +165,11 @@ function setup(options: SetupOptions = {}) {
     passwordHasher: {} as Cradle['passwordHasher'],
     rateLimiter: {} as Cradle['rateLimiter'],
   });
+  const slotService = { countBookable: vi.fn<Cradle['slotService']['countBookable']>(async () => 0) };
   const grantRole = vi.spyOn(accountService, 'grantRole');
-  const service = new InvitationService({ ...deps, accountService });
+  const service = new InvitationService({ ...deps, accountService, slotService: slotService as unknown as Cradle['slotService'] });
 
-  return { service, em, events, logger, grantRole, ...tables };
+  return { service, em, events, logger, grantRole, slotService, ...tables };
 }
 
 function tokenOf(link: string): string {
@@ -217,6 +218,8 @@ describe('InvitationService.create', () => {
       acceptedAt: null,
       publishDueAt: null,
       revokedAt: null,
+      bookableSlots: null,
+      d13: null,
     });
     expect(JSON.stringify(invitation)).not.toContain(tokenOf(link));
     expect(logger.info).toHaveBeenCalledWith(
@@ -916,5 +919,94 @@ describe('InvitationService.list', () => {
 
     expect(em.find).toHaveBeenCalledWith(Invitation, { batch: '2026-12-b' }, { orderBy: { createdAt: 'asc' } });
     expect(views.map((view) => view.batch)).toEqual(['2026-12-b']);
+  });
+});
+
+describe('InvitationService.list D13 snapshot', () => {
+  const LATER = new Date(NOW.getTime() + DAY_MS);
+
+  function acceptedWithProfile(token: string, dueAt: Date | null) {
+    const user = makeUser({ email: `${token}@devmentor.test` });
+    const invitation = makeInvitation({
+      token,
+      acceptedAt: EARLIER,
+      acceptedBy: user as unknown as Invitation['acceptedBy'],
+      publishDueAt: dueAt,
+    });
+    const profile = Object.assign(new MentorProfile(), { id: `profile-${token}`, user, initialPublishDueAt: dueAt });
+
+    return { invitation, profile };
+  }
+
+  it('is met when the mentor has bookable slots at clock.now()', async () => {
+    const { invitation, profile } = acceptedWithProfile('met', LATER);
+    const { service, slotService } = setup({ invitations: [invitation], profiles: [profile] });
+    slotService.countBookable.mockResolvedValue(2);
+
+    const [view] = await service.list();
+
+    expect(slotService.countBookable).toHaveBeenCalledWith(profile.id, NOW);
+    expect(view).toMatchObject({ bookableSlots: 2, d13: 'met' });
+  });
+
+  it('is pending with no slots before the profile due date', async () => {
+    const { invitation, profile } = acceptedWithProfile('pending', LATER);
+
+    const [view] = await setup({ invitations: [invitation], profiles: [profile] }).service.list();
+
+    expect(view).toMatchObject({ bookableSlots: 0, d13: 'pending' });
+  });
+
+  it('is missed with no slots at or after the due date', async () => {
+    const { invitation, profile } = acceptedWithProfile('missed', NOW);
+
+    const [view] = await setup({ invitations: [invitation], profiles: [profile] }).service.list();
+
+    expect(view).toMatchObject({ bookableSlots: 0, d13: 'missed' });
+  });
+
+  it('is missed when no due date is known at all', async () => {
+    const { invitation, profile } = acceptedWithProfile('nodue', null);
+
+    const [view] = await setup({ invitations: [invitation], profiles: [profile] }).service.list();
+
+    expect(view).toMatchObject({ bookableSlots: 0, d13: 'missed' });
+  });
+
+  it('counts 0 without a profile and judges by the invitation due date', async () => {
+    const user = makeUser();
+    const accepted = (token: string, publishDueAt: Date) =>
+      makeInvitation({
+        token,
+        acceptedAt: EARLIER,
+        acceptedBy: user as unknown as Invitation['acceptedBy'],
+        publishDueAt,
+      });
+    const { service, slotService } = setup({ invitations: [accepted('a', LATER), accepted('b', EARLIER)] });
+
+    const views = await service.list();
+
+    expect(slotService.countBookable).not.toHaveBeenCalled();
+    expect(views.map(({ bookableSlots, d13 }) => [bookableSlots, d13])).toEqual([
+      [0, 'pending'],
+      [0, 'missed'],
+    ]);
+  });
+
+  it('counts 0 for an accepted invitation without an accepting user', async () => {
+    const row = makeInvitation({ acceptedAt: EARLIER, acceptedBy: null, publishDueAt: LATER });
+
+    const [view] = await setup({ invitations: [row] }).service.list();
+
+    expect(view).toMatchObject({ bookableSlots: 0, d13: 'pending' });
+  });
+
+  it('leaves non-accepted invitations with nulls', async () => {
+    const { service, slotService } = setup({ invitations: [makeInvitation()] });
+
+    const [view] = await service.list();
+
+    expect(view).toMatchObject({ bookableSlots: null, d13: null });
+    expect(slotService.countBookable).not.toHaveBeenCalled();
   });
 });

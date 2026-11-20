@@ -8,6 +8,7 @@ import { createLogger, type Logger } from '../logger';
 import { LogMailer } from '../mail/log-mailer';
 import { PasswordHasher } from '../security/password';
 import { RateLimiter } from '../security/rate-limit';
+import { SlotService } from '../services/availability/slot.service';
 import { AccountService } from '../services/auth/account.service';
 import { InvitationService, type InvitationView } from '../services/invitations/invitation.service';
 import { systemClock, type Clock } from '../time/clock';
@@ -175,7 +176,7 @@ export function formatInvitationTable(invitations: readonly InvitationView[], ba
   }
 
   const rows = [
-    ['ID', 'Email', 'Tags', 'Batch', 'Status', 'Created', 'Expires', 'Accepted', 'Publish due'],
+    ['ID', 'Email', 'Tags', 'Batch', 'Status', 'Created', 'Expires', 'Accepted', 'Publish due', 'Bookable', 'D13'],
     ...invitations.map((invitation) => [
       invitation.id,
       invitation.email,
@@ -186,6 +187,8 @@ export function formatInvitationTable(invitations: readonly InvitationView[], ba
       formatTableDate(invitation.expiresAt),
       formatTableDate(invitation.acceptedAt),
       formatTableDate(invitation.publishDueAt),
+      invitation.bookableSlots === null ? '-' : String(invitation.bookableSlots),
+      invitation.d13 ?? '-',
     ]),
   ];
   const widths = rows[0].map((_, column) => Math.max(...rows.map((row) => row[column].length)));
@@ -271,7 +274,7 @@ function invitationServiceFor(em: EntityManager, env: Env, logger: Logger): Invi
     rateLimiter: new RateLimiter({ em, clock, logger }),
   });
 
-  return new InvitationService({ em, env, clock, events, logger, accountService });
+  return new InvitationService({ em, env, clock, events, logger, accountService, slotService: new SlotService({ em, clock, events }) });
 }
 
 /** Warnings and errors of the services as plain `warning: <msg>` lines on stderr; info lines are dropped. */
