@@ -10,6 +10,10 @@ import { RateLimiter } from '../security/rate-limit';
 import { AccountService } from '../services/auth/account.service';
 import { GithubOAuthService } from '../services/auth/github-oauth.service';
 import { PlatformSettingsService } from '../services/operator/platform-settings.service';
+import { StripeCheckoutGateway } from '../services/payments/stripe-checkout-gateway';
+import { StripeClient } from '../services/payments/stripe-client';
+import { createStripeEventHandlers } from '../services/payments/stripe-event-handlers';
+import { StripeInboxService } from '../services/payments/stripe-inbox.service';
 import { SlotService } from '../services/availability/slot.service';
 import { HealthService } from '../services/health/health.service';
 import { InvitationService } from '../services/invitations/invitation.service';
@@ -52,6 +56,9 @@ async function buildContainer(): Promise<AwilixContainer<Cradle>> {
     ).singleton(),
     // Singleton: reads the process env, holds no request state.
     platformSettingsService: asClass(PlatformSettingsService).singleton(),
+    // Singletons: stateless Stripe access over the shared fetchJson (spec 2026-11-20-booking-stripe-checkout).
+    stripeClient: asClass(StripeClient).singleton(),
+    checkoutGateway: asClass(StripeCheckoutGateway).singleton(),
     em: asFunction(({ orm }: Cradle) => orm.em.fork()).scoped(),
     rateLimiter: asClass(RateLimiter).scoped(),
     healthService: asClass(HealthService).scoped(),
@@ -61,6 +68,8 @@ async function buildContainer(): Promise<AwilixContainer<Cradle>> {
     mentorProfileService: asClass(MentorProfileService).scoped(),
     mentorListService: asClass(MentorListService).scoped(),
     slotService: asClass(SlotService).scoped(),
+    stripeEventHandlers: asFunction(createStripeEventHandlers).scoped(),
+    stripeInboxService: asClass(StripeInboxService).scoped(),
   });
 
   // Resolved eagerly so the log mailer's "not delivered" warning appears at boot, not at the first mail.

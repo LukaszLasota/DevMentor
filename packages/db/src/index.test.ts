@@ -14,6 +14,7 @@ describe('@devmentor/db public entry', () => {
       'ROLES',
       'STACK_TAGS',
       'Slot',
+      'StripeEvent',
       'UniqueConstraintViolationException',
       'User',
       'getOrm',

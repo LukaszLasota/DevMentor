@@ -141,8 +141,15 @@ describe('DI container', () => {
     expect(first.cradle.platformSettingsService).toBe(second.cradle.platformSettingsService);
     expect(first.cradle.mentorListService).toBe(first.cradle.mentorListService);
     expect(first.cradle.mentorListService).not.toBe(second.cradle.mentorListService);
+    expect(first.cradle.stripeClient).toBe(second.cradle.stripeClient);
+    expect(first.cradle.checkoutGateway).toBe(second.cradle.checkoutGateway);
+    expect(first.cradle.checkoutGateway.configured).toBe(first.cradle.stripeClient.configured);
     expect(first.cradle.slotService).toBe(first.cradle.slotService);
     expect(first.cradle.slotService).not.toBe(second.cradle.slotService);
+    expect(first.cradle.stripeInboxService).toBe(first.cradle.stripeInboxService);
+    expect(first.cradle.stripeInboxService).not.toBe(second.cradle.stripeInboxService);
+    expect(first.cradle.stripeEventHandlers).not.toBe(second.cradle.stripeEventHandlers);
+    expect(first.cradle.stripeEventHandlers.size).toBe(0);
     expect(first.cradle.rateLimiter).toBe(first.cradle.rateLimiter);
     expect(first.cradle.rateLimiter).not.toBe(second.cradle.rateLimiter);
   });
