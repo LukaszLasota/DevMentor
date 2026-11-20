@@ -49,8 +49,8 @@ describe('GitHub sign-in through the stub (agent-browser)', () => {
     await browser.waitForText('mock-mentee@devmentor.test');
 
     expect(new URL(await browser.url()).pathname).toBe('/mentors');
-    // App shell sidebar (spec #21 "App shell", L04): a mentee sees "Mentors" only, as the current page.
-    expect(await browser.count('nav[aria-label="Main"] a')).toBe(1);
+    // App shell sidebar (spec #21 "App shell", L04): a mentee sees "Mentors" (the current page) and "My sessions".
+    expect(await browser.count('nav[aria-label="Main"] a')).toBe(2);
     expect(await browser.text('nav[aria-label="Main"] a[aria-current="page"]')).toBe('Mentors');
     expect(await browser.count('a[href="/admin"]')).toBe(0);
     expect(await browser.count('a[href="/mentor"]')).toBe(0);
