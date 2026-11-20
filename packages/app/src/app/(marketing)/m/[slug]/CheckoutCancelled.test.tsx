@@ -49,7 +49,7 @@ describe("CheckoutCancelled", () => {
   it("calls nothing without a booking id", () => {
     render(<CheckoutCancelled bookingId={null} />);
 
-    expect(screen.getByRole("status").textContent).toBe("Payment cancelled. Nothing was charged. The time is open again.");
+    expect(screen.getByRole("status").textContent).toBe("Payment cancelled. Nothing was charged.");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

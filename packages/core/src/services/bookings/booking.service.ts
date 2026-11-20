@@ -10,7 +10,7 @@ import { activeBookingsWhere } from '../availability/slot.service';
 import { mentorOfferReady } from '../mentors/readiness';
 import { offerState } from '../mentors/mentor-profile.service';
 import type { CheckoutSession } from '../payments/checkout-gateway';
-import { endOf, freeLengths } from './occupancy';
+import { endOf, freeLengths, overlaps } from './occupancy';
 
 /** Stripe's minimum session lifetime is 30 minutes; one more absorbs latency and clock skew. */
 export const CHECKOUT_LIFETIME_MS = 31 * 60_000;
@@ -53,7 +53,7 @@ export interface BookingView {
 /** What a completed Checkout did to its booking. */
 export type CompletionOutcome = 'confirmed' | 'already_confirmed' | 'orphaned' | 'ignored';
 
-type StartStep = { kind: 'held'; booking: Booking; displayName: string; slug: string } | { kind: 'release'; booking: Booking };
+type StartStep = { kind: 'held'; booking: Booking; displayName: string; slug: string } | { kind: 'release'; bookings: Booking[] };
 
 /**
  * Bookings (spec 2026-11-20-booking-stripe-checkout). A mentee's commit takes a **hold** — a
@@ -119,11 +119,14 @@ export class BookingService {
 
     const now = this.clock.now();
     const deadline = new Date(now.getTime() + CHECKOUT_LIFETIME_MS);
-    // At most one stale hold is in the way (the unique index allows one per slot): release, then retry once.
+    // Expired holds overlapping the wanted time are released (each through Stripe), then retry once.
     let step = await this.hold(slot.mentorProfile.id, mentee.id, input, now, deadline);
 
     if (step.kind === 'release') {
-      await this.releaseStale(step.booking);
+      for (const stale of step.bookings) {
+        await this.releaseStale(stale);
+      }
+
       step = await this.hold(slot.mentorProfile.id, mentee.id, input, now, deadline);
 
       if (step.kind === 'release') {
@@ -173,6 +176,8 @@ export class BookingService {
       if (result.kind === 'ok' && result.data.status === 'complete') {
         const session = result.data;
         const { outcome } = await this.em.transactional((em) => this.applyCompleted(em, session));
+        // The transaction ran in its own fork; read the committed state, not this scope's cached row.
+        this.em.clear();
 
         if (outcome === 'confirmed') {
           await this.announceConfirmed(booking.id);
@@ -214,11 +219,18 @@ export class BookingService {
    * Applies a completed Checkout Session inside the caller's transaction (`em`), with the booking
    * row locked. Idempotent: a confirmed booking stays as it is. A payment that matches the held
    * snapshot confirms it and records the R09 lead; anything else that was paid (amount or currency
-   * mismatch, a booking no longer held, a removed slot) becomes `payment_orphaned` for the operator
-   * (R16) — never an automatic refund (R10).
+   * mismatch, a booking no longer held, a removed slot, a time another active booking now overlaps)
+   * becomes `payment_orphaned` for the operator (R16) — never an automatic refund (R10). The mentor
+   * profile row is locked first, in the same order as booking, so the overlap check cannot race a hold.
    */
   async applyCompleted(em: Cradle['em'], session: CheckoutSession): Promise<{ outcome: CompletionOutcome; booking: Booking | null }> {
-    const booking = session.clientReferenceId === null ? null : await em.findOne(Booking, { id: session.clientReferenceId }, lockForUpdate());
+    const found = session.clientReferenceId === null ? null : await em.findOne(Booking, { id: session.clientReferenceId });
+
+    if (found !== null) {
+      await em.findOne(MentorProfile, { id: found.mentorProfile.id }, lockForUpdate());
+    }
+
+    const booking = found === null ? null : await em.findOne(Booking, { id: found.id }, lockForUpdate());
 
     if (booking === null || session.paymentStatus !== 'paid') {
       this.logger.warn({ checkout: { id: session.id, paymentStatus: session.paymentStatus } }, 'Completed Checkout without a payable booking');
@@ -232,12 +244,14 @@ export class BookingService {
 
     const now = this.clock.now();
     const slot = await em.findOne(Slot, { id: booking.slot.id });
+    const others = await em.find(Booking, { ...activeBookingsWhere([booking.mentorProfile.id], now), id: { $ne: booking.id } });
     const matches =
       booking.status === 'pending_payment' &&
       session.amountTotal === booking.priceCents &&
       session.currency === booking.currency &&
       slot !== null &&
-      slot.removedAt == null;
+      slot.removedAt == null &&
+      !others.some((other) => overlaps(other, booking));
 
     booking.checkoutSessionId ??= session.id;
 
@@ -324,16 +338,24 @@ export class BookingService {
         }
 
         const settings = this.platformSettingsService.tryGet();
-        const bookable = await this.slotService.countBookable(profile.id, now);
+        const bookable = await this.slotService.countBookable(profile.id, now, em);
 
         if (!meetsLeadTime(slot.startsAt, now) || settings === null || !mentorOfferReady.isMet(offerState(profile, bookable, settings))) {
           throw notBookable();
         }
 
-        const stale = await em.findOne(Booking, { slot: slot.id, status: 'pending_payment', holdExpiresAt: { $lte: now } });
+        // Expired holds on this slot or overlapping the wanted time, on any slot of the mentor: each may
+        // still be paid (a late webhook), so none is ignored before Stripe says it can no longer be.
+        const stale = await em.find(Booking, {
+          mentorProfile: profile.id,
+          status: 'pending_payment',
+          holdExpiresAt: { $lte: now },
+          startsAt: { $lt: endOf(slot.startsAt, input.length) },
+          endsAt: { $gt: slot.startsAt },
+        });
 
-        if (stale !== null) {
-          return { kind: 'release', booking: stale };
+        if (stale.length > 0) {
+          return { kind: 'release', bookings: stale };
         }
 
         const busy = await em.find(Booking, activeBookingsWhere([profile.id], now));
@@ -390,7 +412,14 @@ export class BookingService {
     const session = result.data;
 
     if (session.status === 'complete') {
-      await this.em.transactional((em) => this.applyCompleted(em, session));
+      const { outcome } = await this.em.transactional((em) => this.applyCompleted(em, session));
+
+      // Its webhook will find it confirmed and stay silent, so this path announces it.
+      if (outcome === 'confirmed') {
+        this.em.clear();
+        await this.announceConfirmed(stale.id);
+      }
+
       throw slotTaken();
     }
 

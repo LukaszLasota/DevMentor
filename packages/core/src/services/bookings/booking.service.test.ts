@@ -40,15 +40,23 @@ function matches(row: object, where: Where): boolean {
     }
 
     if (expected !== null && typeof expected === 'object' && !(expected instanceof Date)) {
-      const range = expected as { $gt?: Date; $lte?: Date; $in?: string[] };
+      const range = expected as { $gt?: Date; $lt?: Date; $lte?: Date; $in?: string[]; $ne?: string };
 
       if (range.$in) {
         return range.$in.includes((actual as { id: string }).id);
       }
 
+      if (range.$ne !== undefined) {
+        return actual !== range.$ne;
+      }
+
       const time = (actual as Date).getTime();
 
-      return (range.$gt === undefined || time > range.$gt.getTime()) && (range.$lte === undefined || time <= range.$lte.getTime());
+      return (
+        (range.$gt === undefined || time > range.$gt.getTime()) &&
+        (range.$lt === undefined || time < range.$lt.getTime()) &&
+        (range.$lte === undefined || time <= range.$lte.getTime())
+      );
     }
 
     if (typeof expected === 'string' && actual !== null && typeof actual === 'object' && 'id' in actual) {
@@ -376,15 +384,54 @@ describe('BookingService.start', () => {
       expect(bookings.filter((row) => row.status === 'pending_payment')).toHaveLength(1);
     });
 
-    it('is confirmed instead when Stripe reports it paid (a late webhook), and the time stays taken', async () => {
+    it('is confirmed and announced instead when Stripe reports it paid (a late webhook), and the time stays taken', async () => {
       const { profile, slot } = bookableMentor();
-      const old = stale(slot);
-      const { service, gateway } = setup({ profiles: [profile], slots: [slot], bookings: [old] });
+      (profile.user as unknown as User).email = 'ada@devmentor.test';
+      const mentee = ref(Object.assign(new User(), { id: MENTEE.id, email: MENTEE.email }));
+      const old = stale(slot, { mentee: mentee as unknown as Booking['mentee'] });
+      const { service, gateway, events, mailSender, em } = setup({ profiles: [profile], slots: [slot], bookings: [old] });
       vi.spyOn(gateway, 'expireSession').mockResolvedValueOnce({ kind: 'ok', data: session(old) });
 
       expect(await rejection(service.start(MENTEE, { slotId: slot.id, length: '25' }))).toMatchObject({ code: 'SLOT_TAKEN' });
       expect(old).toMatchObject({ status: 'confirmed', confirmedAt: NOW });
       expect(gateway.created).toHaveLength(0);
+      expect(em.clear).toHaveBeenCalled();
+      expect(events.emit).toHaveBeenCalledWith('bookings.booking.confirmed', expect.objectContaining({ bookingId: old.id }));
+      expect(mailSender.send).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not announce a stale payment that is orphaned', async () => {
+      const { profile, slot } = bookableMentor();
+      const old = stale(slot);
+      const { service, gateway, events } = setup({ profiles: [profile], slots: [slot], bookings: [old] });
+      vi.spyOn(gateway, 'expireSession').mockResolvedValueOnce({ kind: 'ok', data: session(old, { amountTotal: 1 }) });
+
+      expect(await rejection(service.start(MENTEE, { slotId: slot.id, length: '25' }))).toMatchObject({ code: 'SLOT_TAKEN' });
+      expect(old.status).toBe('payment_orphaned');
+      expect(events.emit).not.toHaveBeenCalled();
+    });
+
+    it('releases an expired hold on another slot that overlaps the wanted time, through Stripe, before holding', async () => {
+      const { profile, slot } = bookableMentor();
+      const earlier = makeSlot(profile, new Date(slot.startsAt.getTime() - 30 * 60_000));
+      const unrelated = makeSlot(profile, new Date(slot.startsAt.getTime() + 3 * 3_600_000));
+      const overlapping = makeBooking(earlier, {
+        endsAt: new Date(earlier.startsAt.getTime() + 50 * 60_000),
+        lengthMinutes: 50,
+        holdExpiresAt: hoursFromNow(-0.1),
+        checkoutSessionId: 'cs_overlap',
+      });
+      const far = makeBooking(unrelated, { holdExpiresAt: hoursFromNow(-0.1), checkoutSessionId: 'cs_far' });
+      const { service, gateway } = setup({ profiles: [profile], slots: [slot, earlier, unrelated], bookings: [overlapping, far] });
+      const expire = vi
+        .spyOn(gateway, 'expireSession')
+        .mockResolvedValueOnce({ kind: 'ok', data: session(overlapping, { status: 'expired', paymentStatus: 'unpaid' }) });
+
+      await expect(service.start(MENTEE, { slotId: slot.id, length: '25' })).resolves.toMatchObject({ checkoutUrl: expect.any(String) });
+
+      expect(expire).toHaveBeenCalledExactlyOnceWith('cs_overlap');
+      expect(overlapping.status).toBe('expired');
+      expect(far.status).toBe('pending_payment');
     });
 
     it.each([
@@ -439,6 +486,7 @@ describe('BookingService.applyCompleted / applyExpired', () => {
     const { service, em, booking } = held();
 
     await expect(service.applyCompleted(em as unknown as Cradle['em'], session(booking))).resolves.toEqual({ outcome: 'confirmed', booking });
+    expect(em.findOne).toHaveBeenCalledWith(MentorProfile, { id: booking.mentorProfile.id }, LOCK);
     expect(em.findOne).toHaveBeenCalledWith(Booking, { id: booking.id }, LOCK);
     expect(booking).toMatchObject({ status: 'confirmed', confirmedAt: NOW, leadMinutes: 24 * 60, checkoutSessionId: `cs_${booking.id}` });
   });
@@ -471,6 +519,18 @@ describe('BookingService.applyCompleted / applyExpired', () => {
     expect(logger.error).toHaveBeenCalledWith({ booking: { id: booking.id }, checkout: { id: `cs_${booking.id}` } }, expect.any(String));
   });
 
+  it('orphans a late payment whose time another active booking now overlaps (never two sessions at once)', async () => {
+    const { service, em, booking, slot } = held({ holdExpiresAt: hoursFromNow(-0.5) });
+    const profile = booking.mentorProfile.getEntity();
+    const next = makeSlot(profile, new Date(slot.startsAt.getTime() + 10 * 60_000));
+    (em.find as unknown as { mockResolvedValueOnce: (rows: Booking[]) => void }).mockResolvedValueOnce([
+      makeBooking(next, { status: 'confirmed' }),
+    ]);
+
+    await expect(service.applyCompleted(em as unknown as Cradle['em'], session(booking))).resolves.toMatchObject({ outcome: 'orphaned' });
+    expect(booking.status).toBe('payment_orphaned');
+  });
+
   it('orphans a payment for a slot that was removed or is gone', async () => {
     const removed = held();
     removed.slot.removedAt = NOW;
@@ -479,7 +539,11 @@ describe('BookingService.applyCompleted / applyExpired', () => {
     });
 
     const gone = held();
-    gone.em.findOne.mockImplementationOnce(async () => gone.booking).mockImplementationOnce(async () => null);
+    gone.em.findOne
+      .mockImplementationOnce(async () => gone.booking)
+      .mockImplementationOnce(async () => null)
+      .mockImplementationOnce(async () => gone.booking)
+      .mockImplementationOnce(async () => null);
     await expect(gone.service.applyCompleted(gone.em as unknown as Cradle['em'], session(gone.booking))).resolves.toMatchObject({
       outcome: 'orphaned',
     });

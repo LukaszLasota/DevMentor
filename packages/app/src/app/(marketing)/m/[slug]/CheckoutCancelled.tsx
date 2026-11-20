@@ -11,7 +11,7 @@ import { apiCall } from "@devmentor/ui/mentors";
  */
 export function CheckoutCancelled({ bookingId }: { bookingId: string | null }) {
   const router = useRouter();
-  const [released, setReleased] = useState(bookingId === null);
+  const [released, setReleased] = useState(false);
 
   useEffect(() => {
     if (bookingId === null) {

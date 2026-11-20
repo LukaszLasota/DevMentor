@@ -197,6 +197,24 @@ describe('booking: cancel, race, overlap and refusals over HTTP (Stripe stub)', 
     expect(refused.body.error.code).toBe('SLOT_TAKEN');
   });
 
+  it('an expired hold on an overlapping time is released through Stripe before a new hold (never two sessions at once)', async () => {
+    const gus = await mentor('gus');
+    const [first] = await publicSlots(gus.slug as string);
+    const later = (await api('/api/availability/slots', gus.cookie, { method: 'POST', body: { startsAt: inHours(24.5) } })).body.data;
+    const held = await api('/api/bookings', menteeCookie, { method: 'POST', body: { slotId: first?.id, length: '50' } });
+    expect(held.status).toBe(200);
+    expect((await publicSlots(gus.slug as string)).map((slot) => slot.id)).not.toContain(later.id);
+
+    // The payment window of the first hold passes without a webhook (the session is still open at Stripe).
+    await psql(`update bookings set hold_expires_at = now() - interval '1 minute' where id = '${held.body.data.bookingId}'`);
+    const next = await api('/api/bookings', menteeCookie, { method: 'POST', body: { slotId: later.id, length: '25' } });
+
+    expect(next.status).toBe(200);
+    expect(await bookingStatus(held.body.data.bookingId)).toBe('expired');
+    // Stripe can no longer take that payment: the stub expired the session and said so.
+    await eventually(async () => (await psql(`select count(*) from stripe_events where type = 'checkout.session.expired' and payload like '%${held.body.data.bookingId}%'`)) === '1');
+  });
+
   it('refuses the mentor\'s own time (403), a time under two hours (409 NOT_BOOKABLE) and a signed-out visitor (401)', async () => {
     const eve = await mentor('eve');
     const [slot] = await publicSlots(eve.slug as string);

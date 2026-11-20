@@ -200,19 +200,23 @@ export class SlotService {
    * booking query (spec #27); mentors with none are absent from the map; no ids, no query. Grouped
    * here: core cannot use MikroORM's raw SQL helpers, and 1.0 holds at most 50 mentors × 200 slots.
    */
-  async bookableSummaryFor(mentorProfileIds: readonly string[], now: Date): Promise<Map<string, BookableSummary>> {
+  async bookableSummaryFor(
+    mentorProfileIds: readonly string[],
+    now: Date,
+    em: Cradle['em'] = this.em,
+  ): Promise<Map<string, BookableSummary>> {
     const summary = new Map<string, BookableSummary>();
 
     if (mentorProfileIds.length === 0) {
       return summary;
     }
 
-    const slots = await this.em.find(
+    const slots = await em.find(
       Slot,
       { mentorProfile: { $in: [...mentorProfileIds] }, removedAt: null, startsAt: { $gt: now } },
       { orderBy: { startsAt: 'asc' } },
     );
-    const bookings = await this.activeBookings(this.em, mentorProfileIds, now);
+    const bookings = await this.activeBookings(em, mentorProfileIds, now);
 
     for (const slot of slots) {
       const mentorProfileId = slot.mentorProfile.id;
@@ -234,9 +238,12 @@ export class SlotService {
     return summary;
   }
 
-  /** The `hasBookableSlot` and D13 count for one mentor, with the same rule as `bookableSummaryFor`. */
-  async countBookable(mentorProfileId: string, now: Date): Promise<number> {
-    return (await this.bookableSummaryFor([mentorProfileId], now)).get(mentorProfileId)?.count ?? 0;
+  /**
+   * The `hasBookableSlot` and D13 count for one mentor, with the same rule as `bookableSummaryFor`;
+   * `em` lets a caller read inside its own transaction (booking under the profile lock).
+   */
+  async countBookable(mentorProfileId: string, now: Date, em: Cradle['em'] = this.em): Promise<number> {
+    return (await this.bookableSummaryFor([mentorProfileId], now, em)).get(mentorProfileId)?.count ?? 0;
   }
 
   /**
