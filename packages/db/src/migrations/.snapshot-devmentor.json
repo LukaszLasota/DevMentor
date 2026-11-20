@@ -640,6 +640,40 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
+        "price_25_cents": {
+          "name": "price_25_cents",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "price_50_cents": {
+          "name": "price_50_cents",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
         "public_work_url": {
           "name": "public_work_url",
           "type": "text",
@@ -781,6 +815,18 @@
           "expression": "(bio IS NULL) OR (char_length(bio) <= 2000)",
           "definition": "CHECK (((bio IS NULL) OR (char_length(bio) <= 2000)))",
           "columnName": "bio"
+        },
+        {
+          "name": "mentor_profiles_price_25_cents_check",
+          "expression": "(price_25_cents > 0)",
+          "definition": "CHECK ((price_25_cents > 0))",
+          "columnName": "price_25_cents"
+        },
+        {
+          "name": "mentor_profiles_price_50_cents_check",
+          "expression": "(price_50_cents > 0)",
+          "definition": "CHECK ((price_50_cents > 0))",
+          "columnName": "price_50_cents"
         },
         {
           "name": "mentor_profiles_published_slug_check",

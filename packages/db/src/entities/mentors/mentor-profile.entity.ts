@@ -25,6 +25,10 @@ export const MENTOR_STACK_TAGS_CHECK =
 
 export const BIO_LENGTH_CHECK = `bio is null or char_length(bio) <= ${BIO_MAX_LENGTH}`;
 
+/** Stored prices are positive minor units of the platform currency (spec 2026-10-21-mentor-prices). */
+export const PRICE_25_POSITIVE_CHECK = 'price_25_cents > 0';
+export const PRICE_50_POSITIVE_CHECK = 'price_50_cents > 0';
+
 /** A published page always has its share link. */
 export const PUBLISHED_SLUG_CHECK = 'published_at is null or slug is not null';
 
@@ -41,6 +45,8 @@ export const MentorProfileSchema = defineEntity({
     { name: 'mentor_profiles_stack_tags_check', expression: MENTOR_STACK_TAGS_CHECK },
     { name: 'mentor_profiles_bio_length_check', expression: BIO_LENGTH_CHECK },
     { name: 'mentor_profiles_published_slug_check', expression: PUBLISHED_SLUG_CHECK },
+    { name: 'mentor_profiles_price_25_cents_check', expression: PRICE_25_POSITIVE_CHECK },
+    { name: 'mentor_profiles_price_50_cents_check', expression: PRICE_50_POSITIVE_CHECK },
   ],
   uniques: [{ name: MENTOR_PROFILE_SLUG_KEY, properties: ['slug'] }],
   properties: {
@@ -60,6 +66,12 @@ export const MentorProfileSchema = defineEntity({
      * removal. Ordering only — eligibility is `hasBookableSlot`.
      */
     lastPublishedAvailabilityAt: p.datetime().nullable(),
+    /**
+     * The mentor's prices in minor units of the platform currency (R12), always written together by
+     * `MentorProfileService.updatePrices`; the currency is not stored per mentor.
+     */
+    price25Cents: p.integer().nullable(),
+    price50Cents: p.integer().nullable(),
     createdAt: p.datetime().onCreate(now),
     updatedAt: p.datetime().onCreate(now).onUpdate(now),
   },
