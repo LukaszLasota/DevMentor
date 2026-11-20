@@ -5,3 +5,7 @@
 ## 2026-11-20T12:39:13Z — run started
 - Brief: phase 1 of .ai/specs/2026-11-20-booking-stripe-checkout.md (#29, epic #18; spec PR #54).
 - Decision: the spec PR is unmerged; the spec file is read from its branch and not committed here.
+
+## 2026-11-20T12:48:55Z — checkpoint 1
+- Phase 1 green: lint, typecheck, 1648 unit tests at 100% coverage.
+- Decision: the Checkout calls live in StripeCheckoutGateway over a generic StripeClient.request, so #26 adds Connect calls without touching Checkout.
