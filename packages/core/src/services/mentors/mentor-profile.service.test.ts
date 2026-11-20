@@ -155,21 +155,18 @@ function ownerWith(fields: Partial<MentorProfile> = {}) {
   return { user, row, ...setup([row], [user]) };
 }
 
-describe('MentorProfileService.publishDueAt', () => {
-  it("reads the user's profile and returns its initial publish-by date", async () => {
+describe('MentorProfileService.findOwn', () => {
+  it("returns the owner's page with its publish-by date", async () => {
     const { user, service } = ownerWith();
 
-    await expect(service.publishDueAt(user.id)).resolves.toEqual(DUE);
+    expect(await service.findOwn(user.id)).toMatchObject({ initialPublishDueAt: DUE.toISOString(), publishedAt: null });
   });
 
-  it.each([
-    ['no profile', false, DUE],
-    ['no date on the profile', true, null],
-  ])('returns null with %s', async (_case, hasProfile, due) => {
+  it('returns null without a profile', async () => {
     const user = makeUser();
-    const { service } = setup(hasProfile ? [makeRow(user, { initialPublishDueAt: due })] : [], [user]);
+    const { service } = setup([], [user]);
 
-    await expect(service.publishDueAt(user.id)).resolves.toBeNull();
+    await expect(service.findOwn(user.id)).resolves.toBeNull();
   });
 });
 
@@ -433,6 +430,7 @@ describe('MentorProfileService.getPublicBySlug', () => {
     const { service } = ownerWith({ ...COMPLETE, slug: 'ada-lovelace', publishedAt: EARLIER, ...fields });
 
     expect(await rejection(service.getPublicBySlug(slug))).toMatchObject({ status: 404, message: PAGE_NOT_FOUND_MESSAGE });
+    await expect(service.findPublicBySlug(slug)).resolves.toBeNull();
   });
 
   it('answers 404 when the owner no longer holds mentor, or is not loaded (fail closed)', async () => {

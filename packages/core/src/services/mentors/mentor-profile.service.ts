@@ -112,24 +112,24 @@ export class MentorProfileService {
   }
 
   /**
-   * "Publish at least one bookable session by <date>" (R13, D13): `initialPublishDueAt` of the
-   * user's profile, `null` without a profile or a date (e.g. `mentor` granted by hand).
+   * The owner's page, or `null` without a profile (e.g. `mentor` granted by hand): `/mentor` reads the
+   * publish-by date ("Publish at least one bookable session by <date>", R13, D13) and the page step.
    */
-  async publishDueAt(userId: string): Promise<Date | null> {
+  async findOwn(userId: string): Promise<MentorOwnerView | null> {
     const profile = await this.em.findOne(MentorProfile, { user: userId });
 
-    return profile?.initialPublishDueAt ?? null;
+    return profile === null ? null : toOwnerDto(profile, await this.avatarOf(userId));
   }
 
   /** The owner's page; 404 without a profile (never created implicitly on read). */
   async getOwn(userId: string): Promise<MentorOwnerView> {
-    const profile = await this.em.findOne(MentorProfile, { user: userId });
+    const own = await this.findOwn(userId);
 
-    if (profile === null) {
+    if (own === null) {
       throw new NotFoundError(PROFILE_NOT_FOUND_MESSAGE);
     }
 
-    return toOwnerDto(profile, await this.avatarOf(userId));
+    return own;
   }
 
   /**
@@ -203,12 +203,13 @@ export class MentorProfileService {
   }
 
   /**
-   * A published page by slug; 404 when unknown, unpublished, incomplete, or when its owner no longer
-   * holds `mentor` (fail closed). The slug format is checked before any query.
+   * A published page by slug, else `null`: unknown, unpublished, incomplete, or its owner no longer
+   * holds `mentor` (fail closed). The slug format is checked before any query. `/m/[slug]` calls it
+   * before streaming starts, so a `null` becomes a true HTTP 404.
    */
-  async getPublicBySlug(slug: string): Promise<MentorPublicView> {
+  async findPublicBySlug(slug: string): Promise<MentorPublicView | null> {
     if (!SLUG_FORMAT.test(slug)) {
-      throw new NotFoundError(PAGE_NOT_FOUND_MESSAGE);
+      return null;
     }
 
     const profile = await this.em.findOne(MentorProfile, { slug, publishedAt: { $ne: null } }, { populate: ['user'] });
@@ -220,10 +221,21 @@ export class MentorProfileService {
       !owner.roles.includes('mentor') ||
       !mentorPagePublishable.isMet(pageFields(profile))
     ) {
-      throw new NotFoundError(PAGE_NOT_FOUND_MESSAGE);
+      return null;
     }
 
     return toPublicDto(profile, owner.avatarUrl ?? null);
+  }
+
+  /** `findPublicBySlug` for the API: 404 for every page that is not public. */
+  async getPublicBySlug(slug: string): Promise<MentorPublicView> {
+    const page = await this.findPublicBySlug(slug);
+
+    if (page === null) {
+      throw new NotFoundError(PAGE_NOT_FOUND_MESSAGE);
+    }
+
+    return page;
   }
 
   private async publishOnce(em: Cradle['em'], userId: string, attempt: number): Promise<PublishStep> {
