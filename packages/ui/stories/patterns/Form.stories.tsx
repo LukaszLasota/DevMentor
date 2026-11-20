@@ -3,7 +3,7 @@ import { delay, http, HttpResponse } from "msw";
 import { expect, userEvent, waitFor } from "storybook/test";
 import { ProfileFormPattern } from "./ProfileFormPattern";
 
-const endpoint = "/api/mentor-profile";
+const endpoint = "/api/mentors/me";
 
 const meta = {
   title: "Patterns/Form",

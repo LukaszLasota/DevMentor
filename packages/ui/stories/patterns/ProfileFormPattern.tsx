@@ -48,7 +48,7 @@ export function ProfileFormPattern() {
         }}
         onSubmit={(values) => {
           setSaved(false);
-          return apiCall("/api/mentor-profile", { method: "PUT", body: values });
+          return apiCall("/api/mentors/me", { method: "PUT", body: values });
         }}
         onSuccess={() => setSaved(true)}
         onCancel={() => setSaved(false)}
