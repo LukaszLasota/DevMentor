@@ -9,7 +9,8 @@ import { resendStubEvent, stubEvents } from './stripe';
 // Booking cancellation end to end (spec 2026-11-20-booking-cancellation, step 7) against the production
 // build, PostgreSQL and the local Stripe stub: a mentee cancels more than 24 hours ahead and gets a full
 // refund, the time reopens and the mentor sees it (AC1, AC4); later, the fee is forfeited only after
-// the mentee saw it (AC2); a refund Stripe refuses lands on /admin, where the operator retries it.
+// the mentee saw it (AC2); a refund Stripe refuses lands on /admin, where the operator retries it; a
+// dispute report is stored once and shown to operators, never moving money (AC3).
 process.env.DATABASE_URL = inject('databaseUrl');
 process.env.APP_URL = inject('baseUrl');
 process.env.LOG_LEVEL = 'silent';
@@ -76,6 +77,7 @@ afterAll(async () => {
   await mentee.close();
   await operator.close();
   // Bookings restrict deleting their slot, mentor and mentee: remove them first.
+  await psql(`delete from booking_reports where booking_id in (select id from bookings where mentee_id in (select id from users where email like 'cx-%-${run}@devmentor.test'))`);
   await psql(`delete from bookings where mentee_id in (select id from users where email like 'cx-%-${run}@devmentor.test')`);
   await psql(`delete from invitations where batch = '${batch}'`);
   await psql(`delete from users where email like 'cx-%-${run}@devmentor.test'`);
@@ -184,6 +186,39 @@ describe('a refund Stripe refuses: on /admin for the operator, who retries it (R
   });
 });
 
+describe('a dispute report: stored once, seen by operators, money untouched (AC3, phase 2)', () => {
+  it('the mentee reports from /bookings/[id]; the operator reads it on /admin and is emailed', async () => {
+    const ed = await mentor('ed', 48);
+    const { bookingId } = await bookAndPay(ed);
+    const message = `Ed ${run} did not show up for the session.`;
+
+    await mentee.open(`${baseUrl}/bookings/${bookingId}`);
+    await mentee.waitForText('Report a problem');
+
+    const sent = await api(`/api/bookings/${bookingId}/report`, menteeCookie, { method: 'POST', body: { message } });
+    expect(sent.status).toBe(200);
+    const again = await api(`/api/bookings/${bookingId}/report`, menteeCookie, { method: 'POST', body: { message } });
+    expect([again.status, again.body.error.code]).toEqual([409, 'ALREADY_REPORTED']);
+    expect((await api(`/api/bookings/${bookingId}/report`, ed.cookie, { method: 'POST', body: { message } })).status).toBe(404);
+    expect(await psql(`select count(*) from booking_reports where booking_id = '${bookingId}'`)).toBe('1');
+
+    // Reporting never moves money or changes the booking (R10).
+    expect(await row(bookingId)).toBe('confirmed||f|f');
+    expect((await stubRefunds()).some((refund) => refund.metadata.booking_id === bookingId)).toBe(false);
+
+    await mentee.open(`${baseUrl}/bookings/${bookingId}`);
+    await mentee.waitForText('Reported on');
+
+    await operator.open(`${baseUrl}/admin`);
+    await operator.waitForText('Reported bookings');
+    expect((await operator.text('main')).replace(/\s+/g, ' ')).toContain(message);
+    const mail = await waitForMail('mock-operator@devmentor.test');
+    expect(mail.subject).toBe('A mentee reported a booking');
+    expect((await mailsTo('mock-operator@devmentor.test')).some((candidate) => candidate.text.includes(bookingId))).toBe(true);
+    expect(JSON.stringify(await mailsTo('mock-operator@devmentor.test'))).not.toContain(message);
+  });
+});
+
 describe('cancellation constraints (migration against a real PostgreSQL)', () => {
   it('a cancelled booking needs when and what refund; refund states are a closed set', async () => {
     const dee = await mentor('dee', 48);
@@ -194,6 +229,9 @@ describe('cancellation constraints (migration against a real PostgreSQL)', () =>
     });
     await expect(psql(`update bookings set refund_status = 'maybe' where id = '${bookingId}'`)).rejects.toMatchObject({
       stderr: expect.stringContaining('bookings_refund_status_check'),
+    });
+    await expect(psql(`insert into booking_reports (id, booking_id, message, created_at) values (gen_random_uuid(), '${bookingId}', 'too short', now())`)).rejects.toMatchObject({
+      stderr: expect.stringContaining('booking_reports_message_check'),
     });
   });
 });
