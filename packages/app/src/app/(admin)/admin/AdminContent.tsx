@@ -13,7 +13,7 @@ export async function AdminContent({ searchParams }: { searchParams: Promise<Rec
     <>
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold">Admin</h1>
-        <p className="text-muted-foreground">System status and bookings that need an operator.</p>
+        <p className="text-muted-foreground">System status.</p>
       </div>
       <RoleNotice notice={notice} />
       <HealthPanel />
