@@ -11,12 +11,12 @@ Engine: om-auto-create-pr-loop
 
 | Phase | Step | Title | Exec | Status | Commit |
 |-------|------|-------|------|--------|--------|
-| 1 | 1.1 | Booking entity, migration and snapshot | inline | done | self |
-| 1 | 1.2 | bookingStartSchema validator | inline | done | self |
-| 2 | 2.1 | Occupancy: bookableLengths, booking-aware counts, owner booking state, remove under the profile lock | inline | done | self |
-| 2 | 2.2 | BookingService.start with hold, deadline and stale-hold release through Stripe | inline | done | self |
-| 2 | 2.3 | Checkout webhook handlers, after-commit hook, bookings.booking.confirmed and emails | inline | done | self |
-| 2 | 2.4 | POST /api/bookings and GET /api/bookings/[id] | inline | done | self |
+| 1 | 1.1 | Booking entity, migration and snapshot | inline | done | 17991a5 |
+| 1 | 1.2 | bookingStartSchema validator | inline | done | 721f471 |
+| 2 | 2.1 | Occupancy: bookableLengths, booking-aware counts, owner booking state, remove under the profile lock | inline | done | 8ace4cd |
+| 2 | 2.2 | BookingService.start with hold, deadline and stale-hold release through Stripe | inline | done | a35683f |
+| 2 | 2.3 | Checkout webhook handlers, after-commit hook, bookings.booking.confirmed and emails | inline | done | c7a0d2b |
+| 2 | 2.4 | POST /api/bookings and GET /api/bookings/[id] | inline | done | 40546ca |
 | 3 | 3.1 | SlotBookingControls in @devmentor/ui/mentors with stories | inline | todo | |
 | 3 | 3.2 | /m/[slug] booking wiring and the cancelled notice | inline | todo | |
 | 3 | 3.3 | /bookings/[id] status page | inline | todo | |
