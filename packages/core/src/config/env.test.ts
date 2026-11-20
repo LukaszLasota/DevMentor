@@ -31,7 +31,32 @@ describe('parseEnv', () => {
       MAIL_FROM: undefined,
       PLATFORM_CURRENCY: undefined,
       PLATFORM_PRICE_BOUNDS: undefined,
+      STRIPE_SECRET_KEY: undefined,
+      STRIPE_WEBHOOK_SECRET: undefined,
+      STRIPE_API_URL: 'https://api.stripe.com',
       ALLOW_TEST_OVERRIDES: false,
+    });
+  });
+
+  describe('Stripe (spec 2026-11-20-booking-stripe-checkout)', () => {
+    it('reads the keys and treats empty values as unset', () => {
+      expect(parseEnv({ DATABASE_URL, STRIPE_SECRET_KEY: 'sk_test_x', STRIPE_WEBHOOK_SECRET: 'whsec_y' })).toMatchObject({
+        STRIPE_SECRET_KEY: 'sk_test_x',
+        STRIPE_WEBHOOK_SECRET: 'whsec_y',
+      });
+      expect(parseEnv({ DATABASE_URL, STRIPE_SECRET_KEY: '', STRIPE_WEBHOOK_SECRET: '' })).toMatchObject({
+        STRIPE_SECRET_KEY: undefined,
+        STRIPE_WEBHOOK_SECRET: undefined,
+      });
+    });
+
+    it('refuses STRIPE_API_URL without ALLOW_TEST_OVERRIDES=1 and accepts it with', () => {
+      expect(() => parseEnv({ DATABASE_URL, STRIPE_API_URL: 'http://127.0.0.1:4100' })).toThrow(
+        /ALLOW_TEST_OVERRIDES=1[\s\S]*at STRIPE_API_URL/,
+      );
+      expect(parseEnv({ DATABASE_URL, STRIPE_API_URL: 'http://127.0.0.1:4100/', ALLOW_TEST_OVERRIDES: '1' })).toMatchObject({
+        STRIPE_API_URL: 'http://127.0.0.1:4100',
+      });
     });
   });
 

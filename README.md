@@ -111,6 +111,10 @@ Until a GitHub OAuth App is set up, sign in through a local GitHub stub (`script
 
 `PLATFORM_CURRENCY` and `PLATFORM_PRICE_BOUNDS` set the one platform currency and the allowed 25- and 50-minute prices in minor units (decision 2026-11-20: PLN; 25 min 50.00–300.00, 50 min 100.00–600.00). `.env.example` and the integration runner (`packages/app/integration/global-setup.ts`) carry these values; copy them into an existing `.env`. Set both or neither: a half-set or malformed pair refuses boot, and without them prices cannot be saved (503) and no mentor is bookable. The operator changes the bounds by hand (R16): a later save is checked against the new bounds; stored prices are not rewritten.
 
+### Stripe (payments)
+
+`STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` connect Stripe Checkout and the webhook endpoint `POST /api/webhooks/stripe` (spec `.ai/specs/2026-11-20-booking-stripe-checkout.md`). Without them payments are unavailable and webhooks are refused. Use test-mode keys locally (`stripe listen --forward-to localhost:3000/api/webhooks/stripe` prints a webhook secret). The integration runner points `STRIPE_API_URL` at a local stub (`scripts/lib/stripe-stub.mjs`) with `ALLOW_TEST_OVERRIDES=1`; no test talks to Stripe.
+
 ### Seed demo accounts
 
 ```bash
