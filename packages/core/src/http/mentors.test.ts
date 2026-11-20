@@ -12,6 +12,7 @@ import {
   listMentors,
   MENTOR_LIST_RESPONSE,
   MENTOR_OWNER_RESPONSE,
+  MENTOR_PAGE_RESPONSE,
   publishOwnMentorPage,
   unpublishOwnMentorPage,
   updateOwnMentorPage,
@@ -264,9 +265,9 @@ describe('GET /api/mentors (public list, #27)', () => {
 });
 
 describe('GET /api/mentors/[slug] (public)', () => {
-  const route = apiHandler(getPublicMentorPage);
+  const route = apiHandler(getPublicMentorPage, MENTOR_PAGE_RESPONSE);
 
-  it('answers the public DTO without a session', async () => {
+  it('answers the public DTO without a session, no-store (#28)', async () => {
     const { mentorProfileService } = setup();
 
     const res = await route(new Request('http://localhost/api/mentors/ada'), { params: Promise.resolve({ slug: 'ada' }) });
@@ -274,6 +275,7 @@ describe('GET /api/mentors/[slug] (public)', () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true, data: PUBLIC });
     expect(mentorProfileService.getPublicBySlug).toHaveBeenCalledWith('ada');
+    expect(res.headers.get('cache-control')).toBe('no-store');
   });
 
   it('answers 404 for a page that is not public', async () => {

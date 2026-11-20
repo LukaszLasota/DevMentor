@@ -46,6 +46,7 @@ export {
   getPublicMentorPage,
   listMentors,
   MENTOR_LIST_RESPONSE,
+  MENTOR_PAGE_RESPONSE,
   MENTOR_OWNER_RESPONSE,
   publishOwnMentorPage,
   unpublishOwnMentorPage,
