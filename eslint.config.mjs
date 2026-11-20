@@ -91,6 +91,13 @@ const eslintConfig = defineConfig([
     ]),
   },
   {
+    // ui never imports next (it is framework-agnostic), so `next/link` is not an option there; the
+    // app wraps ui links with its router where needed. Without this, every route the app adds
+    // (e.g. /m/[slug]) turns a plain <a> in ui into a lint error.
+    files: ["packages/ui/**"],
+    rules: { "@next/next/no-html-link-for-pages": "off" },
+  },
+  {
     files: ["packages/ui/**"],
     rules: restrict([
       ...MIKRO_ORM,
