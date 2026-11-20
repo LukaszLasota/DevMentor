@@ -11,11 +11,11 @@ Engine: om-auto-create-pr-loop (forced by the brief, regardless of step count)
 
 | Phase | Step | Title | Exec | Status | Commit |
 |-------|------|-------|------|--------|--------|
-| 1 | 1.1 | Slot entity, last_published_availability_at, migration and isUniqueViolation | inline | done | self |
-| 2 | 2.1 | Lead-time rule and slotCreateSchema | inline | done | self |
-| 2 | 2.2 | availability.slot.published event | inline | done | self |
-| 2 | 2.3 | SlotService and container registration | inline | done | self |
-| 2 | 2.4 | hasBookableSlot in mentorOfferReady and slots on the public mentor read | inline | done | self |
+| 1 | 1.1 | Slot entity, last_published_availability_at, migration and isUniqueViolation | inline | done | c47f4c7 |
+| 2 | 2.1 | Lead-time rule and slotCreateSchema | inline | done | cff3041 |
+| 2 | 2.2 | availability.slot.published event | inline | done | cc6f832 |
+| 2 | 2.3 | SlotService and container registration | inline | done | c28b192 |
+| 2 | 2.4 | hasBookableSlot in mentorOfferReady and slots on the public mentor read | inline | done | 327ba2e |
 | 2 | 2.5 | Slot owner routes and HTTP handlers | inline | todo | — |
 | 3 | 3.1 | CrudForm datetime field | inline | todo | — |
 | 3 | 3.2 | MentorPageView shows slots when offer-ready without prices | inline | todo | — |
