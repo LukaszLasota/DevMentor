@@ -17,6 +17,7 @@ import { StripeInboxService } from '../services/payments/stripe-inbox.service';
 import { SlotService } from '../services/availability/slot.service';
 import { HealthService } from '../services/health/health.service';
 import { InvitationService } from '../services/invitations/invitation.service';
+import { MentorListService } from '../services/mentors/mentor-list.service';
 import { MentorProfileService } from '../services/mentors/mentor-profile.service';
 import { systemClock } from '../time/clock';
 import type { Cradle } from './cradle';
@@ -65,6 +66,7 @@ async function buildContainer(): Promise<AwilixContainer<Cradle>> {
     accountService: asClass(AccountService).scoped(),
     invitationService: asClass(InvitationService).scoped(),
     mentorProfileService: asClass(MentorProfileService).scoped(),
+    mentorListService: asClass(MentorListService).scoped(),
     slotService: asClass(SlotService).scoped(),
     stripeEventHandlers: asFunction(createStripeEventHandlers).scoped(),
     stripeInboxService: asClass(StripeInboxService).scoped(),

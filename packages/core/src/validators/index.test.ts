@@ -36,6 +36,8 @@ describe('@devmentor/core/validators', () => {
         'mentorProfileUpdateSchema',
         'AMOUNT_MESSAGE',
         'mentorPricesUpdateSchema',
+        'mentorListQuerySchema',
+        'UNKNOWN_TAG_MESSAGE',
         'PASSWORD_MAX_LENGTH',
         'PASSWORD_MIN_LENGTH',
         'RETURN_TO_MAX_LENGTH',

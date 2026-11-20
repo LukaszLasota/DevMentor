@@ -59,7 +59,7 @@ describe("E01 product components", () => {
     const { rerender } = render(<ProfileActions published={false} onPublish={onPublish} onUnpublish={onUnpublish} />);
     expect(
       screen.getByText(
-        "Publishing shows your name, GitHub avatar (if any), link, description and tags to anyone with the link.",
+        "Publishing shows your name, GitHub avatar (if any), link, description and tags to anyone with the link, and lists you on /mentors while you have open times.",
       ),
     ).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Publish" }));

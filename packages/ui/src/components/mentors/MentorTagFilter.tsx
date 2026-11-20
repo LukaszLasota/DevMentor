@@ -9,7 +9,8 @@ export function MentorTagFilter({
   active,
   basePath = "/mentors",
 }: {
-  active: StackTagKey | null;
+  /** The current tag; `null` = All; `false` = nothing current (an unknown tag). */
+  active: StackTagKey | null | false;
   /** List the filter belongs to, e.g. "/favorites" (agent test 2026-10-22). */
   basePath?: string;
 }) {

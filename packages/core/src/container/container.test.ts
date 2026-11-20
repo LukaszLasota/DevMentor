@@ -139,6 +139,8 @@ describe('DI container', () => {
     expect(first.cradle.mentorProfileService).toBe(first.cradle.mentorProfileService);
     expect(first.cradle.mentorProfileService).not.toBe(second.cradle.mentorProfileService);
     expect(first.cradle.platformSettingsService).toBe(second.cradle.platformSettingsService);
+    expect(first.cradle.mentorListService).toBe(first.cradle.mentorListService);
+    expect(first.cradle.mentorListService).not.toBe(second.cradle.mentorListService);
     expect(first.cradle.stripeClient).toBe(second.cradle.stripeClient);
     expect(first.cradle.checkoutGateway).toBe(second.cradle.checkoutGateway);
     expect(first.cradle.checkoutGateway.configured).toBe(first.cradle.stripeClient.configured);

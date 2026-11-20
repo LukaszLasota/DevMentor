@@ -1,17 +1,22 @@
 import type { SessionUser } from '../auth/session-user';
 import type { Cradle } from '../container/cradle';
 import type { MentorOwnerView, MentorPublicView } from '../services/mentors/mentor-profile.service';
+import type { MentorListItem } from '../services/mentors/mentor-list-item';
+import { mentorListQuerySchema } from '../validators/mentors/mentor-list-query.schema';
 import { mentorPricesUpdateSchema } from '../validators/mentors/mentor-prices-update.schema';
 import { mentorProfileUpdateSchema } from '../validators/mentors/mentor-profile-update.schema';
 import type { ApiHandlerOptions, HandlerArgs, RouteParams } from './apiHandler';
 import { requireRole, requireSession } from './auth';
-import { parseJsonBody } from './parse';
+import { parseJsonBody, parseWith } from './parse';
 
 // Mentor page routes as `apiHandler` handlers (spec 2026-10-21-mentor-page, API Contracts); the
 // app's route files only wire them. The owner is always the session user, never a request value.
 
 /** Owner routes carry private data (the publish deadline, the draft): nothing may keep the answer. */
 export const MENTOR_OWNER_RESPONSE: ApiHandlerOptions = { headers: { 'Cache-Control': 'no-store' } };
+
+/** The public list is per request (the two-hour line moves with the clock): nothing may keep it. */
+export const MENTOR_LIST_RESPONSE: ApiHandlerOptions = { headers: { 'Cache-Control': 'no-store' } };
 
 /** Route params of `/api/mentors/[slug]` (a type, not an interface: it must fit `RouteParams`). */
 export type MentorSlugParams = { slug: string };
@@ -62,6 +67,19 @@ export async function unpublishOwnMentorPage({ req, cradle }: HandlerArgs<RouteP
   const user = await requireMentor(req, cradle);
 
   return cradle.mentorProfileService.unpublish(user.id);
+}
+
+/**
+ * `GET /api/mentors?tag=` (public) → `{ items }`, every bookable mentor in list order (spec #27). An
+ * unknown, empty or repeated `tag` → 400 with `fieldErrors.tag` (a repeated key is kept as a list so
+ * the schema refuses it, instead of silently using one value).
+ */
+export async function listMentors({ req, cradle }: HandlerArgs<RouteParams>): Promise<{ items: MentorListItem[] }> {
+  const params = new URL(req.url).searchParams;
+  const tags = params.getAll('tag');
+  const query = parseWith(mentorListQuerySchema, tags.length > 1 ? { tag: tags } : Object.fromEntries(params));
+
+  return { items: await cradle.mentorListService.listBookable(query) };
 }
 
 /** `GET /api/mentors/[slug]` (public) → the public DTO; 404 unless published and owned by a mentor. */

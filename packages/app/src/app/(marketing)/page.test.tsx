@@ -8,5 +8,6 @@ describe("Home page", () => {
 
     expect(screen.getByRole("heading", { level: 1 }).textContent).toContain("To get started, edit the");
     expect(screen.getByRole("link", { name: /Deploy Now/ })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Find a mentor" }).getAttribute("href")).toBe("/mentors");
   });
 });
