@@ -16,7 +16,7 @@ Engine: om-auto-create-pr-loop (forced by the brief, regardless of step count)
 | 1 | 1.3 | MentorListItem projection with bio truncation | inline | done | eee5155 |
 | 1 | 1.4 | MentorListService and container registration | inline | done | a3fd344 |
 | 1 | 1.5 | GET /api/mentors | inline | done | 91bf44c |
-| 2 | 2.1 | Public /mentors list page with filter and states | inline | todo | — |
+| 2 | 2.1 | Public /mentors list page with filter and states | inline | done | self |
 | 2 | 2.2 | Find a mentor link on / and the publish copy mentioning /mentors | inline | todo | — |
 | 3 | 3.1 | Integration test for the mentor list | inline | todo | — |
 
