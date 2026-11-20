@@ -7,6 +7,11 @@ export { MentorListSkeleton } from "./components/mentors/MentorListSkeleton";
 export { MentorPageView, type MentorPageSlot, type MentorPageViewProps } from "./components/mentors/MentorPageView";
 export { MentorTagFilter } from "./components/mentors/MentorTagFilter";
 export { SessionFacts, type MentorPrices } from "./components/mentors/SessionFacts";
+export {
+  SlotBookingControls,
+  type BookingLength,
+  type SlotBookingControlsProps,
+} from "./components/mentors/SlotBookingControls";
 export { TagList } from "./components/mentors/TagList";
 export { TextSessionNotice } from "./components/mentors/TextSessionNotice";
 export { STACK_TAGS, publicWorkLabel, stackTagLabel, type StackTagKey } from "./components/mentors/vocabulary";

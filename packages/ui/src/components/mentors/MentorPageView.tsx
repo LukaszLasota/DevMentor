@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { LocalTime } from "../../time/LocalTime";
 import { MentorAvatar } from "./MentorAvatar";
 import { SessionFacts, type MentorPrices } from "./SessionFacts";
@@ -10,6 +11,8 @@ export interface MentorPageSlot {
   startsAt: string;
   /** False once the slot is less than two hours away (spec #25). */
   meetsLeadTime: boolean;
+  /** Lengths a mentee can book now (spec #29); empty under two hours away. */
+  bookableLengths: readonly ("25" | "50")[];
 }
 
 /** MentorPublicView (specs #23–#25, #28) with prices preformatted by the page. */
@@ -22,11 +25,17 @@ export interface MentorPageViewProps {
   offerReady: boolean;
   prices: MentorPrices | null;
   slots: readonly MentorPageSlot[];
+  /**
+   * The booking controls of one bookable slot (spec #29), rendered by the page so this view stays
+   * presentational. Called only for a slot with at least one bookable length.
+   */
+  renderSlotAction?: (slot: MentorPageSlot) => ReactNode;
 }
 
 /**
  * The share page /m/[slug] (spec #28): header, what they have done, public work, sessions. Same for
- * every visitor; no booking button, no reasons for "Not bookable yet" (spec #28), no ratings (N02).
+ * every visitor; booking controls per open time come from the page (spec #29); no reasons for
+ * "Not bookable yet" (spec #28), no ratings (N02).
  */
 export function MentorPageView({
   displayName,
@@ -37,6 +46,7 @@ export function MentorPageView({
   offerReady,
   prices,
   slots,
+  renderSlotAction,
 }: MentorPageViewProps) {
   return (
     <article className="flex max-w-measure flex-col gap-section">
@@ -90,6 +100,7 @@ export function MentorPageView({
                       Starts in less than two hours — no longer bookable
                     </span>
                   )}
+                  {renderSlotAction && slot.bookableLengths.length > 0 ? renderSlotAction(slot) : null}
                 </li>
               ))}
             </ul>

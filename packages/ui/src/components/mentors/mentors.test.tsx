@@ -33,6 +33,7 @@ describe("public mentor components", () => {
         "MentorTagFilter",
         "STACK_TAGS",
         "SessionFacts",
+        "SlotBookingControls",
         "TagList",
         "TextSessionNotice",
         "buttonVariants",
@@ -99,8 +100,8 @@ describe("public mentor components", () => {
         {...mentor}
         offerReady
         slots={[
-          { id: "a", startsAt: "2026-11-14T18:30:00Z", meetsLeadTime: true },
-          { id: "b", startsAt: "2026-11-14T10:00:00Z", meetsLeadTime: false },
+          { id: "a", startsAt: "2026-11-14T18:30:00Z", meetsLeadTime: true, bookableLengths: ["25", "50"] as ("25" | "50")[] },
+          { id: "b", startsAt: "2026-11-14T10:00:00Z", meetsLeadTime: false, bookableLengths: [] as ("25" | "50")[] },
         ]}
       />,
     );
@@ -118,7 +119,7 @@ describe("public mentor components", () => {
         {...mentor}
         prices={null}
         offerReady
-        slots={[{ id: "a", startsAt: "2026-11-14T18:30:00Z", meetsLeadTime: true }]}
+        slots={[{ id: "a", startsAt: "2026-11-14T18:30:00Z", meetsLeadTime: true, bookableLengths: ["25", "50"] as ("25" | "50")[] }]}
       />,
     );
     expect(screen.getByRole("list", { name: "Open times" }).querySelectorAll("li")).toHaveLength(1);
@@ -135,7 +136,7 @@ describe("public mentor components", () => {
 
 describe("MentorPageView as the share page (#28)", () => {
   const R01 = "Sessions are text — no video call. 25 or 50 minutes.";
-  const SLOTS = [{ id: "a", startsAt: "2026-11-14T18:30:00Z", meetsLeadTime: true }];
+  const SLOTS = [{ id: "a", startsAt: "2026-11-14T18:30:00Z", meetsLeadTime: true, bookableLengths: ["25", "50"] as ("25" | "50")[] }];
   const headings = () => screen.getAllByRole("heading").map((heading) => `${heading.tagName}:${heading.textContent}`);
   const noScores = () =>
     expect(document.body.textContent).not.toMatch(/\b(ratings?|scores?|reviews?|rank(ing)?|stars?|top|popular|search)\b/i);
@@ -157,6 +158,16 @@ describe("MentorPageView as the share page (#28)", () => {
     expect(screen.queryByRole("button")).toBeNull();
     expect(screen.queryByRole("link", { name: /book/i })).toBeNull();
     noScores();
+  });
+
+  it("renders the page's booking action only for slots with a bookable length", () => {
+    const slots = [
+      { id: "a", startsAt: "2026-11-14T18:30:00Z", meetsLeadTime: true, bookableLengths: ["25"] as ("25" | "50")[] },
+      { id: "b", startsAt: "2026-11-14T10:00:00Z", meetsLeadTime: false, bookableLengths: [] as ("25" | "50")[] },
+    ];
+    render(<MentorPageView {...mentor} offerReady slots={slots} renderSlotAction={(slot) => <button type="button">Book {slot.id}</button>} />);
+
+    expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual(["Book a"]);
   });
 
   it("not offer-ready: the R01 line and only \"Not bookable yet\" — no amounts, no times, no reason", () => {
