@@ -29,7 +29,54 @@ describe('parseEnv', () => {
       MAIL_PROVIDER: 'log',
       MAIL_API_KEY: undefined,
       MAIL_FROM: undefined,
+      PLATFORM_CURRENCY: undefined,
+      PLATFORM_PRICE_BOUNDS: undefined,
       ALLOW_TEST_OVERRIDES: false,
+    });
+  });
+
+  describe('platform prices (spec 2026-10-21-mentor-prices)', () => {
+    const BOUNDS = '{"25":{"minCents":5000,"maxCents":30000},"50":{"minCents":10000,"maxCents":60000}}';
+    const prices = (currency: string | undefined, bounds: string | undefined) =>
+      parseEnv({ DATABASE_URL, PLATFORM_CURRENCY: currency, PLATFORM_PRICE_BOUNDS: bounds });
+    const refusal = (currency: string | undefined, bounds: string | undefined) => {
+      try {
+        prices(currency, bounds);
+      } catch (error) {
+        return (error as Error).message;
+      }
+
+      throw new Error('expected a boot refusal');
+    };
+
+    it('reads the approved PLN bounds', () => {
+      expect(prices('PLN', BOUNDS)).toMatchObject({
+        PLATFORM_CURRENCY: 'PLN',
+        PLATFORM_PRICE_BOUNDS: { '25': { minCents: 5000, maxCents: 30000 }, '50': { minCents: 10000, maxCents: 60000 } },
+      });
+    });
+
+    it('leaves both unset without defaults (prices fail closed at request time)', () => {
+      expect(prices(undefined, undefined)).toMatchObject({ PLATFORM_CURRENCY: undefined, PLATFORM_PRICE_BOUNDS: undefined });
+      expect(prices('', '')).toMatchObject({ PLATFORM_CURRENCY: undefined, PLATFORM_PRICE_BOUNDS: undefined });
+    });
+
+    it.each([
+      ['only the currency', 'PLN', undefined, 'set together'],
+      ['only the bounds', undefined, BOUNDS, 'set together'],
+      ['an unknown currency', 'XYZ', BOUNDS, 'two decimals'],
+      ['a zero-decimal currency', 'JPY', BOUNDS, 'two decimals'],
+      ['a three-decimal currency', 'KWD', BOUNDS, 'two decimals'],
+      ['a lower-case code', 'pln', BOUNDS, 'two decimals'],
+      ['bounds that are not JSON', 'PLN', '{25:', 'must be JSON'],
+      ['a missing length', 'PLN', '{"25":{"minCents":5000,"maxCents":30000}}', '50'],
+      ['an extra length', 'PLN', BOUNDS.replace('}}', '},"90":{"minCents":1,"maxCents":2}}'), '90'],
+      ['min above max', 'PLN', BOUNDS.replace('"maxCents":30000', '"maxCents":4000'), 'minCents must not exceed maxCents'],
+      ['zero cents', 'PLN', BOUNDS.replace('"minCents":5000', '"minCents":0'), 'must be above 0'],
+      ['fractional cents', 'PLN', BOUNDS.replace('"minCents":5000', '"minCents":50.5'), 'whole cents'],
+      ['cents above the integer column', 'PLN', BOUNDS.replace('"maxCents":60000', '"maxCents":2147483648'), 'at most 2147483647'],
+    ])('refuses boot with %s', (_case, currency, bounds, message) => {
+      expect(refusal(currency, bounds)).toContain(message);
     });
   });
 
