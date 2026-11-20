@@ -9,3 +9,4 @@ export {
   type Requirement,
   type RequirementResult,
 } from './readiness';
+export { priceField, SESSION_LENGTHS, type SessionLength } from './session-lengths';

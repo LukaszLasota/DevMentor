@@ -231,8 +231,9 @@ explicit**, not the one that looks more "enterprise."
   can't smuggle in fields like `id`, `status`, or `mentorId` on someone else's record.
 - **Injection:** all persistence goes through MikroORM's entity/query APIs — no raw
   SQL string concatenation, no `Knex.raw` with interpolated user input.
-- **Money correctness:** booking price is always recomputed server-side from
-  `mentor.rate × duration`; a client-supplied price is parsed by the schema but never
+- **Money correctness:** booking price is the server-held price for the chosen
+  length (R12, per-length prices, spec 2026-10-21-mentor-prices), never a client-supplied
+  amount; a client-supplied price is parsed by the schema but never
   trusted or persisted as-is (UC04's own acceptance criterion).
 - **Secrets & logging:** all secrets via env, validated by the zod env schema, `.env`
   git-ignored; `pino` never logs passwords, tokens, or full JWTs — redact those fields

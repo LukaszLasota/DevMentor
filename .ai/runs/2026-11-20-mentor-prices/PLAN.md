@@ -11,7 +11,7 @@ Engine: om-auto-create-pr-loop (forced by the brief, regardless of step count)
 
 | Phase | Step | Title | Exec | Status | Commit |
 |-------|------|-------|------|--------|--------|
-| 1 | 1.1 | Money module, session lengths and the engineering-standards money bullet | dispatch:cheap | todo | — |
+| 1 | 1.1 | Money module, session lengths and the engineering-standards money bullet | dispatch:cheap | done | self |
 | 1 | 1.2 | Platform price env, .env.example, CI, README and integration env | inline | todo | — |
 | 1 | 1.3 | PlatformSettingsService and container registration | inline | todo | — |
 | 1 | 1.4 | Price columns migration and MentorProfile fields | inline | todo | — |
