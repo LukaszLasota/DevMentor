@@ -1,6 +1,6 @@
 # A mentee cancels a booking (free up to 24 hours before) and can report a dispute
 
-Status: approved — Q1 confirmed by the owner on 2026-11-20 (refund through the Stripe API)
+Status: phase 1 implemented (branch feat/booking-cancellation); phase 2 (dispute reports) pending — Q1 confirmed by the owner on 2026-11-20 (refund through the Stripe API)
 Issue: #30 (E03-S02) · Epic: #18 · Depends on: #29 (`.ai/specs/2026-11-20-booking-stripe-checkout.md`, implemented in #55/#56) · Source: `.ai/specs/product-brief.md` (R10, R16, D10)
 
 ## 📝 TLDR
@@ -135,3 +135,11 @@ R10/D10 (24-hour free cancellation, forfeit after, operator disputes, no automat
 9. `POST /api/bookings/[id]/report` with route tests; Report form on `/bookings/[id]`; reports in `AttentionPanel`; component tests.
 10. Integration: report → stored once, operator email logged, visible on `/admin` for an operator and not for a mentee; booking and money unchanged.
 Each step ends with `npm run validate` green at 100% coverage; steps 1, 7 and 10 run `npm run test:integration`.
+
+## Implementation notes (phase 1)
+- Cancellation lives in its own scoped `BookingCancellationService` (`cancel`, `retryRefund`, `needsAttention`); `BookingService` only gains the view fields and the `applyCompleted` guard.
+- `/mentor/slots` shows "Cancelled by mentee" for a slot with no active booking that has any cancelled booking (simpler than "latest booking"; an abandoned hold after a cancellation does not change what the mentor needs to know).
+- The `/admin` panel is a server component, so it renders the shadcn `Table` directly (like `SlotsPanel`): `DataTable` is a client component whose column cells are functions and cannot be passed from the server.
+- A Stripe `charge_already_refunded` answer keeps an earlier `refund_id` if one was recorded.
+- The integration suite pays through the stub's hosted page and uses `POST /__stub/refunds/fail-next` for the refused-refund path.
+
