@@ -82,6 +82,25 @@ describe("E01 product components", () => {
     expect(screen.queryByText("Publish one so mentees can book you.")).toBeNull();
   });
 
+  it("SlotsPanel marks booked and held slots (spec #29) and offers no Remove for them", () => {
+    render(
+      <SlotsPanel
+        slots={[
+          { id: "a", startsAt: "2026-11-05T17:30:00Z", meetsLeadTime: true, booking: "booked" },
+          { id: "b", startsAt: "2026-11-06T08:00:00Z", meetsLeadTime: true, booking: "held" },
+          { id: "c", startsAt: "2026-11-07T08:00:00Z", meetsLeadTime: true, booking: null },
+        ]}
+        showPast={false}
+        onShowPastChange={vi.fn()}
+        onRemove={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Booked")).toBeTruthy();
+    expect(screen.getByText("Held for payment")).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: /^Remove slot/ })).toHaveLength(1);
+  });
+
   it("SlotsPanel lists states, toggles past slots and removes after confirmation", async () => {
     const user = userEvent.setup();
     const onShowPastChange = vi.fn();

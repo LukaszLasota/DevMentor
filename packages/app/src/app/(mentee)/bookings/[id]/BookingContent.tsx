@@ -1,0 +1,80 @@
+import { notFound } from "next/navigation";
+import { formatMoney, withScope } from "@devmentor/core";
+import { isAppError, type BookingView } from "@devmentor/core/http";
+import { Alert, AlertDescription, AlertTitle, LocalTime } from "@devmentor/ui";
+import { requirePageSession } from "@/lib/session";
+import { BookingPending } from "./BookingPending";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** The mentee's own booking, or `null` (unknown, malformed or someone else's: one 404 for all). */
+async function loadOwn(userId: string, id: string): Promise<BookingView | null> {
+  if (!UUID.test(id)) {
+    return null;
+  }
+
+  try {
+    return await withScope(({ bookingService }) => bookingService.getOwn(userId, id));
+  } catch (error) {
+    if (isAppError(error) && error.status === 404) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+/**
+ * /bookings/[id] body (spec #29, UI/UX): the state of the mentee's own booking after Stripe Checkout.
+ * Pending re-reads itself until the webhook lands. No copy promises a response time (R09).
+ */
+export async function BookingContent({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const user = await requirePageSession(`/bookings/${id}`);
+  const booking = await loadOwn(user.id, id);
+
+  if (booking === null) {
+    notFound();
+  }
+
+  const mentorLink = booking.mentor.slug === null ? null : `/m/${booking.mentor.slug}`;
+  const what = (
+    <>
+      {booking.lengthMinutes}-minute text session with {booking.mentor.displayName} on <LocalTime iso={booking.startsAt} />
+    </>
+  );
+
+  return (
+    <>
+      <h1 className="text-heading-2 font-semibold">Your booking</h1>
+      {booking.status === "pending_payment" ? (
+        <BookingPending />
+      ) : booking.status === "confirmed" ? (
+        <Alert tone="success">
+          <AlertTitle>Booked</AlertTitle>
+          <AlertDescription>
+            <p>{what}.</p>
+            <p>You paid {formatMoney(booking.priceCents, booking.currency)}. The mentor has been told by email.</p>
+          </AlertDescription>
+        </Alert>
+      ) : booking.status === "payment_orphaned" ? (
+        <Alert tone="warning">
+          <AlertTitle>We received your payment but could not keep the time</AlertTitle>
+          <AlertDescription>We will contact you by email about it.</AlertDescription>
+        </Alert>
+      ) : (
+        <Alert>
+          <AlertTitle>This booking was not completed</AlertTitle>
+          <AlertDescription>
+            <p>You were not charged. The time may still be open.</p>
+            {mentorLink === null ? null : (
+              <a href={mentorLink} className="text-link underline underline-offset-4">
+                Back to {booking.mentor.displayName}
+              </a>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+    </>
+  );
+}

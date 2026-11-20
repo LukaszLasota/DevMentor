@@ -1,6 +1,6 @@
 "use client";
 
-import type { SlotView } from "@devmentor/core/http";
+import type { OwnerSlotView, SlotView } from "@devmentor/core/http";
 import { slotCreateSchema } from "@devmentor/core/validators";
 import { apiCall, CrudForm, ErrorMessage, SlotsPanel } from "@devmentor/ui";
 import { useRouter } from "next/navigation";
@@ -13,7 +13,7 @@ type Scope = "upcoming" | "past";
  * Storybook `SlotsPanel` table with lead-time state and a confirmed Remove, and a "Show past" toggle.
  * The list is re-read from the API after each change so it always shows what is stored.
  */
-export function SlotsEditor({ initial }: { initial: SlotView[] }) {
+export function SlotsEditor({ initial }: { initial: OwnerSlotView[] }) {
   const router = useRouter();
   const [slots, setSlots] = useState(initial);
   const [scope, setScope] = useState<Scope>("upcoming");
@@ -24,7 +24,7 @@ export function SlotsEditor({ initial }: { initial: SlotView[] }) {
 
   async function load(next: Scope) {
     const request = ++latest.current;
-    const result = await apiCall<{ items: SlotView[] }>(`/api/availability/slots?scope=${next}`);
+    const result = await apiCall<{ items: OwnerSlotView[] }>(`/api/availability/slots?scope=${next}`);
 
     if (request !== latest.current) {
       return;

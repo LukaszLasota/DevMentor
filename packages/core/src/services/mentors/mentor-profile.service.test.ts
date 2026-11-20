@@ -30,7 +30,7 @@ const PUBLIC_KEYS = [...PAGE_KEYS, 'offerReady', 'prices', 'slots'];
 const OWNER_KEYS = [...PAGE_KEYS, 'initialPublishDueAt', 'offerReadiness', 'priceBounds', 'prices', 'publishedAt', 'readiness'].sort();
 const BOUNDS = { '25': { minCents: 5000, maxCents: 30000 }, '50': { minCents: 10000, maxCents: 60000 } };
 const PRICED = { price25Cents: 15000, price50Cents: 30000 };
-const SLOT = { id: 's1', startsAt: '2026-11-21T09:00:00.000Z', meetsLeadTime: true };
+const SLOT = { id: 's1', startsAt: '2026-11-21T09:00:00.000Z', meetsLeadTime: true, bookableLengths: ['25', '50'] as ('25' | '50')[] };
 
 /** Key equality, never a subset check: a new field must be added to the allowlist on purpose. */
 function expectProjectionKeys(dto: object, keys: readonly string[]) {
@@ -455,14 +455,14 @@ describe('MentorProfileService.getPublicBySlug', () => {
       offerReady: true,
       slots: [SLOT],
     });
-    expect(Object.keys(page.slots[0] as object).sort()).toEqual(['id', 'meetsLeadTime', 'startsAt']);
+    expect(Object.keys(page.slots[0] as object).sort()).toEqual(['bookableLengths', 'id', 'meetsLeadTime', 'startsAt']);
     expect(slotService.listPublicFor).toHaveBeenCalledExactlyOnceWith(row.id, NOW);
     expect(JSON.stringify(page)).not.toMatch(/ada@devmentor\.test|"ada"|initialPublishDueAt|invitation/);
   });
 
   it('decides offer-readiness from the same slot rows it shows, at one instant, with no second slot query (#28)', async () => {
     const { row, service, slotService } = ownerWith({ ...COMPLETE, ...PRICED, slug: 'ada', publishedAt: EARLIER });
-    const soon = { id: 's2', startsAt: '2026-11-20T11:00:00.000Z', meetsLeadTime: false };
+    const soon = { id: 's2', startsAt: '2026-11-20T11:00:00.000Z', meetsLeadTime: false, bookableLengths: [] };
     slotService.listPublicFor.mockResolvedValueOnce([soon]).mockResolvedValueOnce([soon, SLOT]);
 
     const onlySoon = await service.getPublicBySlug('ada');

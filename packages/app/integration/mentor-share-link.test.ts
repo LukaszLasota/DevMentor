@@ -59,7 +59,8 @@ describe('share-link page: what a signed-out visitor sees (agent-browser)', () =
     expect(text).toContain(R01);
     expect(text).not.toContain('Not bookable yet');
     expect(text).not.toMatch(NO_SCORES);
-    expect(await visitor.count('main button')).toBe(0);
+    // Spec #29: one Book button per bookable open time (the fixture publishes one slot).
+    expect(await visitor.count('main button')).toBe(1);
     expect(await visitor.count('main input[type="search"]')).toBe(0);
   });
 

@@ -33,7 +33,8 @@ function redactError(error: unknown): string {
  * The durable Stripe webhook inbox (spec 2026-11-20-booking-stripe-checkout): verify the signature
  * over the exact bytes → store the event if absent → in one transaction lock its row, re-check
  * `processed_at` and dispatch to the handler registered for its type, so concurrent deliveries
- * dispatch once. A handler failure rolls back its writes, records the attempt and rethrows (the
+ * dispatch once. A handler may return a follow-up that runs after the commit (mail, events; best
+ * effort). A handler failure rolls back its writes, records the attempt and rethrows (the
  * route answers 500 and Stripe redelivers). Unknown types are stored and marked processed.
  */
 export class StripeInboxService {
@@ -57,11 +58,11 @@ export class StripeInboxService {
 
     await this.em.execute(INSERT_STRIPE_EVENT_SQL, [event.id, event.type, rawBody, this.clock.now().toISOString()]);
 
-    try {
-      const outcome = await this.dispatch(event);
-      this.logger.info({ ...log, outcome }, 'Stripe event received');
+    let dispatched: { outcome: InboxOutcome; afterCommit?: () => Promise<void> };
 
-      return outcome;
+    try {
+      dispatched = await this.dispatch(event);
+      this.logger.info({ ...log, outcome: dispatched.outcome }, 'Stripe event received');
     } catch (error) {
       this.logger.error({ ...log, err: error }, 'Stripe event processing failed; Stripe will redeliver');
 
@@ -74,6 +75,15 @@ export class StripeInboxService {
 
       throw error;
     }
+
+    // Side effects of a committed change (mail, events): best effort, never a reason to redeliver.
+    try {
+      await dispatched.afterCommit?.();
+    } catch (error) {
+      this.logger.error({ ...log, err: error }, 'Stripe event follow-up failed after commit');
+    }
+
+    return dispatched.outcome;
   }
 
   private verify(rawBody: string, signatureHeader: string | null): StripeWebhookEvent {
@@ -109,21 +119,21 @@ export class StripeInboxService {
     return parsed.data;
   }
 
-  private dispatch(event: StripeWebhookEvent): Promise<InboxOutcome> {
+  private dispatch(event: StripeWebhookEvent): Promise<{ outcome: InboxOutcome; afterCommit?: () => Promise<void> }> {
     // Its own fork: a failed handler poisons that unit of work only.
     return this.em.transactional(async (em) => {
       const row = await em.findOne(StripeEvent, { id: event.id }, { lockMode: LockMode.PESSIMISTIC_WRITE, refresh: true });
 
       if (row === null || row.processedAt != null) {
-        return 'duplicate';
+        return { outcome: 'duplicate' as const };
       }
 
-      await this.stripeEventHandlers.get(event.type)?.(event, em);
+      const afterCommit = (await this.stripeEventHandlers.get(event.type)?.(event, em)) ?? undefined;
       row.attempts += 1;
       row.processedAt = this.clock.now();
       row.lastError = null;
 
-      return 'processed';
+      return { outcome: 'processed' as const, afterCommit };
     });
   }
 }

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { parseEnv } from '../../config/env';
 import type { Cradle } from '../../container/cradle';
 import { ServiceUnavailableError, ValidationError } from '../../http/errors';
-import { createStripeEventHandlers, type StripeEventHandler } from './stripe-event-handlers';
+import type { StripeEventHandler } from './stripe-event-handlers';
 import {
   INSERT_STRIPE_EVENT_SQL,
   LAST_ERROR_MAX_LENGTH,
@@ -59,12 +59,6 @@ function setup({
 
 const signed = (body: string, t = T) => signStripePayload(body, SECRET, t);
 
-describe('createStripeEventHandlers', () => {
-  it('starts empty: phase 1 registers no handler', () => {
-    expect(createStripeEventHandlers().size).toBe(0);
-  });
-});
-
 describe('StripeInboxService.receive', () => {
   it('stores the event, locks its row, dispatches the handler in the transaction and marks it processed', async () => {
     const handler = vi.fn<StripeEventHandler>(async () => undefined);
@@ -79,6 +73,28 @@ describe('StripeInboxService.receive', () => {
     expect(logger.info).toHaveBeenCalledWith(
       { stripeEvent: { id: 'evt_1', type: 'checkout.session.completed' }, outcome: 'processed' },
       'Stripe event received',
+    );
+  });
+
+  it('runs the handler\'s follow-up after the commit, and only logs its failure', async () => {
+    const followUp = vi.fn(async () => undefined);
+    const { service, em } = setup({ handlers: new Map([['checkout.session.completed', vi.fn<StripeEventHandler>(async () => followUp)]]) });
+    em.transactional.mockImplementationOnce(async (fn) => {
+      const result = await fn({ findOne: vi.fn(async (): Promise<Row | null> => ({ id: 'evt_1', attempts: 0, processedAt: null, lastError: null })) });
+      expect(followUp).not.toHaveBeenCalled();
+      return result;
+    });
+
+    await expect(service.receive(BODY, signed(BODY))).resolves.toBe('processed');
+    expect(followUp).toHaveBeenCalledOnce();
+
+    const failing = setup({
+      handlers: new Map([['checkout.session.completed', vi.fn<StripeEventHandler>(async () => async () => Promise.reject(new Error('mail down')))]]),
+    });
+    await expect(failing.service.receive(BODY, signed(BODY))).resolves.toBe('processed');
+    expect(failing.logger.error).toHaveBeenCalledWith(
+      { stripeEvent: { id: 'evt_1', type: 'checkout.session.completed' }, err: expect.any(Error) },
+      'Stripe event follow-up failed after commit',
     );
   });
 

@@ -11,6 +11,12 @@ export { Invitation, STACK_TAGS, type StackTag } from './entities/invitations/in
 export { MENTOR_PROFILE_SLUG_KEY, MentorProfile } from './entities/mentors/mentor-profile.entity';
 export { ACTIVE_SLOT_UNIQUE, Slot } from './entities/availability/slot.entity';
 export { StripeEvent } from './entities/payments/stripe-event.entity';
+export {
+  ACTIVE_BOOKING_SLOT_UNIQUE,
+  ACTIVE_BOOKING_STATUSES,
+  Booking,
+  type BookingStatus,
+} from './entities/bookings/booking.entity';
 export { isUniqueViolation } from './errors';
 export type { DbOptions } from './config';
 // Re-exported so no package other than db imports @mikro-orm/* directly.

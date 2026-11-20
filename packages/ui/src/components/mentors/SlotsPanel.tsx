@@ -24,6 +24,8 @@ export interface OwnerSlot {
   startsAt: string;
   meetsLeadTime: boolean;
   past?: boolean;
+  /** The slot's own booking (spec #29): held while a mentee pays, booked once paid. */
+  booking?: "held" | "booked" | null;
 }
 
 export interface SlotsPanelProps {
@@ -36,6 +38,7 @@ export interface SlotsPanelProps {
 /**
  * The mentor's own slots on /mentor/slots (spec #25): upcoming slots with their lead-time state and
  * Remove (confirmed), an empty state with the next step, and a "Show past" switch for the last 50.
+ * A booked or held slot (spec #29) says so and cannot be removed.
  */
 export function SlotsPanel({ slots, showPast, onShowPastChange, onRemove }: SlotsPanelProps) {
   return (
@@ -71,13 +74,18 @@ export function SlotsPanel({ slots, showPast, onShowPastChange, onRemove }: Slot
           <TableBody>
             {slots.map((slot) => {
               const label = formatInstant(slot.startsAt, "datetime");
+              const taken = slot.booking === "booked" || slot.booking === "held";
               return (
                 <TableRow key={slot.id}>
                   <TableCell>
                     <LocalTime iso={slot.startsAt} />
                   </TableCell>
                   <TableCell>
-                    {slot.past ? (
+                    {slot.booking === "booked" ? (
+                      <Badge tone="success">Booked</Badge>
+                    ) : slot.booking === "held" ? (
+                      <Badge tone="warning">Held for payment</Badge>
+                    ) : slot.past ? (
                       <Badge>Past</Badge>
                     ) : slot.meetsLeadTime ? (
                       <Badge tone="success">Bookable</Badge>
@@ -86,7 +94,7 @@ export function SlotsPanel({ slots, showPast, onShowPastChange, onRemove }: Slot
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    {slot.past ? null : (
+                    {slot.past || taken ? null : (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button intent="destructive" appearance="text" size="sm" aria-label={`Remove slot ${label}`}>

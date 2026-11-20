@@ -21,6 +21,8 @@ describe('error hierarchy', () => {
     [new NotFoundError(), 404, 'NOT_FOUND', 'Resource not found.'],
     [new ConflictError(), 409, 'CONFLICT', 'Resource conflict.'],
     [new ServiceUnavailableError(), 503, 'SERVICE_UNAVAILABLE', 'Service unavailable.'],
+    [new ConflictError('Taken.', { code: 'SLOT_TAKEN' }), 409, 'SLOT_TAKEN', 'Taken.'],
+    [new ServiceUnavailableError('Off.', { code: 'PAYMENTS_UNAVAILABLE' }), 503, 'PAYMENTS_UNAVAILABLE', 'Off.'],
     [new TooManyRequestsError(1), 429, 'TOO_MANY_REQUESTS', 'Too many attempts. Try again later.'],
   ])('%o maps to %i %s with a default message', (error, status, code, message) => {
     expect(error).toBeInstanceOf(AppError);

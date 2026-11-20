@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { SlotView } from '../services/availability/slot.service';
+import type { OwnerSlotView, SlotView } from '../services/availability/slot.service';
 import { slotCreateSchema } from '../validators/availability/slot-create.schema';
 import type { HandlerArgs, RouteParams } from './apiHandler';
 import { requireMentor } from './mentors';
@@ -15,7 +15,7 @@ export type SlotIdParams = { id: string };
 const listQuery = z.object({ scope: z.enum(['upcoming', 'past']).default('upcoming') });
 
 /** `GET /api/availability/slots?scope=upcoming|past` (mentor) → `{ items }`. */
-export async function listMySlots({ req, cradle }: HandlerArgs<RouteParams>): Promise<{ items: SlotView[] }> {
+export async function listMySlots({ req, cradle }: HandlerArgs<RouteParams>): Promise<{ items: OwnerSlotView[] }> {
   const user = await requireMentor(req, cradle);
   const { scope } = parseSearchParams(req, listQuery);
 

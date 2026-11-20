@@ -36,13 +36,14 @@ export const longTexts: MentorCardProps = {
 };
 
 export const slots: MentorPageSlot[] = [
-  { id: "s1", startsAt: "2026-11-05T09:00:00Z", meetsLeadTime: false },
-  { id: "s2", startsAt: "2026-11-05T17:30:00Z", meetsLeadTime: true },
-  { id: "s3", startsAt: "2026-11-06T08:00:00Z", meetsLeadTime: true },
+  { id: "s1", startsAt: "2026-11-05T09:00:00Z", meetsLeadTime: false, bookableLengths: [] },
+  { id: "s2", startsAt: "2026-11-05T17:30:00Z", meetsLeadTime: true, bookableLengths: ["25", "50"] },
+  { id: "s3", startsAt: "2026-11-06T08:00:00Z", meetsLeadTime: true, bookableLengths: ["25"] },
 ];
 
 export const manySlots: MentorPageSlot[] = Array.from({ length: 14 }, (_, i) => ({
   id: `m${i}`,
   startsAt: new Date(Date.UTC(2026, 10, 5 + Math.floor(i / 2), i % 2 ? 17 : 8, 30)).toISOString(),
   meetsLeadTime: i > 0,
+  bookableLengths: i > 0 ? ["25", "50"] : [],
 }));
