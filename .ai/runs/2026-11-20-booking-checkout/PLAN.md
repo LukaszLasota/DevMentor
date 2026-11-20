@@ -16,7 +16,7 @@ Engine: om-auto-create-pr-loop
 | 2 | 2.1 | Occupancy: bookableLengths, booking-aware counts, owner booking state, remove under the profile lock | inline | done | self |
 | 2 | 2.2 | BookingService.start with hold, deadline and stale-hold release through Stripe | inline | done | self |
 | 2 | 2.3 | Checkout webhook handlers, after-commit hook, bookings.booking.confirmed and emails | inline | done | self |
-| 2 | 2.4 | POST /api/bookings and GET /api/bookings/[id] | inline | todo | |
+| 2 | 2.4 | POST /api/bookings and GET /api/bookings/[id] | inline | done | self |
 | 3 | 3.1 | SlotBookingControls in @devmentor/ui/mentors with stories | inline | todo | |
 | 3 | 3.2 | /m/[slug] booking wiring and the cancelled notice | inline | todo | |
 | 3 | 3.3 | /bookings/[id] status page | inline | todo | |
