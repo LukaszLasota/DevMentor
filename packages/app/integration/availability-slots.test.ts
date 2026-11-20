@@ -145,7 +145,7 @@ describe('availability slots: publish → public page with lead-time state → r
     await browser.open(`${baseUrl}/mentor`);
     await browser.waitForText('Publish a slot');
     // The state is a screen-reader word ("Done: "), not colour alone; the link only shows while to do.
-    expect(await browser.text('main')).toContain('Done: Publish a slot');
+    expect(await browser.text('main')).toMatch(/Done:\s*Publish a slot/);
     expect(await browser.count('main a[href="/mentor/slots"]')).toBe(0);
   });
 
