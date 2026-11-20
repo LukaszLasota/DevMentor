@@ -1,6 +1,6 @@
 # A mentee books a slot at least two hours ahead and pays through Stripe Checkout
 
-Status: draft (autonomous defaults pending confirmation — see Resolved assumptions)
+Status: approved — Q2 and Q7 confirmed by the owner on 2026-11-20
 Issue: #29 (E03-S01) · Epic: #18 · Depends on: #23 (`.ai/specs/2026-10-21-mentor-page.md`), #24 (`.ai/specs/2026-10-21-mentor-prices.md`), #25 (`.ai/specs/2026-10-21-availability-slots.md`), #27 (`.ai/specs/2026-10-21-mentor-list.md`), #28 (`.ai/specs/2026-10-21-mentor-share-link-page.md`) · Shares the Stripe client contract with #26 (`.ai/specs/2026-10-21-stripe-connect-payouts.md`); owns the durable webhook inbox #26 phase 2 and #35 use · Source: `.ai/specs/product-brief.md` (R02, R06, R09, R10, R14, D09, D10, D11, Q04) · No course story spec exists for booking (lesson 05 ends at the bookable mentor)
 
 ## 📝 TLDR
@@ -166,12 +166,12 @@ R02 (25/50 at booking), R06 (Stripe only, paid before the session), R09/D09 (two
 | # | Question | Default applied | Rationale |
 |---|---|---|---|
 | Q1 | One spec or split (booking vs. webhook inbox vs. Stripe client)? | One spec; Phase 1 (Stripe client, signature, inbox, stub) ships as its own PR first and owns the client contract — #26 and #35 build on it, not "whichever lands first" | Phase 1 deploys alone and is shared, so it gets its own PR and ownership; it has no user value alone, so a separate spec would only repeat this design. Split into its own spec if a reviewer prefers |
-| Q2 | Which payment methods in Checkout? | Card only (`payment_method_types=['card']`) ⚠ NEEDS HUMAN CONFIRMATION | Synchronous result fits the hold; BLIK/Przelewy24 matter in Poland but P24 can confirm asynchronously, which needs `async_payment_*` handling and a longer hold — a founder conversion call |
+| Q2 | Which payment methods in Checkout? | Card only (`payment_method_types=['card']`) (confirmed by the owner 2026-11-20) | Synchronous result fits the hold; BLIK/Przelewy24 matter in Poland but P24 can confirm asynchronously, which needs `async_payment_*` handling and a longer hold — a founder conversion call |
 | Q3 | How long is a time held? | Checkout `expires_at` = 31 min (Stripe's minimum is 30) + 5 min grace on the hold, from one deadline | Shortest hold Stripe reliably accepts; the release rule (ask Stripe first) covers late webhooks |
 | Q4 | When is the two-hour lead checked? | At **Book**; `lead_minutes` recorded at confirmation | The mentee commits at Book; recording at confirmation reflects the real booking time |
 | Q5 | How does the mentor learn of a booking? | Email to mentor and mentee on confirmation via the existing `MailSender`; "Booked" on `/mentor/slots` | Reuses mail infrastructure; #25 left this to #29 |
 | Q6 | May a mentor book their own time? | No (403) | Avoids self-dealing and fake supply signals |
-| Q7 | Where does the money go before Connect (#26/#35)? | Platform Stripe account; payout by hand per R16 until #35 ⚠ NEEDS HUMAN CONFIRMATION | Depends on the brief's open Q04 (founder A with founder B); booking can ship without settling it, real payouts cannot |
+| Q7 | Where does the money go before Connect (#26/#35)? | Platform Stripe account; payout by hand per R16 until #35 (confirmed by the owner 2026-11-20) | Depends on the brief's open Q04 (founder A with founder B); booking can ship without settling it, real payouts cannot |
 | Q8 | Line-item name shown in Checkout? | "<25\|50>-minute text session with <displayName>" | States the product plainly (R01); no commercial value invented |
 | Q9 | How do lengths occupy time? | A booking occupies `[starts_at, starts_at + length)`; a length is offered only when it overlaps no active booking of the mentor | #25 delegated viable lengths here; the simplest rule that prevents double sessions |
 | Q10 | A payment completing for a booking that is no longer held? | `payment_orphaned`, operator contacts the mentee by hand; no automatic refund | R10 forbids automatic refunds; the hold design makes this a should-not-happen case |
