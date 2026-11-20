@@ -506,6 +506,16 @@ describe('BookingService.applyCompleted / applyExpired', () => {
     });
   });
 
+  it('ignores a redelivered completion for a cancelled booking (never orphaned, so never refunded twice)', async () => {
+    const cancelled = held({ status: 'cancelled', confirmedAt: hoursFromNow(-1), leadMinutes: 1500, refundStatus: 'succeeded' });
+
+    await expect(cancelled.service.applyCompleted(cancelled.em as unknown as Cradle['em'], session(cancelled.booking))).resolves.toEqual({
+      outcome: 'ignored',
+      booking: cancelled.booking,
+    });
+    expect(cancelled.booking).toMatchObject({ status: 'cancelled', refundStatus: 'succeeded' });
+  });
+
   it.each([
     ['an amount mismatch', {}, { amountTotal: 1 }],
     ['a currency mismatch', {}, { currency: 'EUR' }],

@@ -16,6 +16,7 @@ export {
   ACTIVE_BOOKING_STATUSES,
   Booking,
   type BookingStatus,
+  type RefundStatus,
 } from './entities/bookings/booking.entity';
 export { isUniqueViolation } from './errors';
 export type { DbOptions } from './config';

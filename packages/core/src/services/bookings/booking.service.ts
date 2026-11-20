@@ -242,6 +242,12 @@ export class BookingService {
       return { outcome: booking.status === 'confirmed' ? 'already_confirmed' : 'orphaned', booking };
     }
 
+    // A cancelled booking was confirmed once and may be refunded: a redelivered completion must not
+    // turn it into `payment_orphaned` (spec 2026-11-20-booking-cancellation).
+    if (booking.status === 'cancelled') {
+      return { outcome: 'ignored', booking };
+    }
+
     const now = this.clock.now();
     const slot = await em.findOne(Slot, { id: booking.slot.id });
     const others = await em.find(Booking, { ...activeBookingsWhere([booking.mentorProfile.id], now), id: { $ne: booking.id } });
