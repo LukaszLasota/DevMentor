@@ -62,6 +62,7 @@ describe("/bookings/[id]", () => {
     expect(status.textContent).toContain("Booked");
     expect(status.textContent).toContain("25-minute text session with Ada on");
     expect(status.textContent).toContain("You paid PLN 150.00. The mentor has been told by email.");
+    expect(screen.getByRole("link", { name: "Open the session" }).getAttribute("href")).toBe(`/sessions/${ID}`);
     expect(document.body.textContent).not.toMatch(/respond|reply within|guarantee/i);
   });
 

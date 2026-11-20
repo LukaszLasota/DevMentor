@@ -60,6 +60,9 @@ export async function BookingContent({ params }: { params: Promise<{ id: string 
             <AlertDescription>
               <p>{what}.</p>
               <p>You paid {price}. The mentor has been told by email.</p>
+              <a href={`/sessions/${booking.id}`} className="text-link underline underline-offset-4">
+                Open the session
+              </a>
             </AlertDescription>
           </Alert>
           {booking.cancellation === null ? null : (
