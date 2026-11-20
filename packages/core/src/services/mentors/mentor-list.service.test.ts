@@ -58,7 +58,8 @@ function fakeEm(fixtures: Fixture[]) {
 function setup(fixtures: Fixture[], configured = true) {
   const em = fakeEm(fixtures);
   const slotService = {
-    bookableSummaryFor: vi.fn(async (ids: readonly string[], _now: Date) => {
+    bookableSummaryFor: vi.fn(async (ids: readonly string[], ...rest: [Date]) => {
+      void rest;
       const map = new Map<string, BookableSummary>();
       for (const fixture of fixtures) {
         if (ids.includes(fixture.profile.id) && fixture.slots > 0) {

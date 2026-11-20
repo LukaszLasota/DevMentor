@@ -104,6 +104,8 @@ describe('public entries', () => {
         'unpublishOwnMentorPage',
         'updateOwnMentorPage',
         'updateOwnMentorPrices',
+        'listMentors',
+        'MENTOR_LIST_RESPONSE',
         'listMySlots',
         'publishSlot',
         'removeSlot',

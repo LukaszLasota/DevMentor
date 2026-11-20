@@ -9,6 +9,8 @@ import { NotFoundError, ServiceUnavailableError, ValidationError } from './error
 import {
   getOwnMentorPage,
   getPublicMentorPage,
+  listMentors,
+  MENTOR_LIST_RESPONSE,
   MENTOR_OWNER_RESPONSE,
   publishOwnMentorPage,
   unpublishOwnMentorPage,
@@ -42,6 +44,7 @@ function setup(roles: Role[] = ['mentee', 'mentor']) {
     getPublicBySlug: vi.fn(async () => PUBLIC),
     updatePrices: vi.fn(async () => OWNER),
   };
+  const mentorListService = { listBookable: vi.fn(async () => [PUBLIC]) };
   const em = { findOne: vi.fn(async (_entity: unknown, where: { id: string }) => (where.id === user.id ? user : null)) };
   const accountService = { reconcileOperator: vi.fn(async (u: User) => u) };
   scope.cradle = {
@@ -51,9 +54,10 @@ function setup(roles: Role[] = ['mentee', 'mentor']) {
     em,
     accountService,
     mentorProfileService,
+    mentorListService,
   };
 
-  return { mentorProfileService };
+  return { mentorProfileService, mentorListService };
 }
 
 const session = () => signSession({ sub: USER_ID, sv: 0 }, SECRET, clock).then((t) => `dm_session=${t}`);
@@ -222,6 +226,40 @@ describe('PUT /api/mentors/me/prices (#24)', () => {
 
     expect([anonymous.status, operator.status, noCsrf.status, missing.status]).toEqual([401, 403, 403, 404]);
     expect(mentorProfileService.updatePrices).not.toHaveBeenCalled();
+  });
+});
+
+describe('GET /api/mentors (public list, #27)', () => {
+  const route = apiHandler(listMentors, MENTOR_LIST_RESPONSE);
+  const get = (query: string) => route(new Request(`http://localhost/api/mentors${query}`), noParams);
+
+  it('answers every bookable mentor without a session, no-store', async () => {
+    const { mentorListService } = setup();
+
+    const res = await get('');
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, data: { items: [PUBLIC] } });
+    expect(mentorListService.listBookable).toHaveBeenCalledWith({});
+    expect(res.headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('passes one valid tag', async () => {
+    const { mentorListService } = setup();
+
+    await get('?tag=react');
+
+    expect(mentorListService.listBookable).toHaveBeenCalledWith({ tag: 'react' });
+  });
+
+  it.each(['?tag=rust', '?tag=REACT', '?tag=', '?tag=react&tag=python'])('answers 400 naming tag for %s', async (query) => {
+    const { mentorListService } = setup();
+
+    const res = await get(query);
+
+    expect(res.status).toBe(400);
+    expect(Object.keys((await res.json()).error.fieldErrors)).toEqual(['tag']);
+    expect(mentorListService.listBookable).not.toHaveBeenCalled();
   });
 });
 
