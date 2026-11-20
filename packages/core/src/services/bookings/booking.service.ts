@@ -1,4 +1,4 @@
-import { ACTIVE_BOOKING_SLOT_UNIQUE, Booking, isUniqueViolation, LockMode, MentorProfile, type RefundStatus, Slot } from '@devmentor/db';
+import { ACTIVE_BOOKING_SLOT_UNIQUE, Booking, BookingReport, isUniqueViolation, LockMode, MentorProfile, type RefundStatus, Slot } from '@devmentor/db';
 import type { Cradle } from '../../container/cradle';
 import type { SessionLength } from '../../domain/session-lengths';
 import { ConflictError, ForbiddenError, NotFoundError, ServiceUnavailableError } from '../../http/errors';
@@ -53,6 +53,8 @@ export interface BookingView {
   cancellation: { refundDue: boolean; freeUntil: string } | null;
   cancelledAt: string | null;
   refundStatus: RefundStatus | null;
+  /** When the mentee reported a dispute about it, or `null` (phase 2 of the cancellation spec). */
+  reportedAt: string | null;
 }
 
 /** What a completed Checkout did to its booking. */
@@ -211,6 +213,7 @@ export class BookingService {
     const now = this.clock.now();
     const terms = cancellationTerms(booking.startsAt, now);
     const cancellable = booking.status === 'confirmed' && booking.startsAt.getTime() > now.getTime();
+    const report = await this.em.findOne(BookingReport, { booking: booking.id });
 
     return {
       id: booking.id,
@@ -223,6 +226,7 @@ export class BookingService {
       cancellation: cancellable ? { refundDue: terms.refundDue, freeUntil: terms.freeUntil.toISOString() } : null,
       cancelledAt: booking.cancelledAt?.toISOString() ?? null,
       refundStatus: booking.refundStatus ?? null,
+      reportedAt: report?.createdAt.toISOString() ?? null,
     };
   }
 

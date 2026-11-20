@@ -1,6 +1,6 @@
 # A mentee cancels a booking (free up to 24 hours before) and can report a dispute
 
-Status: phase 1 implemented (branch feat/booking-cancellation); phase 2 (dispute reports) pending — Q1 confirmed by the owner on 2026-11-20 (refund through the Stripe API)
+Status: implemented — phase 1 in #58, phase 2 (dispute reports) on branch feat/booking-reports — Q1 confirmed by the owner on 2026-11-20 (refund through the Stripe API)
 Issue: #30 (E03-S02) · Epic: #18 · Depends on: #29 (`.ai/specs/2026-11-20-booking-stripe-checkout.md`, implemented in #55/#56) · Source: `.ai/specs/product-brief.md` (R10, R16, D10)
 
 ## 📝 TLDR
@@ -142,4 +142,9 @@ Each step ends with `npm run validate` green at 100% coverage; steps 1, 7 and 10
 - The `/admin` panel is a server component, so it renders the shadcn `Table` directly (like `SlotsPanel`): `DataTable` is a client component whose column cells are functions and cannot be passed from the server.
 - A Stripe `charge_already_refunded` answer keeps an earlier `refund_id` if one was recorded.
 - The integration suite pays through the stub's hosted page and uses `POST /__stub/refunds/fail-next` for the refused-refund path.
+
+## Implementation notes (phase 2)
+- Reports have their own scoped `BookingReportService` (`report`, `list`); `getOwn` reads `reportedAt` directly.
+- `/admin` lists every report (newest first) in a separate "Reported bookings" section; there is no resolved state yet (R16: the operator logs the outcome in the shared note).
+- The operator email names the booking id and links `/admin`; it never carries the mentee's message.
 

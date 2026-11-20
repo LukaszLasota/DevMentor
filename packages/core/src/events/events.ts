@@ -33,6 +33,8 @@ export interface DomainEvents {
    * cancellation commits; `refundDue` = cancelled more than 24 hours ahead (R10).
    */
   'bookings.booking.cancelled': { bookingId: string; mentorProfileId: string; menteeId: string; startsAt: Date; refundDue: boolean };
+  /** A mentee reported a dispute about a booking (R10: the operator decides, by hand). Emitted after the insert commits. */
+  'bookings.booking.reported': { bookingId: string; reportId: string };
 }
 
 export type DomainEventName = keyof DomainEvents;

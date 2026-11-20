@@ -4,7 +4,7 @@ import { parseEnv } from '../config/env';
 import { signSession } from '../security/session-token';
 import type { Clock } from '../time/clock';
 import { apiHandler } from './apiHandler';
-import { BOOKING_RESPONSE, cancelOwnBooking, getOwnBooking, releaseOwnBooking, retryBookingRefund, startBooking } from './bookings';
+import { BOOKING_RESPONSE, cancelOwnBooking, getOwnBooking, releaseOwnBooking, reportOwnBooking, retryBookingRefund, startBooking } from './bookings';
 import { CSRF_HEADER, CSRF_HEADER_VALUE } from './envelope';
 import { ConflictError, ForbiddenError, NotFoundError, ServiceUnavailableError } from './errors';
 
@@ -29,16 +29,19 @@ const GET = apiHandler(getOwnBooking, BOOKING_RESPONSE);
 const RELEASE = apiHandler(releaseOwnBooking, BOOKING_RESPONSE);
 const CANCEL = apiHandler(cancelOwnBooking, BOOKING_RESPONSE);
 const RETRY = apiHandler(retryBookingRefund, BOOKING_RESPONSE);
+const REPORT = apiHandler(reportOwnBooking, BOOKING_RESPONSE);
 
 let bookingService: { start: ReturnType<typeof vi.fn>; getOwn: ReturnType<typeof vi.fn>; releaseOwnHold: ReturnType<typeof vi.fn> };
 let bookingCancellationService: { cancel: ReturnType<typeof vi.fn>; retryRefund: ReturnType<typeof vi.fn> };
 let roles: string[];
+let bookingReportService: { report: ReturnType<typeof vi.fn> };
 
 beforeEach(() => {
   roles = ['mentee'];
   const user = Object.assign(new User(), { id: USER_ID, email: 'mentee@devmentor.test', sessionVersion: 0 });
   Object.defineProperty(user, 'roles', { get: () => roles });
   bookingService = { start: vi.fn(async () => STARTED), getOwn: vi.fn(async () => VIEW), releaseOwnHold: vi.fn(async () => VIEW) };
+  bookingReportService = { report: vi.fn(async () => ({ reportedAt: '2026-06-22T16:00:00.000Z' })) };
   bookingCancellationService = { cancel: vi.fn(async () => VIEW), retryRefund: vi.fn(async () => ({ refundStatus: 'succeeded' })) };
   scope.cradle = {
     env: parseEnv({ DATABASE_URL: 'postgres://u:p@localhost:5432/db', SESSION_SECRET: SECRET }),
@@ -48,6 +51,7 @@ beforeEach(() => {
     accountService: { reconcileOperator: vi.fn(async (u: User) => u) },
     bookingService,
     bookingCancellationService,
+    bookingReportService,
   };
 });
 
@@ -180,3 +184,29 @@ describe('POST /api/admin/bookings/[id]/refund', () => {
     expect(bookingCancellationService.retryRefund).not.toHaveBeenCalled();
   });
 });
+
+describe('POST /api/bookings/[id]/report', () => {
+  const MESSAGE = 'The mentor did not show up for the session.';
+
+  it('reports the caller\'s own booking with the trimmed message only', async () => {
+    const response = await REPORT(await request('POST', { body: { message: `  ${MESSAGE}  `, refund: true } }), idParams(BOOKING_ID));
+
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(await response.json()).toEqual({ ok: true, data: { reportedAt: '2026-06-22T16:00:00.000Z' } });
+    expect(bookingReportService.report).toHaveBeenCalledWith(USER_ID, BOOKING_ID, { message: MESSAGE });
+  });
+
+  it('answers 401, 403 without CSRF, 404 for a malformed id, 400 for a short message, and 409 codes', async () => {
+    expect((await REPORT(await request('POST', { signedIn: false, body: { message: MESSAGE } }), idParams(BOOKING_ID))).status).toBe(401);
+    expect((await REPORT(await request('POST', { csrf: false, body: { message: MESSAGE } }), idParams(BOOKING_ID))).status).toBe(403);
+    expect((await REPORT(await request('POST', { body: { message: MESSAGE } }), idParams('x'))).status).toBe(404);
+    const short = await REPORT(await request('POST', { body: { message: 'bad' } }), idParams(BOOKING_ID));
+    expect(Object.keys((await short.json()).error.fieldErrors)).toEqual(['message']);
+    expect(bookingReportService.report).not.toHaveBeenCalled();
+
+    bookingReportService.report.mockRejectedValueOnce(new ConflictError('Again.', { code: 'ALREADY_REPORTED' }));
+    const again = await REPORT(await request('POST', { body: { message: MESSAGE } }), idParams(BOOKING_ID));
+    expect([again.status, (await again.json()).error.code]).toEqual([409, 'ALREADY_REPORTED']);
+  });
+});
+

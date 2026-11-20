@@ -87,6 +87,7 @@ describe('public entries', () => {
         'createFetchJson',
         'readSessionCookie',
         'releaseOwnBooking',
+        'reportOwnBooking',
         'cancelOwnBooking',
         'retryBookingRefund',
         'receiveStripeWebhook',

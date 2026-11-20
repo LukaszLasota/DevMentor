@@ -3,6 +3,7 @@ import type { BookingStarted, BookingView } from '../services/bookings/booking.s
 import { BOOKING_NOT_FOUND_MESSAGE } from '../services/bookings/booking.service';
 import type { RefundStatus } from '@devmentor/db';
 import { bookingCancelSchema } from '../validators/bookings/booking-cancel.schema';
+import { bookingReportSchema } from '../validators/bookings/booking-report.schema';
 import { bookingStartSchema } from '../validators/bookings/booking-start.schema';
 import type { ApiHandlerOptions, HandlerArgs, RouteParams } from './apiHandler';
 import { requireRole, requireSession } from './auth';
@@ -71,4 +72,16 @@ export async function retryBookingRefund({ req, params, cradle }: HandlerArgs<Bo
   requireRole(user, 'operator');
 
   return cradle.bookingCancellationService.retryRefund(bookingId(params));
+}
+
+/**
+ * `POST /api/bookings/[id]/report` `{ message }` → `{ reportedAt }`: the caller reports their own paid
+ * booking to the operator (R10). 409 `NOT_REPORTABLE` or `ALREADY_REPORTED`.
+ */
+export async function reportOwnBooking({ req, params, cradle }: HandlerArgs<BookingIdParams>): Promise<{ reportedAt: string }> {
+  const user = await requireSession(req, cradle);
+  const id = bookingId(params);
+  const input = await parseJsonBody(req, bookingReportSchema);
+
+  return cradle.bookingReportService.report(user.id, id, input);
 }

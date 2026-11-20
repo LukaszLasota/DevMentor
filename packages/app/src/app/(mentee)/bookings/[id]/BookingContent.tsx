@@ -5,6 +5,7 @@ import { Alert, AlertDescription, AlertTitle, LocalTime } from "@devmentor/ui";
 import { requirePageSession } from "@/lib/session";
 import { BookingPending } from "./BookingPending";
 import { CancelBooking } from "./CancelBooking";
+import { ReportProblem } from "./ReportProblem";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -98,6 +99,13 @@ export async function BookingContent({ params }: { params: Promise<{ id: string 
             )}
           </AlertDescription>
         </Alert>
+      )}
+      {booking.status !== "confirmed" && booking.status !== "cancelled" ? null : booking.reportedAt === null ? (
+        <ReportProblem bookingId={booking.id} />
+      ) : (
+        <p role="status" className="text-body-small text-muted-foreground">
+          Reported on <LocalTime iso={booking.reportedAt} />. The DevMentor team will reply by email. Reporting does not refund automatically.
+        </p>
       )}
     </>
   );
