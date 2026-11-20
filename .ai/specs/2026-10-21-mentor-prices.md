@@ -1,6 +1,6 @@
 # A mentor sets 25- and 50-minute prices within operator bounds
 
-Status: approved (implementation blocked on Q-P1/Q-P2: currency and bounds, founder A)
+Status: approved (Q-P1/Q-P2 answered 2026-11-20: PLN; 25 min 50.00–300.00, 50 min 100.00–600.00)
 Issue: #24 (E01-S04) · Epic: #16 · Depends on: #23 (`.ai/specs/2026-10-21-mentor-page.md`, readiness primitive and `/m/[slug]`) · Source: `.ai/specs/product-brief.md` (R02, R12, D14, R16) · Builds on: `.ai/specs/implemented/2026-10-21-platform-primitives.md`, `.ai/specs/implemented/2026-10-21-sign-in-github-and-email.md`, `.ai/specs/implemented/2026-10-21-mentor-invitations.md` · Sibling: `.ai/specs/2026-10-21-availability-slots.md` (#25) · Follows the course reference specs `2026-09-08-mentor-prices.md`, `2026-09-08-mentors-become-bookable.md` (Slice 4) and `2026-09-08-platform-primitives-ii.md` (B12′, B16′, F5′ `money`), adapted to this repository
 
 **Why not a thin spec like the course's.** The course's mentor-prices spec is a thin story spec because its Platform Primitives II document is the design authority for money, settings and the readiness gate. This repository's approved `platform-primitives` spec covers neither money nor platform settings, so this spec carries those contracts (money module, `PlatformSettingsService`, env tier, price requirements) itself; the readiness primitive stays in #23 and is only referenced here.
@@ -60,7 +60,7 @@ The currency is not stored per mentor. `updatePrices` always writes both. Changi
 - Env, in `core/src/config/env.ts` and `.env.example`, `ci.yml` and `README.md` in the same PR (`BACKWARD_COMPATIBILITY.md`), tiered as in the platform-primitives spec:
   - **Optional, checked at the route** (no default in `env.ts`; missing → `PlatformSettingsService` unavailable → 503 on save, `settings` requirement unmet on reads; build and boot unaffected): `PLATFORM_CURRENCY` (ISO 4217, two-decimal currency) and `PLATFORM_PRICE_BOUNDS` (JSON `{"25":{"minCents":n,"maxCents":n},"50":{"minCents":n,"maxCents":n}}`).
   - **Dangerous configuration refuses boot** when set but malformed: unknown or non-two-decimal currency, non-integer or ≤ 0 cents, `minCents > maxCents`, `maxCents > 2_147_483_647`, a missing length, or only one of the two variables set.
-  - `ci.yml` and the integration runner set explicit test values; no commercial value ships in code or `.env.example` (placeholders are commented out).
+  - `ci.yml` and the integration runner set the approved values; `.env.example` carries them for local runs (decision 2026-11-20). `env.ts` still has no defaults: a deployment without them is fail-closed (503 on save, "Not bookable yet").
 - No new domain event (no consumer yet).
 
 ## 📝 UI/UX
@@ -134,8 +134,11 @@ Hypotheses from a synthetic persona panel (`.ai/specs/research/walkthroughs/2026
 - May the 50-minute price equal or undercut the 25-minute price per minute? (seen once in the panel)
 
 ## ❓ Open Questions
-- **Q-P1 Platform currency** (owner: founder A). Proposed: USD (beachhead English-speaking, D24; benchmarks priced in USD). Blocking before implementation.
-- **Q-P2 Initial 25- and 50-minute bounds** (owner: founder A with founder B). No value proposed; evidence is thin (Codementor $15–80 per 15 min; one interview "fifty euro?"). Blocking before implementation.
+None blocking.
+
+## ✅ Resolved with the founder (2026-11-20)
+- **Q-P1 Platform currency: PLN** (owner: founder A, confirmed by the session owner). The course's final implementation also prices in PLN (lesson 11, PR #48 of the reference project). Two-decimal (grosze), so the money module applies unchanged.
+- **Q-P2 Initial bounds: 25 min 50.00–300.00 PLN (5000–30000), 50 min 100.00–600.00 PLN (10000–60000)** (owner: founder A, confirmed by the session owner). Rationale: the course demo prices (150 / 300 PLN) sit inside; the 50-minute range is twice the 25-minute one. The course materials do not state their bounds. Changed later by hand (R16) through `PLATFORM_PRICE_BOUNDS`.
 
 ## 📝 Review notes
 All review findings were applied; none rejected. The `money` CrudForm type finding was applied because the course's justification (keep the value a string) is met by `text` with `inputMode`/`suffix`.
