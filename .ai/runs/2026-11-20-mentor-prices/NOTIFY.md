@@ -13,3 +13,7 @@
 
 ## 2026-11-20T10:51:29Z — checkpoint 1 (Phase 1)
 - Lint, typecheck, unit 100%, build green. Blocker resolved: ci.yml push refused (token without workflow scope) → change dropped, integration env set in global-setup.ts instead. 1.4 needed a fix commit (column naming).
+
+## 2026-11-20T10:57:52Z — checkpoint 2 (Phase 2)
+- Lint, typecheck, unit 100% (1590), build green.
+- Decision: public DTO `prices` follows the spec literally (both set and settings available); the page shows them only when offer-ready.

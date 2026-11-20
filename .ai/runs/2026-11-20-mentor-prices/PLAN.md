@@ -16,9 +16,9 @@ Engine: om-auto-create-pr-loop (forced by the brief, regardless of step count)
 | 1 | 1.3 | PlatformSettingsService and container registration | inline | done | 792f603 |
 | 1 | 1.4 | Price columns migration and MentorProfile fields | inline | done | ec9d1f3 |
 | 1 | 1.4-fix | Explicit price column names | inline | done | 289bd9c |
-| 2 | 2.1 | mentorPricesUpdateSchema | inline | done | self |
-| 2 | 2.2 | updatePrices, price requirements in mentorOfferReady and DTO prices | inline | done | self |
-| 2 | 2.3 | PUT /api/mentors/me/prices | inline | done | self |
+| 2 | 2.1 | mentorPricesUpdateSchema | inline | done | 779890d |
+| 2 | 2.2 | updatePrices, price requirements in mentorOfferReady and DTO prices | inline | done | 950dd11 |
+| 2 | 2.3 | PUT /api/mentors/me/prices | inline | done | 9031f12 |
 | 3 | 3.1 | /mentor/prices page and sidebar item | inline | todo | — |
 | 3 | 3.2 | Set your prices step on /mentor with the out-of-bounds price named | inline | todo | — |
 | 3 | 3.3 | Prices on the public /m/[slug] page | inline | todo | — |
