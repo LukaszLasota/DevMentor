@@ -84,3 +84,6 @@ export async function seedBookableMentor(browser: Browser, options: MentorFixtur
 
   return { cookie, slug };
 }
+
+/** The share-page name for the same fixture (spec #28): an offer-ready mentor by default. */
+export const seedOfferReadyMentor = seedBookableMentor;

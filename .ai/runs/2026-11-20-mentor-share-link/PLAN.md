@@ -15,7 +15,7 @@ Engine: om-auto-create-pr-loop (forced by the brief, regardless of step count)
 | 1 | 1.2 | MentorPageView section order and both display states asserted | inline | done | self |
 | 1 | 1.3 | Request-scoped loadPublicMentor | inline | done | self |
 | 1 | 1.4 | Metadata (noindex, title, description, Open Graph) and error.tsx | inline | done | self |
-| 2 | 2.1 | Share-link integration test | inline | todo | — |
+| 2 | 2.1 | Share-link integration test | inline | done | self |
 
 ## Goal
 
