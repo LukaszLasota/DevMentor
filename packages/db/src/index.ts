@@ -24,6 +24,13 @@ export {
   BOOKING_REPORT_MESSAGE_MIN,
   BookingReport,
 } from './entities/bookings/booking-report.entity';
+export { SESSION_MESSAGE_MAX, SessionMessage } from './entities/sessions/session-message.entity';
+export {
+  SESSION_ANSWER_BOOKING_UNIQUE,
+  SESSION_ANSWER_MAX,
+  SESSION_ANSWER_MIN,
+  SessionAnswer,
+} from './entities/sessions/session-answer.entity';
 export { isUniqueViolation } from './errors';
 export type { DbOptions } from './config';
 // Re-exported so no package other than db imports @mikro-orm/* directly.

@@ -1,6 +1,8 @@
 import { SlotSchema } from './availability/slot.entity';
 import { BookingReportSchema } from './bookings/booking-report.entity';
 import { BookingSchema } from './bookings/booking.entity';
+import { SessionAnswerSchema } from './sessions/session-answer.entity';
+import { SessionMessageSchema } from './sessions/session-message.entity';
 import { AuthRateLimitSchema } from './auth/auth-rate-limit.entity';
 import { EmailVerificationTokenSchema } from './auth/email-verification-token.entity';
 import { UserSchema } from './auth/user.entity';
@@ -19,4 +21,6 @@ export const entities = [
   StripeEventSchema,
   BookingSchema,
   BookingReportSchema,
+  SessionMessageSchema,
+  SessionAnswerSchema,
 ];
