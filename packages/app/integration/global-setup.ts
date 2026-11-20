@@ -96,8 +96,7 @@ export default async function setup(project: TestProject) {
     webhookUrl: `${baseUrl}/api/webhooks/stripe`,
   });
   const closeStubs = async () => {
-    await githubStub.close();
-    await stripeStub.close();
+    await Promise.allSettled([githubStub.close(), stripeStub.close()]);
   };
   const logs: string[] = [];
   // The app logs at `info` so the log mailer's `mail.sent` lines (verification links) reach the file;

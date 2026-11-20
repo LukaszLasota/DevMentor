@@ -43,7 +43,7 @@ describe('StripeEvent entity', () => {
     ]);
     expect(column('id')).toEqual({ field: 'id', type: 'text', nullable: false });
     expect(column('type')).toEqual({ field: 'type', type: 'text', nullable: false });
-    expect(column('payload')).toEqual({ field: 'payload', type: 'jsonb', nullable: false });
+    expect(column('payload')).toEqual({ field: 'payload', type: 'text', nullable: false });
     expect(column('receivedAt')).toEqual({ field: 'received_at', type: 'timestamptz', nullable: false });
     expect(column('processedAt')).toEqual({ field: 'processed_at', type: 'timestamptz', nullable: true });
     expect(column('attempts')).toEqual({ field: 'attempts', type: 'int', nullable: false });

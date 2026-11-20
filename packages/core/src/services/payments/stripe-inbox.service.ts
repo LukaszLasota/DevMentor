@@ -13,7 +13,7 @@ export const LAST_ERROR_MAX_LENGTH = 500;
 
 /** Stores a verified event once; a redelivery of the same id inserts nothing. */
 export const INSERT_STRIPE_EVENT_SQL = `insert into stripe_events (id, type, payload, received_at, attempts)
-values (?, ?, ?::jsonb, ?::timestamptz, 0)
+values (?, ?, ?, ?::timestamptz, 0)
 on conflict (id) do nothing`;
 
 /** Records a failed attempt outside the rolled-back transaction. Params: last_error, id. */
@@ -63,8 +63,14 @@ export class StripeInboxService {
 
       return outcome;
     } catch (error) {
-      await this.em.execute(RECORD_STRIPE_EVENT_FAILURE_SQL, [redactError(error), event.id]);
       this.logger.error({ ...log, err: error }, 'Stripe event processing failed; Stripe will redeliver');
+
+      try {
+        await this.em.execute(RECORD_STRIPE_EVENT_FAILURE_SQL, [redactError(error), event.id]);
+      } catch (bookkeeping) {
+        // Never mask the handler's error with the bookkeeping one; both are logged.
+        this.logger.error({ ...log, err: bookkeeping }, 'Could not record the failed Stripe event attempt');
+      }
 
       throw error;
     }

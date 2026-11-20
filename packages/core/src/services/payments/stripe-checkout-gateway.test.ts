@@ -113,6 +113,12 @@ describe('StripeCheckoutGateway', () => {
     expect(request.mock.calls[1][0]).toMatchObject({ method: 'GET', path: '/v1/checkout/sessions/cs%2F..%2Fx' });
   });
 
+  it('returns a session that is still open when the 400 had another cause', async () => {
+    const { gateway } = setup({ kind: 'rejected', status: 400, code: 'parameter_unknown' }, { kind: 'ok', data: RAW_SESSION });
+
+    await expect(gateway.expireSession('cs_test_1')).resolves.toMatchObject({ kind: 'ok', data: { status: 'open' } });
+  });
+
   it('passes any other failure through', async () => {
     const { gateway, request } = setup({ kind: 'rejected', status: 404, code: 'resource_missing' });
 

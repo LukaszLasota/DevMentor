@@ -125,6 +125,19 @@ describe('StripeInboxService.receive', () => {
     );
   });
 
+  it('rethrows the handler error and logs both when recording the attempt fails too', async () => {
+    const failure = new Error('handler failed');
+    const dbDown = new Error('db down');
+    const { service, em, logger } = setup({
+      handlers: new Map([['checkout.session.completed', vi.fn<StripeEventHandler>(async () => Promise.reject(failure))]]),
+    });
+    em.execute.mockResolvedValueOnce([]).mockRejectedValueOnce(dbDown);
+
+    await expect(service.receive(BODY, signed(BODY))).rejects.toBe(failure);
+    expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({ err: failure }), expect.any(String));
+    expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({ err: dbDown }), 'Could not record the failed Stripe event attempt');
+  });
+
   it('records a non-Error failure as unknown', async () => {
     const { service, em } = setup({
       handlers: new Map([['checkout.session.completed', vi.fn<StripeEventHandler>(async () => Promise.reject('nope'))]]),

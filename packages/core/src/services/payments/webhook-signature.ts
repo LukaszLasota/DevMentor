@@ -17,7 +17,9 @@ export function signStripePayload(rawBody: string, secret: string, timestamp: nu
 /**
  * Verifies a `Stripe-Signature` header over the exact request bytes (no SDK): every `v1` entry is
  * compared in constant time, other schemes (`v0`) are ignored, and the timestamp must be within
- * the tolerance of `now`. Pure: the caller supplies the clock.
+ * the tolerance of `now` — in either direction, stricter than Stripe's SDK (age only): a timestamp
+ * from the future is as suspicious as an old one, and Stripe redelivers on our 400. Pure: the
+ * caller supplies the clock.
  */
 export function verifyStripeSignature(
   rawBody: string,

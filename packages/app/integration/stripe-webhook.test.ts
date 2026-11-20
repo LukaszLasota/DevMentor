@@ -49,6 +49,28 @@ describe('POST /api/webhooks/stripe (Stripe stub → app → PostgreSQL)', () =>
     expect(await row(event.id)).toBe('checkout.session.completed|1|t|t');
   });
 
+  it('dispatches concurrent deliveries of one event once (row lock + processed_at re-check)', async () => {
+    const id = `evt_${randomUUID().replaceAll('-', '')}`;
+    const body = JSON.stringify({ id, object: 'event', type: 'customer.updated', created: 1, data: { object: { id: 'cus_2' } } });
+    const signature = sign(body, STRIPE_TEST_WEBHOOK_SECRET);
+
+    const responses = await Promise.all(Array.from({ length: 5 }, () => post(body, signature)));
+
+    expect(responses.map((response) => response.status)).toEqual([200, 200, 200, 200, 200]);
+    expect(await psql(`select count(*) from stripe_events where id = '${id}'`)).toBe('1');
+    expect(await row(id)).toBe('customer.updated|1|t|t');
+  });
+
+  it('stores a body Postgres jsonb would refuse (\\u0000) as the exact signed text', async () => {
+    const id = `evt_${randomUUID().replaceAll('-', '')}`;
+    const body = `{"id":"${id}","object":"event","type":"customer.updated","created":1,"data":{"object":{"name":"a\\u0000b"}}}`;
+
+    const response = await post(body, sign(body, STRIPE_TEST_WEBHOOK_SECRET));
+
+    expect(response.status).toBe(200);
+    expect(await psql(`select payload = '${body.replaceAll("'", "''")}' from stripe_events where id = '${id}'`)).toBe('t');
+  });
+
   it('answers the envelope with no-store', async () => {
     const id = `evt_${randomUUID().replaceAll('-', '')}`;
     const body = JSON.stringify({ id, object: 'event', type: 'customer.created', created: 1, data: { object: { id: 'cus_1' } } });

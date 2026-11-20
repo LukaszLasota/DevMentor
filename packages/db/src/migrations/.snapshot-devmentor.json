@@ -1063,7 +1063,7 @@
         },
         "payload": {
           "name": "payload",
-          "type": "jsonb",
+          "type": "text",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
@@ -1076,7 +1076,7 @@
           "comment": null,
           "collation": null,
           "enumItems": [],
-          "mappedType": "json"
+          "mappedType": "text"
         },
         "processed_at": {
           "name": "processed_at",

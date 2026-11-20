@@ -74,7 +74,9 @@ export class StripeCheckoutGateway implements CheckoutGateway {
     const path = `${SESSIONS_PATH}/${encodeURIComponent(sessionId)}`;
     const expired = await this.stripeClient.request({ method: 'POST', path: `${path}/expire`, schema: stripeCheckoutSessionSchema });
 
-    // Stripe refuses to expire a session that is no longer open; read its final state instead.
+    // Stripe answers 400 (invalid_request_error, no specific code) when the session is no longer
+    // open. Any 400 is answered by reading the session: the caller gets its real state — `complete`,
+    // `expired`, or still `open` when the 400 had another cause — never a guess.
     if (expired.kind === 'rejected' && expired.status === 400) {
       return this.stripeClient.request({ method: 'GET', path, schema: stripeCheckoutSessionSchema });
     }

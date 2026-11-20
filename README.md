@@ -113,7 +113,7 @@ Until a GitHub OAuth App is set up, sign in through a local GitHub stub (`script
 
 ### Stripe (payments)
 
-`STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` connect Stripe Checkout and the webhook endpoint `POST /api/webhooks/stripe` (spec `.ai/specs/2026-11-20-booking-stripe-checkout.md`). Without them payments are unavailable and webhooks are refused. Use test-mode keys locally (`stripe listen --forward-to localhost:3000/api/webhooks/stripe` prints a webhook secret). The integration runner points `STRIPE_API_URL` at a local stub (`scripts/lib/stripe-stub.mjs`) with `ALLOW_TEST_OVERRIDES=1`; no test talks to Stripe.
+`STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` connect Stripe Checkout and the webhook endpoint `POST /api/webhooks/stripe` (spec `.ai/specs/2026-11-20-booking-stripe-checkout.md`). Without them payments are unavailable and webhooks are refused. Use test-mode keys locally (`stripe listen --forward-to localhost:3000/api/webhooks/stripe` prints a webhook secret). The client pins Stripe API version `2024-06-20` (`STRIPE_API_VERSION` in `packages/core/src/services/payments/stripe-client.ts`); create the webhook endpoint with the same version so event payloads have the shape the handlers expect. The integration runner points `STRIPE_API_URL` at a local stub (`scripts/lib/stripe-stub.mjs`) with `ALLOW_TEST_OVERRIDES=1`; no test talks to Stripe.
 
 ### Seed demo accounts
 
