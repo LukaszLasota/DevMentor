@@ -19,7 +19,7 @@ Engine: om-auto-create-pr-loop (forced by the brief, regardless of step count)
 | 2 | 2.1 | Public /mentors list page with filter and states | inline | done | 4b22752 |
 | 2 | 2.2 | Find a mentor link on / and the publish copy mentioning /mentors | inline | done | c30c27a |
 | 3 | 3.1 | Integration test for the mentor list | inline | done | 554277c |
-| 3 | 3.1-review-fix | Sign-in link, count(*) for countBookable, AC2 test, explicit iff expectations, no current link for an unknown tag | inline | done | self |
+| 3 | 3.1-review-fix | Sign-in link, count(*) for countBookable, AC2 test, explicit iff expectations, no current link for an unknown tag | inline | done | 1c7df03 |
 
 ## Goal
 
