@@ -22,6 +22,7 @@ export function accountNavSections(roles: readonly AccountRole[]): SideNavSectio
               { href: "/mentor/profile", label: "Your page" },
               { href: "/mentor/prices", label: "Prices" },
               { href: "/mentor/slots", label: "Open times" },
+              { href: "/mentor/payouts", label: "Payouts" },
             ]
           : []),
       ],

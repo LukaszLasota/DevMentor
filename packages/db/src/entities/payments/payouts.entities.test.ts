@@ -38,6 +38,7 @@ describe('ConnectAccount entity', () => {
     expect(accounts.properties.id.onCreate?.({} as ConnectAccount, orm.em)).toMatch(/^[0-9a-f-]{36}$/);
     expect(accounts.properties.createdAt.onCreate?.({} as ConnectAccount, orm.em)).toBeInstanceOf(Date);
     expect(accounts.properties.updatedAt.onUpdate?.({} as ConnectAccount, orm.em)).toBeInstanceOf(Date);
+    expect(accounts.properties.updatedAt.onCreate?.({} as ConnectAccount, orm.em)).toBeInstanceOf(Date);
   });
 });
 
@@ -62,6 +63,7 @@ describe('Payout entity', () => {
     expect(payouts.properties.id.onCreate?.({} as Payout, orm.em)).toMatch(/^[0-9a-f-]{36}$/);
     expect(payouts.properties.createdAt.onCreate?.({} as Payout, orm.em)).toBeInstanceOf(Date);
     expect(payouts.properties.updatedAt.onUpdate?.({} as Payout, orm.em)).toBeInstanceOf(Date);
+    expect(payouts.properties.updatedAt.onCreate?.({} as Payout, orm.em)).toBeInstanceOf(Date);
   });
 });
 

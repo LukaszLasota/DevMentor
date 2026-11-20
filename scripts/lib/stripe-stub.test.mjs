@@ -345,6 +345,9 @@ describe('Connect and transfers', () => {
 
     await fetch(`${stub.url}/__stub/transfers/fail-next`, { method: 'POST' });
     expect((await post('/v1/transfers', fields, 'payout-b-2-9')).body.error.code).toBe('transfers_not_allowed');
+    // Without an idempotency key every call is a new transfer (the app always sends one).
+    expect((await post('/v1/transfers', fields)).status).toBe(200);
+    expect((await post('/v1/transfers', fields)).status).toBe(200);
   });
 });
 

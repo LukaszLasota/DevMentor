@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { LoadingMessage, RoleNotice } from "@devmentor/ui";
 import { requirePageRole } from "@/lib/session";
 import { AttentionPanel } from "./AttentionPanel";
+import { PayoutsPanel } from "./PayoutsPanel";
 import { HealthPanel } from "./HealthPanel";
 import { ReportsPanel } from "./ReportsPanel";
 
@@ -20,6 +21,9 @@ export async function AdminContent({ searchParams }: { searchParams: Promise<Rec
       <HealthPanel />
       <Suspense fallback={<LoadingMessage />}>
         <AttentionPanel />
+      </Suspense>
+      <Suspense fallback={<LoadingMessage />}>
+        <PayoutsPanel />
       </Suspense>
       <Suspense fallback={<LoadingMessage />}>
         <ReportsPanel />

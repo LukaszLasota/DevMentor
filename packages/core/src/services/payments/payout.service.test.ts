@@ -78,7 +78,7 @@ async function setup({ bookings = 1, connected = true, enabled = true } = {}) {
   const table = (entity: unknown): object[] =>
     entity === Booking ? rows.bookings : entity === Payout ? rows.payouts : entity === ConnectAccount ? rows.accounts : rows.reports;
   const em = {
-    findOne: vi.fn(async (entity: unknown, where: Where, _options?: object) => table(entity).find((row) => matches(row, where)) ?? null),
+    findOne: vi.fn(async (entity: unknown, where: Where) => table(entity).find((row) => matches(row, where)) ?? null),
     find: vi.fn(async (entity: unknown, where: Where, options?: { limit?: number }) => table(entity).filter((row) => matches(row, where)).slice(0, options?.limit)),
     create: vi.fn((_entity: unknown, data: Partial<Payout> & { booking: string; mentorProfile: string }) => {
       const booking = rows.bookings.find((row) => row.id === data.booking) as Booking;

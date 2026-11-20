@@ -80,7 +80,7 @@ describe('ConnectService.start', () => {
       accounts.push(Object.assign(new ConnectAccount(), { id: randomUUID(), mentorProfile: { id: 'x' }, providerAccountId: 'acct_winner' }));
       throw new UniqueConstraintViolationException(Object.assign(new Error('duplicate key'), { constraint: CONNECT_ACCOUNT_MENTOR_UNIQUE }));
     });
-    em.findOne.mockImplementationOnce(async () => Object.assign(new MentorProfile(), { id: 'x' }));
+    em.findOne.mockImplementationOnce(async () => Object.assign(new MentorProfile(), { id: 'x', user: { id: USER_ID } }) as never);
     em.findOne.mockImplementationOnce(async () => null);
 
     await expect(service.start(USER_ID)).resolves.toEqual({ url: 'https://connect.fake.test/onboard/acct_winner/1' });
