@@ -1,6 +1,6 @@
 # A mentee cancels a booking (free up to 24 hours before) and can report a dispute
 
-Status: proposed — phase 1 gated on Q1 (founder A)
+Status: approved — Q1 confirmed by the owner on 2026-11-20 (refund through the Stripe API)
 Issue: #30 (E03-S02) · Epic: #18 · Depends on: #29 (`.ai/specs/2026-11-20-booking-stripe-checkout.md`, implemented in #55/#56) · Source: `.ai/specs/product-brief.md` (R10, R16, D10)
 
 ## 📝 TLDR
@@ -12,7 +12,7 @@ R10 (D10) promises free cancellation up to 24 hours before a session, forfeits t
 ## 📝 Proposed Solution
 `BookingService.cancel` moves a `confirmed` booking to `cancelled` under the mentor profile row lock (the same lock `start` and `applyCompleted` take), records `cancelled_at`, and decides the refund once, at that moment: **free** when `now < starts_at − 24 h`, otherwise **forfeited**. The client sends the terms it showed (`expectRefund`); if the server's decision differs (the boundary passed while the dialog was open), it refuses with 409 `CANCELLATION_TERMS_CHANGED` and changes nothing, so the mentee never confirms terms they did not see (AC2). `cancelled` is not an active status, so the time reopens through the existing occupancy rules (still subject to the two-hour lead for new bookings).
 
-A free cancellation is refunded in full after commit (subject to Q1): the commit records `refund_status = requested`; then the Checkout gateway reads the session's PaymentIntent and creates a Stripe refund for it, idempotent by booking id (`refund-<bookingId>`). The outcome is recorded in a second update: `succeeded`, `pending` (Stripe `pending`/`requires_action`), or `failed` (deterministic rejection, or Stripe `failed`/`canceled`); Stripe's `charge_already_refunded` counts as `succeeded`. A `retryable` outcome (timeout, 5xx — Stripe may have accepted it) leaves `requested` with no `refund_id`, never `failed`, so nobody refunds by hand on a guess. Anything not `succeeded` shows on `/admin` with **Retry refund**, which reuses the same idempotency key (or, with a `refund_id`, reads the refund's current status). A refund that fails does not undo the cancellation (the mentee's decision and the reopened time stand); before refunding by hand the operator checks Stripe for a refund with `metadata.booking_id` (R16).
+A free cancellation is refunded in full after commit: the commit records `refund_status = requested`; then the Checkout gateway reads the session's PaymentIntent and creates a Stripe refund for it, idempotent by booking id (`refund-<bookingId>`). The outcome is recorded in a second update: `succeeded`, `pending` (Stripe `pending`/`requires_action`), or `failed` (deterministic rejection, or Stripe `failed`/`canceled`); Stripe's `charge_already_refunded` counts as `succeeded`. A `retryable` outcome (timeout, 5xx — Stripe may have accepted it) leaves `requested` with no `refund_id`, never `failed`, so nobody refunds by hand on a guess. Anything not `succeeded` shows on `/admin` with **Retry refund**, which reuses the same idempotency key (or, with a `refund_id`, reads the refund's current status). A refund that fails does not undo the cancellation (the mentee's decision and the reopened time stand); before refunding by hand the operator checks Stripe for a refund with `metadata.booking_id` (R16).
 
 A **dispute report** is a short message the mentee writes about one booking (`booking_reports`, one per booking). It never changes the booking or moves money; the operator sees open reports on `/admin` and is emailed (`OPERATOR_EMAILS`), and resolves them outside the app (R10, R16).
 
@@ -109,7 +109,7 @@ R10/D10 (24-hour free cancellation, forfeit after, operator disputes, no automat
 ## Resolved assumptions (autonomous defaults)
 | # | Question | Default applied | Rationale |
 |---|---|---|---|
-| Q1 | Free cancellation: refund through the Stripe API at once, or by the operator by hand? | Stripe API refund at cancel, full amount, idempotent; operator only when it fails ⚠ NEEDS HUMAN CONFIRMATION — phase 1 does not start before founder A confirms. If declined: drop the gateway refund, record `requested`, and the operator refunds from the `/admin` list | AC1 says the payment "is returned"; R10 says "no automatic refunds in 1.0" and #29's spec leaned on it. Reading it as disputes and late cancellations only is a call on an active rule owned by founder A |
+| Q1 | Free cancellation: refund through the Stripe API at once, or by the operator by hand? | Stripe API refund at cancel, full amount, idempotent; operator only when it fails (confirmed by the owner 2026-11-20) | AC1 says the payment "is returned"; R10 says "no automatic refunds in 1.0" and #29's spec leaned on it. Reading it as disputes and late cancellations only is a call on an active rule owned by founder A |
 | Q2 | One spec or split cancellation and disputes? | One spec, disputes as their own phase/PR | The issue bundles them as one story (AC3); the report shares the booking page and the admin panel, so a second spec would repeat the design |
 | Q3 | Where is the 24-hour line? | Free only when `now < starts_at − 24 h`, decided once at cancel on the server | "More than 24 hours away" in AC1; one decision point avoids disputes about the boundary |
 | Q4 | Does a cancelled time reopen when less than 24 h remain? | Yes, under the normal two-hour lead | `cancelled` is not active; the mentor keeps the chance to be booked |
@@ -120,7 +120,7 @@ R10/D10 (24-hour free cancellation, forfeit after, operator disputes, no automat
 | Q9 | How does the mentor see the cancellation (AC4)? | Email plus "Cancelled by mentee — open again" on `/mentor/slots` | There is no mentor bookings list yet; the slot view is where the mentor saw "Booked" |
 
 ## 📋 Phasing
-- **Phase 1 — Cancellation and refund** (AC1, AC2, AC4; after Q1 is confirmed): migration, `applyCompleted` fix, gateway `refund`/`getRefund` + stub, `cancel`, `retryRefund`, terms in `getOwn`, routes, `/bookings/[id]` Cancel, `/mentor/slots` "Cancelled", `/admin` "Needs attention" (refunds, orphaned payments), emails, integration test.
+- **Phase 1 — Cancellation and refund** (AC1, AC2, AC4): migration, `applyCompleted` fix, gateway `refund`/`getRefund` + stub, `cancel`, `retryRefund`, terms in `getOwn`, routes, `/bookings/[id]` Cancel, `/mentor/slots` "Cancelled", `/admin` "Needs attention" (refunds, orphaned payments), emails, integration test.
 - **Phase 2 — Dispute reports** (AC3; its own PR): `booking_reports`, `report`, route, Report form, reports on `/admin`, operator email, integration test.
 
 ## 📋 Implementation Plan
