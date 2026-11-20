@@ -11,7 +11,7 @@ Engine: om-auto-create-pr-loop (forced by the brief, regardless of step count)
 
 | Phase | Step | Title | Exec | Status | Commit |
 |-------|------|-------|------|--------|--------|
-| 1 | 1.1 | mentorListQuerySchema | inline | todo | — |
+| 1 | 1.1 | mentorListQuerySchema | inline | done | self |
 | 1 | 1.2 | SlotService.bookableSummaryFor with countBookable delegating | inline | todo | — |
 | 1 | 1.3 | MentorListItem projection with bio truncation | inline | todo | — |
 | 1 | 1.4 | MentorListService and container registration | inline | todo | — |
