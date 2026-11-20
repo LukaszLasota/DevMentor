@@ -8,6 +8,7 @@ import type { PasswordHasher } from '../security/password';
 import type { RateLimiter } from '../security/rate-limit';
 import type { AccountService } from '../services/auth/account.service';
 import type { GithubOAuthService } from '../services/auth/github-oauth.service';
+import type { SlotService } from '../services/availability/slot.service';
 import type { HealthService } from '../services/health/health.service';
 import type { InvitationService } from '../services/invitations/invitation.service';
 import type { MentorProfileService } from '../services/mentors/mentor-profile.service';
@@ -33,4 +34,5 @@ export interface Cradle {
   accountService: AccountService;
   invitationService: InvitationService;
   mentorProfileService: MentorProfileService;
+  slotService: SlotService;
 }
