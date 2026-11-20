@@ -19,7 +19,7 @@ Engine: om-auto-create-pr-loop (--loop forwarded)
 | 2 | 2.1 | StripeEvent entity, migration and snapshot | inline | done | self |
 | 2 | 2.2 | StripeInboxService with handler registry and container registration | inline | done | self |
 | 2 | 2.3 | POST /api/webhooks/stripe (csrf off, raw body) | inline | done | self |
-| 3 | 3.1 | scripts/lib/stripe-stub.mjs with unit tests | inline | todo | |
+| 3 | 3.1 | scripts/lib/stripe-stub.mjs with unit tests | inline | done | self |
 | 3 | 3.2 | Integration wiring and webhook inbox integration test | inline | todo | |
 
 ## Goal
