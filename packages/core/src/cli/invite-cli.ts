@@ -1,6 +1,7 @@
 import { parseArgs } from 'node:util';
 import { getOrm, type EntityManager } from '@devmentor/db';
 import { getEnv, type Env } from '../config/env';
+import { StackTags } from '../domain/vocabularies/stack-tags';
 import { EventBus } from '../events/events';
 import { isAppError, isValidationError } from '../http/errors';
 import { createLogger, type Logger } from '../logger';
@@ -51,13 +52,15 @@ function isCommandKind(value: string): value is keyof typeof ALLOWED_OPTIONS {
 
 /**
  * Stack tags from `--tags`: comma-separated, case-insensitive, slugs or display names
- * ("AI agents" → `ai-agents`). Unknown names pass through for the service to refuse by name.
+ * ("AI agents" → `ai-agents`, through `StackTags`). Unknown names pass through, lower-cased, for the
+ * service to refuse by name.
  */
 export function parseTags(raw: string | undefined): string[] {
   return (raw ?? '')
     .split(',')
-    .map((tag) => tag.trim().toLowerCase().replace(/\s+/g, '-'))
-    .filter((tag) => tag.length > 0);
+    .map((tag) => tag.trim())
+    .filter((tag) => tag.length > 0)
+    .map((tag) => StackTags.find(tag) ?? tag.toLowerCase());
 }
 
 /**
