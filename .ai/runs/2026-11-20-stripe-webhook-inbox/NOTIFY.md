@@ -9,3 +9,6 @@
 ## 2026-11-20T12:48:55Z — checkpoint 1
 - Phase 1 green: lint, typecheck, 1648 unit tests at 100% coverage.
 - Decision: the Checkout calls live in StripeCheckoutGateway over a generic StripeClient.request, so #26 adds Connect calls without touching Checkout.
+
+## 2026-11-20T13:02:03Z — final gate
+- Local gate green (1687 tests, 100%); integration delegated to CI (no Docker in the sandbox).

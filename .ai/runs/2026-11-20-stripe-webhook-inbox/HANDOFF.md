@@ -1,20 +1,17 @@
 # Handoff — 2026-11-20-stripe-webhook-inbox
 
-**Last updated:** 2026-11-20T12:48:55Z
+**Last updated:** 2026-11-20T13:02:03Z
 **Branch:** feat/stripe-webhook-inbox
 **PR:** https://github.com/LukaszLasota/DevMentor/pull/55
-**Current phase/step:** 2.1
-**Last commit:** 883ecbe — webhook signature
+**Current phase/step:** complete (all Tasks rows done); review pending
+**Last commit:** 0d2ee3b
 
 ## What just happened
-- Phase 1 done: fetchJson withStatus, STRIPE_* env, StripeClient (classified outcomes), CheckoutGateway (Stripe adapter + fake, container singletons), verifyStripeSignature.
+- All 10 Steps landed; full local gate green. Integration runs in CI.
 
 ## Next concrete action
-- Step 2.1: StripeEvent entity + hand-written migration + snapshot (no DB in sandbox).
-
-## Blockers / open questions
-- none
+- Independent review; then human review (risk-high: payments + migration) and merge after spec PR #54.
 
 ## Environment caveats
-- Dev runtime runnable: no (agent sandbox); integration only in CI.
-- Spec file is untracked on this branch (from spec PR #54); never commit it here.
+- Dev runtime runnable: no (agent sandbox); CI is the DB/HTTP evidence.
+- Spec file untracked here (from spec PR #54).

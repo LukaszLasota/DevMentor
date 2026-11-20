@@ -16,11 +16,12 @@ Engine: om-auto-create-pr-loop (--loop forwarded)
 | 1 | 1.3 | Stripe client: form encoding, pinned version, idempotency key, outcome classification | inline | done | c970c00 |
 | 1 | 1.4 | CheckoutGateway port, fake and Stripe adapter | inline | done | 051130e |
 | 1 | 1.5 | verifyStripeSignature (pure) | inline | done | 883ecbe |
-| 2 | 2.1 | StripeEvent entity, migration and snapshot | inline | done | self |
-| 2 | 2.2 | StripeInboxService with handler registry and container registration | inline | done | self |
-| 2 | 2.3 | POST /api/webhooks/stripe (csrf off, raw body) | inline | done | self |
-| 3 | 3.1 | scripts/lib/stripe-stub.mjs with unit tests | inline | done | self |
-| 3 | 3.2 | Integration wiring and webhook inbox integration test | inline | done | self |
+| 2 | 2.1 | StripeEvent entity, migration and snapshot | inline | done | 382998e |
+| 2 | 2.2 | StripeInboxService with handler registry and container registration | inline | done | 58c615d |
+| 2 | 2.3 | POST /api/webhooks/stripe (csrf off, raw body) | inline | done | 782ba10 |
+| 3 | 3.1 | scripts/lib/stripe-stub.mjs with unit tests | inline | done | ad8e6f7 |
+| 3 | 3.2 | Integration wiring and webhook inbox integration test | inline | done | 041670e |
+| 3 | 3.2-fix | Public entry test lists the webhook exports | inline | done | 0d2ee3b |
 
 ## Goal
 
