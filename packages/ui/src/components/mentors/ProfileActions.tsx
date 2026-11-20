@@ -30,7 +30,8 @@ export function ProfileActions({ published, busy = false, onPublish, onUnpublish
     return (
       <div className="flex flex-col items-start gap-related">
         <p className="max-w-measure text-caption text-muted-foreground">
-          Publishing shows your name, GitHub avatar (if any), link, description and tags to anyone with the link.
+          Publishing shows your name, GitHub avatar (if any), link, description and tags to anyone with the link,
+          and lists you on /mentors while you have open times.
         </p>
         <Button intent="primary" appearance="filled" loading={busy} loadingLabel="Publishing…" onClick={onPublish}>
           Publish
@@ -54,7 +55,8 @@ export function ProfileActions({ published, busy = false, onPublish, onUnpublish
           <AlertDialogHeader>
             <AlertDialogTitle>Unpublish your page?</AlertDialogTitle>
             <AlertDialogDescription>
-              Anyone with the link will see “not found” until you publish again. The link stays the same.
+              Anyone with the link will see “not found” and you leave /mentors until you publish again. The link
+              stays the same.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

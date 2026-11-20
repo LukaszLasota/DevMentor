@@ -1,8 +1,8 @@
 import Image from "next/image";
 import { buttonVariants } from "@devmentor/ui/mentors";
 
-// Starter page on design tokens (lesson 06 homework: values outside tokens replaced). The content is
-// still the Next starter until spec #27 adds "Find a mentor" here.
+// Starter page on design tokens (lesson 06 homework: values outside tokens replaced). Its first action
+// is "Find a mentor" (spec #27); the rest is still the Next starter until a landing page is specified.
 export default function Home() {
   return (
     <div className="flex flex-col flex-1 items-center justify-center bg-muted font-sans">
@@ -32,6 +32,9 @@ export default function Home() {
           </p>
         </div>
         <div className="flex flex-col gap-paragraph sm:flex-row">
+          <a className={buttonVariants({ intent: "primary", appearance: "filled", size: "lg" })} href="/mentors">
+            Find a mentor
+          </a>
           <a
             className={buttonVariants({ intent: "neutral", appearance: "filled", size: "lg" })}
             href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
