@@ -22,6 +22,7 @@ Engine: om-auto-create-pr-loop (--loop forwarded)
 | 3 | 3.1 | scripts/lib/stripe-stub.mjs with unit tests | inline | done | ad8e6f7 |
 | 3 | 3.2 | Integration wiring and webhook inbox integration test | inline | done | 041670e |
 | 3 | 3.2-fix | Public entry test lists the webhook exports | inline | done | 0d2ee3b |
+| 3 | 3.2-review-fix | Review findings: bounded body, signature first, text payload, concurrency test | inline | done | 5592e9e |
 
 ## Goal
 

@@ -3,8 +3,8 @@
 **Last updated:** 2026-11-20T13:02:03Z
 **Branch:** feat/stripe-webhook-inbox
 **PR:** https://github.com/LukaszLasota/DevMentor/pull/55
-**Current phase/step:** complete (all Tasks rows done); review pending
-**Last commit:** 0d2ee3b
+**Current phase/step:** complete (all Tasks rows done, review fixed)
+**Last commit:** 5592e9e — review fixes
 
 ## What just happened
 - All 10 Steps landed; full local gate green. Integration runs in CI.

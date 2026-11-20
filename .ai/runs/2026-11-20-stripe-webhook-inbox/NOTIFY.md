@@ -12,3 +12,8 @@
 
 ## 2026-11-20T13:02:03Z — final gate
 - Local gate green (1687 tests, 100%); integration delegated to CI (no Docker in the sandbox).
+
+## 2026-11-20T13:09:39Z — review fixes
+- Independent fresh-context review: no blocker; 1 major (no concurrent-delivery test on PostgreSQL) and minors fixed in 5592e9e.
+- Not taken: committing the spec here (it lands through spec PR #54, by the owner's instruction); Stripe-Should-Retry header (nit, follow-up if Stripe's retry hints matter).
+- CI at ce5e851 was green on all 7 jobs, including integration.
