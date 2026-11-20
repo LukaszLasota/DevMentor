@@ -4,7 +4,9 @@ import { isReservedSlug, SLUG_MAX_LENGTH, slugCandidate, slugify } from './slug'
 describe('slugify', () => {
   it.each([
     ['Ada Lovelace', 'ada-lovelace'],
-    ['Zoë Øster-Łódź', 'zoe-ster-odz'],
+    ['Zoë Øster-Łódź', 'zoe-oster-lodz'],
+    ['Łukasz Żółć', 'lukasz-zolc'],
+    ['Æsir Straße Þór Œuvre Đorđe Iğdır', 'aesir-strasse-thor-oeuvre-dorde-igdir'],
     ['  José  María  ', 'jose-maria'],
     ["O'Brien & Co. (2026)", 'o-brien-co-2026'],
     ['Me', 'me'],

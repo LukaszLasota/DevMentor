@@ -335,6 +335,6 @@ describe("CrudForm", () => {
     expect(document.activeElement).toBe(screen.getByLabelText("Title"));
 
     rerender(<CrudForm schema={schema} fields={fields} onSubmit={onSubmit} errors={undefined} />);
-    expect(screen.getByText("Add a title before publishing.")).toBeTruthy();
+    expect(screen.queryByText("Add a title before publishing.")).toBeNull();
   });
 });

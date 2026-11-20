@@ -87,7 +87,14 @@ describe('mentorProfileUpdateSchema', () => {
     });
   });
 
-  it('refuses a null instead of an empty string', () => {
-    expect(parse({ displayName: null }).success).toBe(false);
+  it('clears with null too, so the form can post the parsed output (round trip)', () => {
+    const once = parse({ displayName: 'Ada', publicWorkUrl: '', bio: '  ', stackTags: [] });
+    const twice = parse(JSON.parse(JSON.stringify(once.data)));
+
+    expect(twice).toEqual({ success: true, data: { displayName: 'Ada', publicWorkUrl: null, bio: null, stackTags: [] } });
+  });
+
+  it('refuses a value of the wrong type', () => {
+    expect(parse({ displayName: 42 }).success).toBe(false);
   });
 });

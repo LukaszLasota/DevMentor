@@ -13,12 +13,32 @@ export const SLUG_FALLBACK = 'mentor';
  */
 export const RESERVED_SLUGS: readonly string[] = ['me'];
 
-/** `"Zoë O'Brien"` → `zoe-o-brien`: NFKD, combining marks stripped, lower case, runs of other characters → one dash. */
+/**
+ * Latin letters NFKD does not decompose (it would drop them: "Łukasz" → "ukasz"). The slug never
+ * changes after the first publish, so names of the Polish and Nordic audience must survive.
+ */
+const LATIN_EXTRAS: Readonly<Record<string, string>> = {
+  ł: 'l',
+  ø: 'o',
+  đ: 'd',
+  ð: 'd',
+  þ: 'th',
+  ß: 'ss',
+  æ: 'ae',
+  œ: 'oe',
+  ı: 'i',
+};
+
+/**
+ * `"Zoë O'Brien"` → `zoe-o-brien`, `"Łukasz"` → `lukasz`: NFKD with combining marks stripped, a few
+ * undecomposable Latin letters transliterated, lower case, runs of other characters → one dash.
+ */
 export function slugify(name: string): string {
   const slug = name
     .normalize('NFKD')
     .replace(/\p{M}/gu, '')
     .toLowerCase()
+    .replace(/[łøđðþßæœı]/g, (letter) => LATIN_EXTRAS[letter] as string)
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 

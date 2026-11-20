@@ -4,11 +4,11 @@ import { cache } from "react";
 import { withScope } from "@devmentor/core";
 import { MentorPageView } from "@devmentor/ui/mentors";
 
-// The mentor's share page (spec 2026-10-21-mentor-page). A true HTTP 404 for an unknown or unpublished
-// page: the page is read and `notFound()` called before any <Suspense> boundary, so the status is
-// decided before streaming starts (next/dist/docs/01-app/02-guides/streaming.md, "The HTTP contract").
-// `instant = false` lets `next build` accept this blocking, request-time read; no `loading.tsx`, no
-// `generateStaticParams`, no `use cache` — the build never touches the database.
+// The mentor's share page (spec 2026-10-21-mentor-page). The page is partially prerendered under
+// cacheComponents, so its stream starts with 200: the true HTTP 404 for an unknown or unpublished page
+// is decided earlier, in `src/proxy.ts`. `instant = false` lets `next build` accept this blocking,
+// request-time read; no `loading.tsx`, no `generateStaticParams`, no `use cache` — the build never
+// touches the database.
 export const instant = false;
 
 /** One database read per request, shared by the metadata and the page. */
@@ -27,8 +27,9 @@ export default async function MentorSharePage({ params }: PageProps<"/m/[slug]">
     notFound();
   }
 
-  // Prices (#24) and slots (#25) are not part of 1.0's first page: "Not bookable yet" until the
-  // mentor is `mentorOfferReady` with those stories.
+  // Prices (#24) and slots (#25) do not exist yet, so no page is bookable: "Not bookable yet". Those
+  // stories replace `offerReady={false}` with the `mentorOfferReady` gate (services/mentors/readiness.ts).
+  // The true 404 status comes from `src/proxy.ts`; `notFound()` here covers a page hidden in between.
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col px-paragraph py-section">
       <MentorPageView

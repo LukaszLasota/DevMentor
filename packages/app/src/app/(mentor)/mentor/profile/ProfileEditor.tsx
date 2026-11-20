@@ -13,6 +13,7 @@ import {
   type FieldErrors,
 } from "@devmentor/ui";
 import { MentorPageView } from "@devmentor/ui/mentors";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 /** Checklist and form labels, keyed by the readiness keys (= form field names). */
@@ -36,6 +37,7 @@ export interface ProfileEditorProps {
  * share link with Copy link and Unpublish. The preview is the same component visitors see.
  */
 export function ProfileEditor({ initial, tagOptions, shareBase }: ProfileEditorProps) {
+  const router = useRouter();
   const [own, setOwn] = useState(initial);
   const [notice, setNotice] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
   const [publishErrors, setPublishErrors] = useState<FieldErrors | undefined>(undefined);
@@ -53,6 +55,8 @@ export function ProfileEditor({ initial, tagOptions, shareBase }: ProfileEditorP
       setOwn(result.data);
       setPublishErrors(undefined);
       setNotice({ tone: "success", text: action === "publish" ? "Your page is published." : "Your page is hidden." });
+      // Server-rendered views of the publish state (the /mentor page step) re-read it.
+      router.refresh();
       return;
     }
 
@@ -111,6 +115,9 @@ export function ProfileEditor({ initial, tagOptions, shareBase }: ProfileEditorP
             />
           )}
           {published && own.slug ? <CopyShareLink url={`${shareBase}${own.slug}`} /> : null}
+          {published ? null : (
+            <p className="text-caption text-muted-foreground">Publish uses your saved page: save your changes first.</p>
+          )}
           <ProfileActions
             published={published}
             busy={busy}

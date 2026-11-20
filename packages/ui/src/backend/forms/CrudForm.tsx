@@ -150,6 +150,9 @@ export function CrudForm<S extends z.ZodObject>({
     if (errors) {
       setFieldErrors(errors);
       focusFirstError(errors);
+    } else {
+      // The outside action succeeded since (e.g. a later publish): its errors no longer apply.
+      setFieldErrors({});
     }
   }
 

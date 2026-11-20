@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { MAX_STACK_TAGS, StackTags } from '../../domain/vocabularies/stack-tags';
 
 // `PUT /api/mentors/me` and the /mentor/profile form (spec 2026-10-21-mentor-page). Shape only:
-// every field is optional (omitted = unchanged) and an empty string clears it to `null`; whether
+// every field is optional (omitted = unchanged) and an empty string or `null` clears it; whether
 // the page is complete enough to publish is the readiness gate's job, not this schema's.
 
 export const DISPLAY_NAME_MAX = 80;
@@ -16,13 +16,20 @@ export const BIO_MESSAGE = 'Keep it to 2,000 characters.';
 export const STACK_TAG_MESSAGE = 'Pick from TypeScript, React, Python and AI agents.';
 export const STACK_TAGS_MAX_MESSAGE = 'Pick up to four stack tags.';
 
-/** Trimmed text; `''` becomes `null` (clears the field), anything else must pass `inner`. */
+/**
+ * Trimmed text; `''` or `null` becomes `null` (clears the field), anything else must pass `inner`.
+ * `null` is accepted because the form sends this schema's own output (`CrudForm` posts the parsed
+ * values), so the route parses what the schema produced.
+ */
 function clearable(inner: z.ZodType<string, string>) {
-  return z
-    .string()
-    .trim()
-    .transform((value) => (value === '' ? null : value))
-    .pipe(inner.nullable());
+  return z.preprocess(
+    (value) => (value === null ? '' : value),
+    z
+      .string()
+      .trim()
+      .transform((value) => (value === '' ? null : value))
+      .pipe(inner.nullable()),
+  );
 }
 
 /** A credential-free http(s) URL of at most 2048 characters; one check, so one message (lesson 2026-11-14). */

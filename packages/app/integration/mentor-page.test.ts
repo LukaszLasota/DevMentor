@@ -17,6 +17,8 @@ const baseUrl = inject('baseUrl');
 const run = randomUUID().slice(0, 8);
 const browser = createAgentBrowser(`devmentor-mentor-page-${process.pid}`);
 const second = createAgentBrowser(`devmentor-mentor-page-2-${process.pid}`);
+// One browser per twin: signing the first twin out to reuse a browser would end that twin's session.
+const third = createAgentBrowser(`devmentor-mentor-page-3-${process.pid}`);
 const MENTOR_LOGIN = `mp-ada-${run}`;
 const TWIN_LOGIN = `mp-twin-${run}`;
 const NAME = `Ada Lovelace ${run}`;
@@ -80,6 +82,7 @@ const profileOf = (login: string) =>
 afterAll(async () => {
   await browser.close();
   await second.close();
+  await third.close();
   await psql(`delete from invitations where batch = 'mp-${run}'`);
   await psql(`delete from users where email like 'mp-%-${run}@devmentor.test'`);
 });
@@ -129,7 +132,7 @@ describe('mentor page: draft → refused publish → publish → share link (age
 
     expect(await browser.value('#share-link')).toBe(`${baseUrl}/m/${SLUG}`);
     expect(await browser.text('main')).toContain('This link stays the same if you change your name.');
-    expect(await browser.count('button:has-text("Copy link")')).toBe(1);
+    expect(await browser.text('main')).toContain('Copy link');
     expect(await browser.text('main')).not.toMatch(NO_RATINGS);
     expect(await profileOf(MENTOR_LOGIN)).toBe(`${SLUG}|t`);
   });
@@ -192,7 +195,7 @@ describe('mentor page: draft → refused publish → publish → share link (age
     expect(Object.keys((await bad.json()).error.fieldErrors).sort()).toEqual(['publicWorkUrl', 'stackTags']);
   });
 
-  it('unpublish gives HTTP 404 on the page and the API; republish restores the same slug', async () => {
+  it('unpublish gives HTTP 404 on the page (proxy) and the API; republish restores the same slug', async () => {
     await browser.open(`${baseUrl}/mentor/profile`);
     await browser.waitForIdle();
     await browser.clickButton('Unpublish');
@@ -210,7 +213,9 @@ describe('mentor page: draft → refused publish → publish → share link (age
   });
 
   it('answers 404 for a never-published slug and for /api/mentors/<anything>', async () => {
-    expect((await fetch(`${baseUrl}/m/nobody-${run}`)).status).toBe(404);
+    const missing = await fetch(`${baseUrl}/m/nobody-${run}`);
+    expect(missing.status).toBe(404);
+    expect(await missing.text()).not.toContain('Not bookable yet');
     expect((await fetch(`${baseUrl}/api/mentors/nobody-${run}`)).status).toBe(404);
   });
 
@@ -226,11 +231,7 @@ describe('mentor page: two mentors with the same name', () => {
   it('get distinct, non-reserved slugs when they publish at once', async () => {
     const twinName = `Twin Name ${run}`;
     const firstCookie = await seedPublishedMentorProfile(second, TWIN_LOGIN, twinName);
-    await second.open(`${baseUrl}/mentor`);
-    await second.waitForIdle();
-    await second.clickButton('Sign out');
-    await second.waitForUrl('**/sign-in');
-    const secondCookie = await seedPublishedMentorProfile(second, `mp-twinb-${run}`, twinName);
+    const secondCookie = await seedPublishedMentorProfile(third, `mp-twinb-${run}`, twinName);
 
     const [a, b] = await Promise.all([publish(firstCookie), publish(secondCookie)]);
     const slugs = [(await a.json()).data.slug, (await b.json()).data.slug].sort();

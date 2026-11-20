@@ -4,6 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MentorOwnerView } from "@devmentor/core/http";
 import { ProfileEditor } from "./ProfileEditor";
 
+const refresh = vi.hoisted(() => vi.fn());
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+
 const TAGS = [
   { value: "typescript", label: "TypeScript" },
   { value: "react", label: "React" },
@@ -74,6 +77,7 @@ describe("ProfileEditor", () => {
     expect(screen.getByText("0 of 4 done")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Save draft" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Publish" })).toBeTruthy();
+    expect(screen.getByText("Publish uses your saved page: save your changes first.")).toBeTruthy();
     expect(screen.getByText("The preview appears once the four items above are saved.")).toBeTruthy();
     expect(screen.queryByLabelText("Your share link")).toBeNull();
     noRatings();
@@ -135,6 +139,7 @@ describe("ProfileEditor", () => {
     await user.click(screen.getByRole("button", { name: "Publish" }));
 
     expect(await screen.findByText("Your page is published.")).toBeTruthy();
+    expect(refresh).toHaveBeenCalled();
     expect((screen.getByLabelText("Your share link") as HTMLInputElement).value).toBe(
       "https://app.devmentor.test/m/ada-lovelace",
     );
