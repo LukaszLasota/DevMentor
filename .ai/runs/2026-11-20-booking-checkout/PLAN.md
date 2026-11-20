@@ -17,13 +17,14 @@ Engine: om-auto-create-pr-loop
 | 2 | 2.2 | BookingService.start with hold, deadline and stale-hold release through Stripe | inline | done | a35683f |
 | 2 | 2.3 | Checkout webhook handlers, after-commit hook, bookings.booking.confirmed and emails | inline | done | c7a0d2b |
 | 2 | 2.4 | POST /api/bookings and GET /api/bookings/[id] | inline | done | 40546ca |
-| 2 | 2.5 | Release the mentee's own hold on Checkout cancel (POST /api/bookings/[id]/release) | inline | done | self |
-| 3 | 3.1 | SlotBookingControls in @devmentor/ui/mentors with stories | inline | done | self |
-| 3 | 3.2 | /m/[slug] booking wiring and the cancelled notice | inline | done | self |
-| 3 | 3.3 | /bookings/[id] status page | inline | done | self |
-| 3 | 3.4 | /mentor/slots Booked and Held states | inline | done | self |
-| 4 | 4.1 | Integration: book, pay, cancel, race, redelivery, unconfigured | inline | done | self |
-| 4 | 4.2 | Spec implementation notes and status | inline | done | self |
+| 2 | 2.5 | Release the mentee's own hold on Checkout cancel (POST /api/bookings/[id]/release) | inline | done | cba2ab0 |
+| 3 | 3.1 | SlotBookingControls in @devmentor/ui/mentors with stories | inline | done | c3db3f9 |
+| 3 | 3.2 | /m/[slug] booking wiring and the cancelled notice | inline | done | 59244ff |
+| 3 | 3.3 | /bookings/[id] status page | inline | done | ad49891 |
+| 3 | 3.4 | /mentor/slots Booked and Held states | inline | done | cfe8a34 |
+| 4 | 4.1 | Integration: book, pay, cancel, race, redelivery, unconfigured | inline | done | c6c435d |
+| 4 | 4.2 | Spec implementation notes and status | inline | done | 18f7538 |
+| 4 | 4.2-review-fix | Review: overlapping stale holds, late payment overlap guard, announce on release, notice | inline | done | 95e2add |
 
 ## Goal
 
