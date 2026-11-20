@@ -132,8 +132,10 @@ describe('availability slots: publish → public page with lead-time state → r
     expect(html).toContain(DISABLED);
     expect(api2.data.offerReady).toBe(true);
     expect(api2.data.slots.map((slot: { meetsLeadTime: boolean }) => slot.meetsLeadTime)).toEqual([false, true]);
+    // Spec #29: only the slot two hours ahead offers lengths.
+    expect(api2.data.slots.map((slot: { bookableLengths: string[] }) => slot.bookableLengths)).toEqual([[], ['25', '50']]);
     for (const slot of api2.data.slots) {
-      expect(Object.keys(slot).sort()).toEqual(['id', 'meetsLeadTime', 'startsAt']);
+      expect(Object.keys(slot).sort()).toEqual(['bookableLengths', 'id', 'meetsLeadTime', 'startsAt']);
     }
     expect(html).not.toMatch(/\b(ratings?|scores?|reviews?|guaranteed|reserved)\b/i);
   });

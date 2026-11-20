@@ -22,7 +22,7 @@ Engine: om-auto-create-pr-loop
 | 3 | 3.2 | /m/[slug] booking wiring and the cancelled notice | inline | done | self |
 | 3 | 3.3 | /bookings/[id] status page | inline | done | self |
 | 3 | 3.4 | /mentor/slots Booked and Held states | inline | done | self |
-| 4 | 4.1 | Integration: book, pay, cancel, race, redelivery, unconfigured | inline | todo | |
+| 4 | 4.1 | Integration: book, pay, cancel, race, redelivery, unconfigured | inline | done | self |
 | 4 | 4.2 | Spec implementation notes and status | inline | todo | |
 
 ## Goal
