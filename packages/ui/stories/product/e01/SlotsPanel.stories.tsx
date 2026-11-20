@@ -26,6 +26,22 @@ export const Upcoming: Story = {
 
 export const Empty: Story = { args: { slots: [] } };
 
+/** Spec #29: a paid time is Booked, a time a mentee is paying for is Held; neither can be removed. */
+export const BookedAndHeld: Story = {
+  args: {
+    slots: [
+      { id: "a", startsAt: "2026-11-05T17:30:00Z", meetsLeadTime: true, booking: "booked" },
+      { id: "b", startsAt: "2026-11-06T08:00:00Z", meetsLeadTime: true, booking: "held" },
+      { id: "c", startsAt: "2026-11-07T08:00:00Z", meetsLeadTime: true, booking: null },
+    ],
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("Booked")).toBeVisible();
+    await expect(canvas.getByText("Held for payment")).toBeVisible();
+    await expect(canvas.getAllByRole("button", { name: /^Remove slot/ })).toHaveLength(1);
+  },
+};
+
 export const WithPast: Story = {
   args: {
     showPast: true,

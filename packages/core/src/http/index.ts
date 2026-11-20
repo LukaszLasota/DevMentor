@@ -60,7 +60,7 @@ export { receiveStripeWebhook, STRIPE_WEBHOOK_RESPONSE } from './stripe-webhook'
 export { BOOKING_RESPONSE, getOwnBooking, releaseOwnBooking, startBooking, type BookingIdParams } from './bookings';
 export type { BookingStarted, BookingView } from '../services/bookings/booking.service';
 export { listMySlots, publishSlot, removeSlot, type SlotIdParams } from './availability';
-export type { SlotView } from '../services/availability/slot.service';
+export type { OwnerSlotView, SlotView } from '../services/availability/slot.service';
 export { INVALID_CREDENTIALS_MESSAGE, VerificationLinkInvalidError } from '../services/auth/account.service';
 export { OAUTH_STATE_COOKIE } from './oauth-state-cookie';
 export { clearSessionCookie, readSessionCookie, SESSION_COOKIE, sessionCookie } from './session-cookie';
