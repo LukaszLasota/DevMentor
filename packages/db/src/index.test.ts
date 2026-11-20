@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 describe('@devmentor/db public entry', () => {
   it('exposes getOrm, the entities and the ORM values core needs at runtime (exception, lock mode) (ORM types are type-only re-exports)', async () => {
     expect(Object.keys(await import('./index')).sort()).toEqual([
+      'ACTIVE_SLOT_UNIQUE',
       'DEFAULT_ROLES',
       'EMAIL_VERIFICATION_TTL_MS',
       'EmailVerificationToken',
@@ -12,9 +13,11 @@ describe('@devmentor/db public entry', () => {
       'MentorProfile',
       'ROLES',
       'STACK_TAGS',
+      'Slot',
       'UniqueConstraintViolationException',
       'User',
       'getOrm',
+      'isUniqueViolation',
     ]);
   });
 });

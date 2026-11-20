@@ -54,6 +54,12 @@ export const MentorProfileSchema = defineEntity({
     stackTags: p.array<StackTag>().default([]),
     slug: p.string().length(SLUG_COLUMN_LENGTH).nullable(),
     publishedAt: p.datetime().nullable(),
+    /**
+     * When the mentor last published a slot (spec 2026-10-21-availability-slots): the R08 ordering key
+     * for the mentor list (#27), written with `GREATEST` so it never moves backwards; never lowered on
+     * removal. Ordering only — eligibility is `hasBookableSlot`.
+     */
+    lastPublishedAvailabilityAt: p.datetime().nullable(),
     createdAt: p.datetime().onCreate(now),
     updatedAt: p.datetime().onCreate(now).onUpdate(now),
   },

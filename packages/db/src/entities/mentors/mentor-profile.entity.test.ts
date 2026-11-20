@@ -43,6 +43,7 @@ describe('MentorProfile entity', () => {
       'displayName',
       'id',
       'initialPublishDueAt',
+      'lastPublishedAvailabilityAt',
       'publicWorkUrl',
       'publishedAt',
       'slug',
@@ -56,6 +57,11 @@ describe('MentorProfile entity', () => {
     expect(column('stackTags')).toEqual({ field: 'stack_tags', type: 'text[]', nullable: false });
     expect(column('slug')).toEqual({ field: 'slug', type: 'varchar(60)', nullable: true });
     expect(column('publishedAt')).toEqual({ field: 'published_at', type: 'timestamptz', nullable: true });
+    expect(column('lastPublishedAvailabilityAt')).toEqual({
+      field: 'last_published_availability_at',
+      type: 'timestamptz',
+      nullable: true,
+    });
     expect(column('id')).toEqual({ field: 'id', type: 'uuid', nullable: false });
     expect(column('initialPublishDueAt')).toEqual({
       field: 'initial_publish_due_at',

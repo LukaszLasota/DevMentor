@@ -9,6 +9,8 @@ export {
 export { Invitation, STACK_TAGS, type StackTag } from './entities/invitations/invitation.entity';
 // The named slug key: `MentorProfileService` retries a slug collision only on this constraint.
 export { MENTOR_PROFILE_SLUG_KEY, MentorProfile } from './entities/mentors/mentor-profile.entity';
+export { ACTIVE_SLOT_UNIQUE, Slot } from './entities/availability/slot.entity';
+export { isUniqueViolation } from './errors';
 export type { DbOptions } from './config';
 // Re-exported so no package other than db imports @mikro-orm/* directly.
 export type { EntityManager, MikroORM } from '@mikro-orm/postgresql';
