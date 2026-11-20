@@ -27,5 +27,6 @@ export {
 export { isWholeMinuteUtc, slotCreateSchema, type SlotCreateInput } from './availability/slot-create.schema';
 export { AMOUNT_MESSAGE, mentorPricesUpdateSchema, type MentorPricesUpdateInput } from './mentors/mentor-prices-update.schema';
 export { mentorListQuerySchema, UNKNOWN_TAG_MESSAGE, type MentorListQuery } from './mentors/mentor-list-query.schema';
+export { bookingCancelSchema, type BookingCancelInput } from './bookings/booking-cancel.schema';
 export { bookingStartSchema, type BookingStartInput } from './bookings/booking-start.schema';
 export { MAX_STACK_TAGS, StackTags, type StackTagKey } from '../domain/vocabularies/stack-tags';

@@ -31,7 +31,8 @@ export interface SlotView {
 
 /** The owner's view adds whether the slot itself is held for payment or booked (spec #29). */
 export interface OwnerSlotView extends SlotView {
-  booking: 'held' | 'booked' | null;
+  /** `cancelled`: no active booking, and a mentee cancelled one (spec 2026-11-20-booking-cancellation, AC4). */
+  booking: 'held' | 'booked' | 'cancelled' | null;
 }
 
 /** An active booking as occupancy reads it. */
@@ -97,7 +98,8 @@ export class SlotService {
 
   /**
    * `upcoming`: future, ascending (at most the cap); `past`: started, descending, the last 50. Each
-   * slot says whether it is held for payment or booked (`/mentor/slots`, spec #29).
+   * slot says whether it is held for payment or booked (`/mentor/slots`, spec #29), or was cancelled
+   * by its mentee and has no active booking since (spec 2026-11-20-booking-cancellation).
    */
   async listMine(userId: string, scope: SlotScope): Promise<OwnerSlotView[]> {
     const profile = await this.ownProfile(this.em, userId);
@@ -109,10 +111,12 @@ export class SlotService {
       { orderBy: { startsAt: upcoming ? 'asc' : 'desc' }, limit: upcoming ? MAX_ACTIVE_FUTURE_SLOTS : PAST_LIST_LIMIT },
     );
     const bookings = await this.activeBookings(this.em, [profile.id], now);
+    const cancelled = await this.em.find(Booking, { slot: { $in: slots.map((slot) => slot.id) }, status: 'cancelled' });
+    const wasCancelled = (slotId: string) => cancelled.some((booking) => booking.slot.id === slotId);
 
     return slots.map((slot) => ({
       ...toSlotView(slot, now, bookings),
-      booking: bookings.find((booking) => booking.slotId === slot.id)?.status ?? null,
+      booking: bookings.find((booking) => booking.slotId === slot.id)?.status ?? (wasCancelled(slot.id) ? 'cancelled' : null),
     }));
   }
 

@@ -28,6 +28,11 @@ export interface DomainEvents {
    * the webhook transaction commits; `leadMinutes` is the R09 booking-to-start measurement.
    */
   'bookings.booking.confirmed': { bookingId: string; mentorProfileId: string; menteeId: string; startsAt: Date; leadMinutes: number };
+  /**
+   * A mentee cancelled a confirmed booking (spec 2026-11-20-booking-cancellation). Emitted after the
+   * cancellation commits; `refundDue` = cancelled more than 24 hours ahead (R10).
+   */
+  'bookings.booking.cancelled': { bookingId: string; mentorProfileId: string; menteeId: string; startsAt: Date; refundDue: boolean };
 }
 
 export type DomainEventName = keyof DomainEvents;

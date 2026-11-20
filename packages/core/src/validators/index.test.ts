@@ -33,6 +33,7 @@ describe('@devmentor/core/validators', () => {
         'isPublicWorkUrl',
         'isWholeMinuteUtc',
         'slotCreateSchema',
+        'bookingCancelSchema',
         'bookingStartSchema',
         'mentorProfileUpdateSchema',
         'AMOUNT_MESSAGE',

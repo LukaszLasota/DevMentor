@@ -42,6 +42,19 @@ export const BookedAndHeld: Story = {
   },
 };
 
+export const CancelledByMentee: Story = {
+  args: {
+    slots: [
+      { id: "a", startsAt: "2026-11-05T17:30:00Z", meetsLeadTime: true, booking: "cancelled" },
+      { id: "b", startsAt: "2026-11-06T08:00:00Z", meetsLeadTime: false, booking: "cancelled" },
+    ],
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("Cancelled by mentee · open again")).toBeVisible();
+    await expect(canvas.getByText("Cancelled by mentee · less than 2 h away")).toBeVisible();
+  },
+};
+
 export const WithPast: Story = {
   args: {
     showPast: true,

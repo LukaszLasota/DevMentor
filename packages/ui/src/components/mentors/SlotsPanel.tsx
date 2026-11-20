@@ -24,8 +24,11 @@ export interface OwnerSlot {
   startsAt: string;
   meetsLeadTime: boolean;
   past?: boolean;
-  /** The slot's own booking (spec #29): held while a mentee pays, booked once paid. */
-  booking?: "held" | "booked" | null;
+  /**
+   * The slot's own booking (spec #29): held while a mentee pays, booked once paid; cancelled when its
+   * mentee cancelled and nobody has booked it since (spec 2026-11-20-booking-cancellation).
+   */
+  booking?: "held" | "booked" | "cancelled" | null;
 }
 
 export interface SlotsPanelProps {
@@ -87,6 +90,10 @@ export function SlotsPanel({ slots, showPast, onShowPastChange, onRemove }: Slot
                       <Badge tone="warning">Held for payment</Badge>
                     ) : slot.past ? (
                       <Badge>Past</Badge>
+                    ) : slot.booking === "cancelled" ? (
+                      <Badge tone="warning">
+                        {slot.meetsLeadTime ? "Cancelled by mentee · open again" : "Cancelled by mentee · less than 2 h away"}
+                      </Badge>
                     ) : slot.meetsLeadTime ? (
                       <Badge tone="success">Bookable</Badge>
                     ) : (

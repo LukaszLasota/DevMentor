@@ -101,6 +101,24 @@ describe("E01 product components", () => {
     expect(screen.getAllByRole("button", { name: /^Remove slot/ })).toHaveLength(1);
   });
 
+  it("SlotsPanel shows a time its mentee cancelled, open again or too close to rebook, and lets the mentor remove it", () => {
+    render(
+      <SlotsPanel
+        slots={[
+          { id: "a", startsAt: "2026-11-05T17:30:00Z", meetsLeadTime: true, booking: "cancelled" },
+          { id: "b", startsAt: "2026-11-05T09:00:00Z", meetsLeadTime: false, booking: "cancelled" },
+        ]}
+        showPast={false}
+        onShowPastChange={vi.fn()}
+        onRemove={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Cancelled by mentee · open again")).toBeTruthy();
+    expect(screen.getByText("Cancelled by mentee · less than 2 h away")).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: /^Remove slot/ })).toHaveLength(2);
+  });
+
   it("SlotsPanel lists states, toggles past slots and removes after confirmation", async () => {
     const user = userEvent.setup();
     const onShowPastChange = vi.fn();
