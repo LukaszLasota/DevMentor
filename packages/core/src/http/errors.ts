@@ -55,15 +55,18 @@ export class NotFoundError extends AppError {
   }
 }
 
+/** `code` names a specific case for clients (e.g. `SLOT_TAKEN`); additive — the default stays. */
+export type CodedErrorOptions = ErrorOptions & { code?: string };
+
 export class ConflictError extends AppError {
-  constructor(message = 'Resource conflict.', options?: ErrorOptions) {
-    super(409, 'CONFLICT', message, options);
+  constructor(message = 'Resource conflict.', options?: CodedErrorOptions) {
+    super(409, options?.code ?? 'CONFLICT', message, options);
   }
 }
 
 export class ServiceUnavailableError extends AppError {
-  constructor(message = 'Service unavailable.', options?: ErrorOptions) {
-    super(503, 'SERVICE_UNAVAILABLE', message, options);
+  constructor(message = 'Service unavailable.', options?: CodedErrorOptions) {
+    super(503, options?.code ?? 'SERVICE_UNAVAILABLE', message, options);
   }
 }
 
