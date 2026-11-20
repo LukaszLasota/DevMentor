@@ -143,6 +143,7 @@ describe('SessionService.get', () => {
       endsAt: at(25).toISOString(),
       messagesUntil: at(55).toISOString(),
       answerUntil: at(25 + 24 * 60).toISOString(),
+      phase: 'open',
       canSend: true,
       canAnswer: false,
       otherParty: { displayName: 'Ada' },
@@ -155,7 +156,7 @@ describe('SessionService.get', () => {
     const { service, booking } = setup();
     await expect(service.get(MENTOR.id, booking.id)).resolves.toMatchObject({ role: 'mentor', canAnswer: true, otherParty: { displayName: 'mia' } });
 
-    const anonymous = makeBooking({ mentee: ref(Object.assign(new User(), { id: MENTEE.id, email: 'x@devmentor.test', githubLogin: null })) });
+    const anonymous = makeBooking({ mentee: ref(Object.assign(new User(), { id: MENTEE.id, email: 'x@devmentor.test', githubLogin: null })) as unknown as Booking['mentee'] });
     (anonymous.mentorProfile.getEntity() as MentorProfile).displayName = null;
     const other = setup({ bookings: [anonymous] });
     await expect(other.service.get(MENTOR.id, anonymous.id)).resolves.toMatchObject({ otherParty: { displayName: 'Your mentee' } });
@@ -173,7 +174,7 @@ describe('SessionService.get', () => {
   });
 
   it('a mentor who is also a mentee elsewhere is the mentor here and the mentee there', async () => {
-    const theirOwn = makeBooking({ mentee: MENTOR });
+    const theirOwn = makeBooking({ mentee: MENTOR as unknown as Booking['mentee'] });
     const { service, booking } = setup({ bookings: [makeBooking(), theirOwn] });
 
     await expect(service.get(MENTOR.id, booking.id)).resolves.toMatchObject({ role: 'mentor' });
@@ -198,15 +199,15 @@ describe('SessionService.get', () => {
   });
 
   it.each([
-    ['before the start', -1, false, false],
-    ['at the start', 0, true, true],
-    ['in the wrap-up', 54, true, true],
-    ['after the wrap-up', 55, false, true],
-    ['a day after the end', 25 + 24 * 60, false, false],
-  ])('%s: can send %s, can answer %s', async (_case, minutes, canSend, canAnswer) => {
+    ['before the start', -1, 'not_started', false, false],
+    ['at the start', 0, 'open', true, true],
+    ['in the wrap-up', 54, 'open', true, true],
+    ['after the wrap-up', 55, 'closed', false, true],
+    ['a day after the end', 25 + 24 * 60, 'closed', false, false],
+  ])('%s: phase %s, can send %s, can answer %s', async (_case, minutes, phase, canSend, canAnswer) => {
     const { service, booking } = setup({ now: at(minutes) });
 
-    await expect(service.get(MENTOR.id, booking.id)).resolves.toMatchObject({ canSend, canAnswer });
+    await expect(service.get(MENTOR.id, booking.id)).resolves.toMatchObject({ phase, canSend, canAnswer });
   });
 });
 
@@ -310,7 +311,7 @@ describe('SessionService.listMine', () => {
   it('lists both roles\' confirmed sessions with their state', async () => {
     const upcoming = makeBooking({ startsAt: at(60), endsAt: at(85) });
     const open = makeBooking();
-    const waiting = makeBooking({ startsAt: at(-120), endsAt: at(-95), mentee: MENTOR });
+    const waiting = makeBooking({ startsAt: at(-120), endsAt: at(-95), mentee: MENTOR as unknown as Booking['mentee'] });
     const answered = makeBooking({ startsAt: at(-300), endsAt: at(-275) });
     const { service, em } = setup({ bookings: [upcoming, open, waiting, answered] });
     await service.answer(MENTOR.id, answered.id, { body: ANSWER }).catch(() => undefined);

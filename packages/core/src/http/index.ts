@@ -69,6 +69,14 @@ export {
 } from './bookings';
 export type { AttentionItem } from '../services/bookings/booking-cancellation.service';
 export type { ReportItem } from '../services/bookings/booking-report.service';
+export { getSession, SESSION_RESPONSE, sendSessionMessage, submitSessionAnswer, type SessionIdParams } from './sessions';
+export type {
+  SessionAnswerView,
+  SessionListItem,
+  SessionMessageView,
+  SessionRole,
+  SessionView,
+} from '../services/sessions/session.service';
 export type { BookingStarted, BookingView } from '../services/bookings/booking.service';
 export { listMySlots, publishSlot, removeSlot, type SlotIdParams } from './availability';
 export type { OwnerSlotView, SlotView } from '../services/availability/slot.service';

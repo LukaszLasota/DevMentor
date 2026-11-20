@@ -8,13 +8,14 @@ export const ACCOUNT_NAV_LABEL = "Main";
 
 /**
  * Sidebar links of the signed-in shell by role (spec #21 "App shell", L04, L09). Only pages that
- * exist are linked; new items arrive with their pages ("Users", "My sessions").
+ * exist are linked; new items arrive with their pages ("Users").
  */
 export function accountNavSections(roles: readonly AccountRole[]): SideNavSection[] {
   const sections: SideNavSection[] = [
     {
       items: [
         { href: "/mentors", label: "Mentors" },
+        { href: "/sessions", label: "My sessions" },
         ...(roles.includes("mentor")
           ? [
               { href: "/mentor", label: "Mentor workspace" },

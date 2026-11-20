@@ -19,7 +19,8 @@ export const SessionMessageSchema = defineEntity({
   indexes: [{ name: 'session_messages_booking_seq_idx', properties: ['booking', 'seq'] }],
   properties: {
     id: p.uuid().primary().onCreate(() => randomUUID()),
-    seq: p.bigint('number').generated('identity'),
+    // `autoincrement` only makes it optional on create; `generated` keeps it out of inserts and reloads it after.
+    seq: p.bigint('number').generated('identity').autoincrement().columnType('bigint'),
     booking: () => p.manyToOne(BookingSchema).ref().deleteRule('restrict'),
     author: () => p.manyToOne(UserSchema).ref().deleteRule('restrict'),
     body: p.text(),

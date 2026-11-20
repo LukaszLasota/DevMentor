@@ -42,6 +42,8 @@ export interface SessionView {
   endsAt: string;
   messagesUntil: string;
   answerUntil: string;
+  /** Where the chat is in time: before the start, open for messages, or closed (read-only). */
+  phase: 'not_started' | 'open' | 'closed';
   canSend: boolean;
   canAnswer: boolean;
   otherParty: { displayName: string };
@@ -115,6 +117,7 @@ export class SessionService {
       endsAt: booking.endsAt.toISOString(),
       messagesUntil: windows.messagesUntil.toISOString(),
       answerUntil: windows.answerUntil.toISOString(),
+      phase: windows.canSend ? 'open' : windows.started ? 'closed' : 'not_started',
       canSend: windows.canSend,
       canAnswer: role === 'mentor' && answer === null && windows.canAnswer,
       otherParty: otherPartyOf(booking, role),
@@ -257,6 +260,7 @@ function windowsOf(booking: Booking, now: Date) {
   return {
     messagesUntil,
     answerUntil,
+    started,
     canSend: started && now.getTime() < messagesUntil.getTime(),
     canAnswer: started && now.getTime() < answerUntil.getTime(),
   };
