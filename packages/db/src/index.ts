@@ -31,6 +31,14 @@ export {
   SESSION_ANSWER_MIN,
   SessionAnswer,
 } from './entities/sessions/session-answer.entity';
+export {
+  NOTE_APPROVED_UNIQUE,
+  NOTE_MAX_VERSIONS,
+  NOTE_VERSION_UNIQUE,
+  NOTE_WAITING_UNIQUE,
+  SessionNoteVersion,
+  type NoteDecision,
+} from './entities/sessions/session-note-version.entity';
 export { isUniqueViolation } from './errors';
 export type { DbOptions } from './config';
 // Re-exported so no package other than db imports @mikro-orm/* directly.
