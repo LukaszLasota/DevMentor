@@ -106,13 +106,14 @@ describe('availability slots: publish → public page with lead-time state → r
   });
 
   it('publishes a slot tomorrow and one in an hour; the ordering key moves to now', async () => {
-    const first = await publishSlot(cookie, inHours(24));
+    const at = inHours(24);
+    const first = await publishSlot(cookie, at);
     const soon = await publishSlot(cookie, inHours(1));
     tomorrow = (await first.json()).data;
 
     expect([first.status, soon.status]).toEqual([200, 200]);
     expect(first.headers.get('cache-control')).toBe('no-store');
-    expect(tomorrow.startsAt).toBe(inHours(24));
+    expect(tomorrow.startsAt).toBe(at);
     expect(
       await psql(
         `select last_published_availability_at > now() - interval '5 minutes' from mentor_profiles p join users u on u.id = p.user_id where u.email = '${LOGIN}@devmentor.test'`,
@@ -192,9 +193,11 @@ describe('availability slots: refusals over HTTP', () => {
     expect(duplicate.status).toBe(409);
   });
 
+  let otherCookie: string;
+
   it('another mentor cannot remove the slot (404) and nothing changes', async () => {
     const mine = (await (await api('/api/availability/slots', cookie)).json()).data.items[0];
-    const otherCookie = await onboardMentor(other, OTHER_LOGIN);
+    otherCookie = await onboardMentor(other, OTHER_LOGIN);
 
     const res = await api(`/api/availability/slots/${mine.id}`, otherCookie, { method: 'DELETE' });
 
@@ -210,6 +213,31 @@ describe('availability slots: refusals over HTTP', () => {
       body: JSON.stringify({ startsAt: inHours(30) }),
     });
     expect(noCsrf.status).toBe(403);
+  });
+
+  it('two tabs publishing the same start at once: one 200, one 409, one slot (unique index)', async () => {
+    const at = inHours(72);
+    const answers = await Promise.all([publishSlot(otherCookie, at), publishSlot(otherCookie, at)]);
+
+    expect(answers.map((answer) => answer.status).sort()).toEqual([200, 409]);
+    expect(await psql(`select count(*) from slots where starts_at = '${at}' and removed_at is null`)).toBe('1');
+  });
+
+  it('two publishes at 199 active slots: exactly one succeeds (profile row lock holds the cap)', async () => {
+    const profileId = await psql(
+      `select p.id from mentor_profiles p join users u on u.id = p.user_id where u.email = '${OTHER_LOGIN}@devmentor.test'`,
+    );
+    const active = Number(await psql(`select count(*) from slots where mentor_profile_id = '${profileId}' and removed_at is null and starts_at > now()`));
+    await psql(
+      `insert into slots (id, mentor_profile_id, starts_at, removed_at, created_at, updated_at)
+       select gen_random_uuid(), '${profileId}', date_trunc('minute', now()) + interval '100 days' + n * interval '1 minute', null, now(), now()
+       from generate_series(1, ${199 - active}) as n`,
+    );
+
+    const answers = await Promise.all([publishSlot(otherCookie, inHours(200)), publishSlot(otherCookie, inHours(201))]);
+
+    expect(answers.map((answer) => answer.status).sort()).toEqual([200, 409]);
+    expect(await psql(`select count(*) from slots where mentor_profile_id = '${profileId}' and removed_at is null and starts_at > now()`)).toBe('200');
   });
 
   it('keeps one active slot per start under the partial unique index, and allows it again once removed', async () => {
