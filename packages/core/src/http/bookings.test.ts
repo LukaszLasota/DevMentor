@@ -6,7 +6,7 @@ import type { Clock } from '../time/clock';
 import { apiHandler } from './apiHandler';
 import { BOOKING_RESPONSE, cancelOwnBooking, getOwnBooking, releaseOwnBooking, reportOwnBooking, retryBookingRefund, startBooking } from './bookings';
 import { CSRF_HEADER, CSRF_HEADER_VALUE } from './envelope';
-import { ConflictError, ForbiddenError, NotFoundError, ServiceUnavailableError } from './errors';
+import { ConflictError, ForbiddenError, NotFoundError, ServiceUnavailableError, TooManyRequestsError } from './errors';
 
 // The handlers run through the real apiHandler (CSRF, envelope, error mapping, no-store) with a fake
 // BookingService: its rules are tested in `booking.service.test.ts` and end to end against PostgreSQL
@@ -34,10 +34,12 @@ const REPORT = apiHandler(reportOwnBooking, BOOKING_RESPONSE);
 let bookingService: { start: ReturnType<typeof vi.fn>; getOwn: ReturnType<typeof vi.fn>; releaseOwnHold: ReturnType<typeof vi.fn> };
 let bookingCancellationService: { cancel: ReturnType<typeof vi.fn>; retryRefund: ReturnType<typeof vi.fn> };
 let roles: string[];
+let rateLimiter: { consumeAll: ReturnType<typeof vi.fn> };
 let bookingReportService: { report: ReturnType<typeof vi.fn> };
 
 beforeEach(() => {
   roles = ['mentee'];
+  rateLimiter = { consumeAll: vi.fn(async () => undefined) };
   const user = Object.assign(new User(), { id: USER_ID, email: 'mentee@devmentor.test', sessionVersion: 0 });
   Object.defineProperty(user, 'roles', { get: () => roles });
   bookingService = { start: vi.fn(async () => STARTED), getOwn: vi.fn(async () => VIEW), releaseOwnHold: vi.fn(async () => VIEW) };
@@ -51,6 +53,7 @@ beforeEach(() => {
     accountService: { reconcileOperator: vi.fn(async (u: User) => u) },
     bookingService,
     bookingCancellationService,
+    rateLimiter,
     bookingReportService,
   };
 });
@@ -103,6 +106,27 @@ describe('POST /api/bookings', () => {
 
     expect(response.status).toBe(status);
     expect((await response.json()).error.code).toBe(code);
+  });
+});
+
+describe('booking rate limits', () => {
+  it('counts starts, releases and cancellations per account before the service runs', async () => {
+    await START(await request('POST', { body: { slotId: SLOT_ID, length: '25' } }), noParams);
+    await RELEASE(await request('POST'), idParams(BOOKING_ID));
+    await CANCEL(await request('POST', { body: { expectRefund: true } }), idParams(BOOKING_ID));
+
+    expect(rateLimiter.consumeAll.mock.calls.map(([checks]) => (checks as { policy: { action: string } }[]).map((check) => check.policy.action))).toEqual([
+      ['booking-start'],
+      ['booking-change'],
+      ['booking-change'],
+    ]);
+  });
+
+  it('answers 429 over the limit without starting anything', async () => {
+    rateLimiter.consumeAll.mockRejectedValueOnce(new TooManyRequestsError(60));
+
+    expect((await START(await request('POST', { body: { slotId: SLOT_ID, length: '25' } }), noParams)).status).toBe(429);
+    expect(bookingService.start).not.toHaveBeenCalled();
   });
 });
 

@@ -12,6 +12,7 @@ import {
   BookingService,
   CHECKOUT_LIFETIME_MS,
   HOLD_GRACE_MS,
+  HOLD_IN_PROGRESS_MESSAGE,
   NOT_BOOKABLE_MESSAGE,
   OWN_SLOT_MESSAGE,
   PAYMENTS_UNAVAILABLE_MESSAGE,
@@ -122,6 +123,7 @@ function fakeEm(profiles: MentorProfile[], slots: Slot[], bookings: Booking[]) {
       async (entity, where) => table(entity).find((row) => matches(row, where)) ?? null,
     ),
     find: vi.fn(async (entity: unknown, where: Where) => table(entity).filter((row) => matches(row, where))),
+    count: vi.fn(async (entity: unknown, where: Where) => table(entity).filter((row) => matches(row, where)).length),
     create: vi.fn((_entity: unknown, data: Partial<Booking>) => {
       const booking = Object.assign(new Booking(), { id: randomUUID(), checkoutSessionId: null, ...data }, { mentee: { id: data.mentee } });
       pending.push(booking);
@@ -211,6 +213,33 @@ const session = (booking: Booking, fields: Partial<CheckoutSession> = {}): Check
 });
 
 describe('BookingService.start', () => {
+  it('keeps one hold per mentee: a new Book releases their earlier unpaid hold through Stripe first', async () => {
+    const { profile, slot } = bookableMentor();
+    const other = makeSlot(profile, hoursFromNow(30));
+    const { service, gateway, bookings, em } = setup({ profiles: [profile], slots: [slot, other] });
+
+    const first = await service.start(MENTEE, { slotId: slot.id, length: '25' });
+    await service.start(MENTEE, { slotId: other.id, length: '25' });
+
+    expect(bookings.find((booking) => booking.id === first.bookingId)?.status).toBe('expired');
+    expect(gateway.sessions.get(`cs_fake_${first.bookingId}`)?.status).toBe('expired');
+    expect(bookings.filter((booking) => booking.status === 'pending_payment')).toHaveLength(1);
+    expect(em.findOne).toHaveBeenCalledWith(User, { id: MENTEE.id }, LOCK);
+  });
+
+  it('refuses a second hold that appeared after the release (another tab) with HOLD_IN_PROGRESS', async () => {
+    const { profile, slot } = bookableMentor();
+    const { service, em, gateway } = setup({ profiles: [profile], slots: [slot] });
+    em.count.mockResolvedValueOnce(1);
+
+    expect(await rejection(service.start(MENTEE, { slotId: slot.id, length: '25' }))).toMatchObject({
+      status: 409,
+      code: 'HOLD_IN_PROGRESS',
+      message: HOLD_IN_PROGRESS_MESSAGE,
+    });
+    expect(gateway.created).toHaveLength(0);
+  });
+
   it('holds the slot under the profile lock with the server-held price, then opens Checkout at one deadline', async () => {
     const { profile, slot } = bookableMentor();
     const { service, em, gateway, bookings } = setup({ profiles: [profile], slots: [slot] });
@@ -340,7 +369,8 @@ describe('BookingService.start', () => {
   it('answers 404 when the profile vanished between the reads', async () => {
     const { profile, slot } = bookableMentor();
     const { service, em } = setup({ profiles: [profile], slots: [slot] });
-    em.findOne.mockImplementationOnce(async () => slot).mockImplementationOnce(async () => null);
+    // The slot, then the mentee's row lock, then the profile (gone).
+    em.findOne.mockImplementationOnce(async () => slot).mockImplementationOnce(async () => null).mockImplementationOnce(async () => null);
 
     expect(await rejection(service.start(MENTEE, { slotId: slot.id, length: '25' }))).toMatchObject({ status: 404 });
   });

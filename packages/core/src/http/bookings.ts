@@ -6,6 +6,7 @@ import { bookingCancelSchema } from '../validators/bookings/booking-cancel.schem
 import { bookingReportSchema } from '../validators/bookings/booking-report.schema';
 import { bookingStartSchema } from '../validators/bookings/booking-start.schema';
 import type { ApiHandlerOptions, HandlerArgs, RouteParams } from './apiHandler';
+import { BOOKING_CHANGE_RATE_LIMITS, BOOKING_START_RATE_LIMITS, rateLimitChecks } from '../security/rate-limit';
 import { requireRole, requireSession } from './auth';
 import { NotFoundError } from './errors';
 import { parseJsonBody } from './parse';
@@ -24,6 +25,7 @@ export type BookingIdParams = { id: string };
 export async function startBooking({ req, cradle }: HandlerArgs<RouteParams>): Promise<BookingStarted> {
   const user = await requireSession(req, cradle);
   const input = await parseJsonBody(req, bookingStartSchema);
+  await cradle.rateLimiter.consumeAll(rateLimitChecks(BOOKING_START_RATE_LIMITS, { email: user.email, ip: null }));
 
   return cradle.bookingService.start({ id: user.id, email: user.email }, input);
 }
@@ -49,8 +51,10 @@ export async function getOwnBooking({ req, params, cradle }: HandlerArgs<Booking
  */
 export async function releaseOwnBooking({ req, params, cradle }: HandlerArgs<BookingIdParams>): Promise<BookingView> {
   const user = await requireSession(req, cradle);
+  const id = bookingId(params);
+  await cradle.rateLimiter.consumeAll(rateLimitChecks(BOOKING_CHANGE_RATE_LIMITS, { email: user.email, ip: null }));
 
-  return cradle.bookingService.releaseOwnHold(user.id, bookingId(params));
+  return cradle.bookingService.releaseOwnHold(user.id, id);
 }
 
 /**
@@ -62,6 +66,7 @@ export async function cancelOwnBooking({ req, params, cradle }: HandlerArgs<Book
   const user = await requireSession(req, cradle);
   const id = bookingId(params);
   const input = await parseJsonBody(req, bookingCancelSchema);
+  await cradle.rateLimiter.consumeAll(rateLimitChecks(BOOKING_CHANGE_RATE_LIMITS, { email: user.email, ip: null }));
 
   return cradle.bookingCancellationService.cancel(user.id, id, input);
 }

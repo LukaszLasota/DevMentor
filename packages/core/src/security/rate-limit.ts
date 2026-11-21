@@ -10,7 +10,7 @@ export type RateLimitSubject = 'email' | 'ip';
 
 /** A fixed-window limit: at most `limit` attempts per `windowMs` for one action and subject. */
 export interface RateLimitPolicy {
-  readonly action: 'sign-in' | 'register' | 'resend';
+  readonly action: 'sign-in' | 'register' | 'resend' | 'booking-start' | 'booking-change';
   readonly subject: RateLimitSubject;
   readonly limit: number;
   readonly windowMs: number;
@@ -24,18 +24,26 @@ export const SIGN_IN_PER_EMAIL: RateLimitPolicy = { action: 'sign-in', subject: 
 export const REGISTER_PER_IP: RateLimitPolicy = { action: 'register', subject: 'ip', limit: 5, windowMs: HOUR_MS };
 export const REGISTER_PER_EMAIL: RateLimitPolicy = { action: 'register', subject: 'email', limit: 3, windowMs: HOUR_MS };
 export const RESEND_PER_EMAIL: RateLimitPolicy = { action: 'resend', subject: 'email', limit: 3, windowMs: HOUR_MS };
+/** Booking starts per account (each opens a Stripe Checkout Session and holds a time). */
+export const BOOKING_START_PER_EMAIL: RateLimitPolicy = { action: 'booking-start', subject: 'email', limit: 20, windowMs: HOUR_MS };
+/** Releases and cancellations per account (each may call Stripe). */
+export const BOOKING_CHANGE_PER_EMAIL: RateLimitPolicy = { action: 'booking-change', subject: 'email', limit: 20, windowMs: HOUR_MS };
 
 /** The limits of each rate-limited endpoint, per IP first. */
 export const SIGN_IN_RATE_LIMITS = [SIGN_IN_PER_IP, SIGN_IN_PER_EMAIL] as const;
 export const REGISTER_RATE_LIMITS = [REGISTER_PER_IP, REGISTER_PER_EMAIL] as const;
 export const RESEND_RATE_LIMITS = [RESEND_PER_EMAIL] as const;
+export const BOOKING_START_RATE_LIMITS = [BOOKING_START_PER_EMAIL] as const;
+export const BOOKING_CHANGE_RATE_LIMITS = [BOOKING_CHANGE_PER_EMAIL] as const;
 
 /**
  * Rows whose window started this long ago are expired under every policy and are deleted on each
  * call. Every policy's window must fit in it (checked by `consume`).
  */
 export const RATE_LIMIT_RETENTION_MS = Math.max(
-  ...[...SIGN_IN_RATE_LIMITS, ...REGISTER_RATE_LIMITS, ...RESEND_RATE_LIMITS].map((policy) => policy.windowMs),
+  ...[...SIGN_IN_RATE_LIMITS, ...REGISTER_RATE_LIMITS, ...RESEND_RATE_LIMITS, ...BOOKING_START_RATE_LIMITS, ...BOOKING_CHANGE_RATE_LIMITS].map(
+    (policy) => policy.windowMs,
+  ),
 );
 
 /** `<action>:<email|ip>:<sha256hex>` — the email or IP is lower-cased and hashed, so no PII is stored. */
