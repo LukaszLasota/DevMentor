@@ -183,12 +183,29 @@ describe('booking: cancel, race, overlap and refusals over HTTP (Stripe stub)', 
     expect(await psql(`select count(*) from bookings where slot_id = '${slot?.id}'`)).toBe('1');
   });
 
+  it('a new Book releases the mentee\'s own earlier unpaid hold: one hold per mentee', async () => {
+    const hal = await mentor('hal');
+    const second = (await api('/api/availability/slots', hal.cookie, { method: 'POST', body: { startsAt: inHours(30) } })).body.data;
+    const [first] = await publicSlots(hal.slug as string);
+
+    const held = await api('/api/bookings', menteeCookie, { method: 'POST', body: { slotId: first?.id, length: '25' } });
+    const next = await api('/api/bookings', menteeCookie, { method: 'POST', body: { slotId: second.id, length: '25' } });
+
+    expect([held.status, next.status]).toEqual([200, 200]);
+    expect(await bookingStatus(held.body.data.bookingId)).toBe('expired');
+    expect((await publicSlots(hal.slug as string)).map((slot) => slot.id)).toContain(first?.id);
+  });
+
   it('a length that runs into another booking is neither offered nor accepted', async () => {
     const dee = await mentor('dee');
     const later = (await api('/api/availability/slots', dee.cookie, { method: 'POST', body: { startsAt: inHours(24.5) } })).body.data;
     const [first] = await publicSlots(dee.slug as string);
 
-    expect((await api('/api/bookings', menteeCookie, { method: 'POST', body: { slotId: later.id, length: '25' } })).status).toBe(200);
+    // Another mentee holds the later time (a mentee's own earlier hold would be released by their next Book).
+    const other = createAgentBrowser(`devmentor-booking-other-${process.pid}`);
+    const otherCookie = await signIn(other, `bk-other-${run}`);
+    await other.close();
+    expect((await api('/api/bookings', otherCookie, { method: 'POST', body: { slotId: later.id, length: '25' } })).status).toBe(200);
 
     const open = await publicSlots(dee.slug as string);
     expect(open.find((slot) => slot.id === first?.id)?.bookableLengths).toEqual(['25']);
