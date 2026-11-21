@@ -1,4 +1,4 @@
-import { ACTIVE_BOOKING_SLOT_UNIQUE, Booking, BookingReport, isUniqueViolation, LockMode, MentorProfile, type RefundStatus, Slot } from '@devmentor/db';
+import { ACTIVE_BOOKING_SLOT_UNIQUE, Booking, BookingReport, isUniqueViolation, User, LockMode, MentorProfile, type RefundStatus, Slot } from '@devmentor/db';
 import type { Cradle } from '../../container/cradle';
 import type { SessionLength } from '../../domain/session-lengths';
 import { ConflictError, ForbiddenError, NotFoundError, ServiceUnavailableError } from '../../http/errors';
@@ -22,6 +22,7 @@ export const SLOT_TAKEN_MESSAGE = 'This time was just taken. Pick another one.';
 export const NOT_BOOKABLE_MESSAGE = 'This time can no longer be booked.';
 export const OWN_SLOT_MESSAGE = 'You cannot book your own time.';
 export const PAYMENTS_UNAVAILABLE_MESSAGE = 'Payments are unavailable right now. Nothing was charged; try again later.';
+export const HOLD_IN_PROGRESS_MESSAGE = 'You are already paying for another time. Finish or cancel that payment first.';
 export const SLOT_NOT_FOUND_MESSAGE = 'This time is not available.';
 export const BOOKING_NOT_FOUND_MESSAGE = 'Booking not found.';
 
@@ -126,6 +127,13 @@ export class BookingService {
 
     const now = this.clock.now();
     const deadline = new Date(now.getTime() + CHECKOUT_LIFETIME_MS);
+
+    // One hold per mentee (security report 2026-11-21): a new Book releases the mentee's earlier
+    // unpaid hold first, through Stripe like Cancel does (a payment that beat it is confirmed instead).
+    for (const own of await this.em.find(Booking, { mentee: mentee.id, status: 'pending_payment', holdExpiresAt: { $gt: now } })) {
+      await this.releaseOwnHold(mentee.id, own.id);
+    }
+
     // Expired holds overlapping the wanted time are released (each through Stripe), then retry once.
     let step = await this.hold(slot.mentorProfile.id, mentee.id, input, now, deadline);
 
@@ -348,6 +356,13 @@ export class BookingService {
   ): Promise<StartStep> {
     try {
       return await this.em.transactional(async (em) => {
+        // The mentee's row first: serializes their starts, so two tabs cannot each take a hold.
+        await em.findOne(User, { id: menteeId }, lockForUpdate());
+
+        if ((await em.count(Booking, { mentee: menteeId, status: 'pending_payment', holdExpiresAt: { $gt: now } })) > 0) {
+          throw new ConflictError(HOLD_IN_PROGRESS_MESSAGE, { code: 'HOLD_IN_PROGRESS' });
+        }
+
         const profile = await em.findOne(MentorProfile, { id: mentorProfileId }, { ...lockForUpdate(), populate: ['user'] });
         const slot = await em.findOne(Slot, { id: input.slotId, mentorProfile: mentorProfileId, removedAt: null });
         const owner = profile?.user.getEntity();
