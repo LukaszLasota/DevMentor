@@ -7,7 +7,9 @@
 # Usage: sh .ai/scripts/test-env-up.sh [--force] [--force-rebuild]
 # Needs Docker and Node; runs outside the agent sandbox (the owner runs it: `! sh .ai/scripts/test-env-up.sh`).
 # history:
-# 2026-11-21 generated (lesson 11 manual test of booking → session → payout).
+# 2026-11-21 generated (lesson 11 manual test of booking → session → payout). Verified: cold 29s (rebuilt), warm reused.
+# 2026-11-21 db:migrate rewrote packages/db/src/migrations/.snapshot-devmentor.json (key order) and dirtied the
+#            worktree — the snapshot is now backed up before migrating and restored after.
 set -eu
 
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
@@ -85,7 +87,10 @@ sleep 1
 DATABASE_URL="postgres://devmentor:devmentor@127.0.0.1:$PG_PORT/devmentor"
 export DATABASE_URL
 
-(cd "$ROOT" && npm run db:migrate >/dev/null)
+SNAPSHOT="$ROOT/packages/db/src/migrations/.snapshot-devmentor.json"
+cp "$SNAPSHOT" "$STATE_DIR/snapshot.bak"
+(cd "$ROOT" && npm run db:migrate >/dev/null) || { cp "$STATE_DIR/snapshot.bak" "$SNAPSHOT"; exit 1; }
+cp "$STATE_DIR/snapshot.bak" "$SNAPSHOT"
 (cd "$ROOT" && npm run db:seed >/dev/null)
 
 APP_PORT=$(node -e "const s=require('net').createServer();s.listen(0,'127.0.0.1',()=>{console.log(s.address().port);s.close()})")

@@ -51,6 +51,7 @@ coverage/
 .ai/tmp/
 .ai/qa/artifacts_*/
 .ai/qa/test-env.json
+.ai/qa/test-env-build-cache.json
 .ai/qa/test-env.env
 
 # Qodo CLI local state (review checkpoints, session context sent to the reviewer)
