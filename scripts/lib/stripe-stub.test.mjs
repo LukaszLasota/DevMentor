@@ -269,6 +269,88 @@ describe('Refund API', () => {
   });
 });
 
+describe('Connect and transfers', () => {
+  const post = (path, fields, idempotencyKey) =>
+    api(path, { method: 'POST', body: new URLSearchParams(fields), idempotencyKey }).then(async (response) => ({ status: response.status, body: await response.json() }));
+
+  async function paid() {
+    const { body } = await createSession();
+    await fetch(`${body.url}/complete`, { method: 'POST', redirect: 'manual' });
+
+    return (await api(`/v1/checkout/sessions/${body.id}?expand%5B0%5D=payment_intent.latest_charge`)).json();
+  }
+
+  it('creates an Express account once per key, onboards it on the hosted page and reads it', async () => {
+    const created = await post('/v1/accounts', { type: 'express', country: 'PL', 'capabilities[transfers][requested]': 'true', 'metadata[mentor_profile_id]': 'm-1' }, 'connect-account-m-1');
+    const again = await post('/v1/accounts', { type: 'express', country: 'PL' }, 'connect-account-m-1');
+    expect(created.body).toMatchObject({ id: expect.stringMatching(/^acct_test_\w+$/), payouts_enabled: false, capabilities: { transfers: 'pending' }, metadata: { mentor_profile_id: 'm-1' } });
+    expect(again.body.id).toBe(created.body.id);
+    expect((await post('/v1/accounts', { type: 'standard' })).status).toBe(400);
+
+    const link = await post('/v1/account_links', { account: created.body.id, type: 'account_onboarding', return_url: 'http://app.test/r', refresh_url: 'http://app.test/f' });
+    expect(link.body.url).toBe(`${stub.url}/connect/${created.body.id}`);
+    expect((await post('/v1/account_links', { account: 'acct_test_missing', type: 'account_onboarding' })).status).toBe(400);
+    expect(await (await fetch(link.body.url)).text()).toContain('Complete onboarding');
+
+    const done = await fetch(`${link.body.url}/complete`, { method: 'POST', redirect: 'manual' });
+    expect(done.headers.get('location')).toBe('http://app.test/r');
+    expect(await (await api(`/v1/accounts/${created.body.id}`)).json()).toMatchObject({ payouts_enabled: true, details_submitted: true, capabilities: { transfers: 'active' } });
+    expect((await api('/v1/accounts/acct_test_missing')).status).toBe(404);
+    expect((await fetch(`${stub.url}/connect/acct_test_missing`)).status).toBe(404);
+    expect((await fetch(`${link.body.url}/complete`)).status).toBe(404);
+  });
+
+  it('expands the charge of a paid session; a refund and a dispute show on it', async () => {
+    const session = await paid();
+    expect(session.payment_intent).toMatchObject({ id: expect.stringMatching(/^pi_test_/), latest_charge: { id: expect.stringMatching(/^ch_test_/), amount: 15000, refunded: false, disputed: false } });
+    expect(typeof (await (await api(`/v1/checkout/sessions/${session.id}`)).json()).payment_intent).toBe('string');
+
+    await post('/v1/refunds', { payment_intent: session.payment_intent.id });
+    await fetch(`${stub.url}/__stub/charges/${session.id}/dispute`, { method: 'POST' });
+    const after = await (await api(`/v1/checkout/sessions/${session.id}?expand%5B0%5D=payment_intent.latest_charge`)).json();
+    expect(after.payment_intent.latest_charge).toMatchObject({ refunded: true, amount_refunded: 15000, disputed: true });
+    expect((await fetch(`${stub.url}/__stub/charges/cs_test_missing/dispute`, { method: 'POST' })).status).toBe(404);
+  });
+
+  it('transfers to an enabled account from a known charge, idempotently, and finds it by group', async () => {
+    const account = (await post('/v1/accounts', { type: 'express' })).body;
+    const charge = (await paid()).payment_intent.latest_charge;
+    const fields = { amount: '12000', currency: 'pln', destination: account.id, source_transaction: charge.id, transfer_group: 'booking_b-1', 'metadata[booking_id]': 'b-1' };
+
+    const refused = await post('/v1/transfers', fields, 'payout-b-1-1');
+    expect(refused.body.error.code).toBe('insufficient_capabilities_for_transfer');
+    expect((await post('/v1/transfers', fields, 'payout-b-1-1')).body).toEqual(refused.body);
+
+    await fetch(`${stub.url}/__stub/accounts/${account.id}/enable`, { method: 'POST' });
+    expect((await fetch(`${stub.url}/__stub/accounts/acct_test_missing/enable`, { method: 'POST' })).status).toBe(404);
+    const made = await post('/v1/transfers', fields, 'payout-b-1-2');
+    expect(made.body).toMatchObject({ id: expect.stringMatching(/^tr_test_/), amount: 12000, destination: account.id, source_transaction: charge.id, transfer_group: 'booking_b-1' });
+    expect((await post('/v1/transfers', fields, 'payout-b-1-2')).body.id).toBe(made.body.id);
+    expect((await post('/v1/transfers', { ...fields, amount: '1' }, 'payout-b-1-2')).body.error.type).toBe('idempotency_error');
+    expect((await post('/v1/transfers', { ...fields, amount: '99999' }, 'payout-b-1-3')).body.error.code).toBe('parameter_invalid_integer');
+
+    expect((await (await api('/v1/transfers?transfer_group=booking_b-1')).json()).data.map((transfer) => transfer.id)).toEqual([made.body.id]);
+    expect(await (await fetch(`${stub.url}/__stub/transfers`)).json()).toHaveLength(1);
+  });
+
+  it('drops the next answer after making the transfer, or refuses the next one, on request', async () => {
+    const account = (await post('/v1/accounts', { type: 'express' })).body;
+    await fetch(`${stub.url}/__stub/accounts/${account.id}/enable`, { method: 'POST' });
+    const charge = (await paid()).payment_intent.latest_charge;
+    const fields = { amount: '100', currency: 'pln', destination: account.id, source_transaction: charge.id, transfer_group: 'booking_b-2' };
+
+    await fetch(`${stub.url}/__stub/transfers/drop-next`, { method: 'POST' });
+    expect((await post('/v1/transfers', fields, 'payout-b-2-1')).status).toBe(500);
+    expect((await (await api('/v1/transfers?transfer_group=booking_b-2')).json()).data).toHaveLength(1);
+
+    await fetch(`${stub.url}/__stub/transfers/fail-next`, { method: 'POST' });
+    expect((await post('/v1/transfers', fields, 'payout-b-2-9')).body.error.code).toBe('transfers_not_allowed');
+    // Without an idempotency key every call is a new transfer (the app always sends one).
+    expect((await post('/v1/transfers', fields)).status).toBe(200);
+    expect((await post('/v1/transfers', fields)).status).toBe(200);
+  });
+});
+
 describe('test control', () => {
   it('records the receiver status, and resends an event on request', async () => {
     receiverStatus = 500;

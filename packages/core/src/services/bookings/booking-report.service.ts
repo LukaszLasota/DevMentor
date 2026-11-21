@@ -5,6 +5,7 @@ import type { BookingReportInput } from '../../validators/bookings/booking-repor
 import { BOOKING_NOT_FOUND_MESSAGE } from './booking.service';
 
 export const NOT_REPORTABLE_MESSAGE = 'Only a paid booking can be reported.';
+export const REPORT_NOT_FOUND_MESSAGE = 'Report not found.';
 export const ALREADY_REPORTED_MESSAGE = 'You already reported this booking. The DevMentor team will reply by email.';
 
 /** Bookings a mentee may report: paid ones, before or after a cancellation. */
@@ -17,6 +18,7 @@ export interface ReportItem {
   bookingStatus: Booking['status'];
   message: string;
   createdAt: string;
+  resolvedAt: string | null;
   startsAt: string;
   menteeEmail: string;
   mentorName: string;
@@ -30,13 +32,15 @@ export interface ReportItem {
  */
 export class BookingReportService {
   private readonly em: Cradle['em'];
+  private readonly clock: Cradle['clock'];
   private readonly env: Cradle['env'];
   private readonly logger: Cradle['logger'];
   private readonly events: Cradle['events'];
   private readonly mailSender: Cradle['mailSender'];
 
-  constructor({ em, env, logger, events, mailSender }: Pick<Cradle, 'em' | 'env' | 'logger' | 'events' | 'mailSender'>) {
+  constructor({ em, clock, env, logger, events, mailSender }: Pick<Cradle, 'em' | 'clock' | 'env' | 'logger' | 'events' | 'mailSender'>) {
     this.em = em;
+    this.clock = clock;
     this.env = env;
     this.logger = logger;
     this.events = events;
@@ -97,11 +101,33 @@ export class BookingReportService {
         bookingStatus: booking.status,
         message: report.message,
         createdAt: report.createdAt.toISOString(),
+        resolvedAt: report.resolvedAt?.toISOString() ?? null,
         startsAt: booking.startsAt.toISOString(),
         menteeEmail: booking.mentee.getEntity().email,
         mentorName: booking.mentorProfile.getEntity().displayName ?? '',
       };
     });
+  }
+
+  /**
+   * The operator marks a dispute settled (spec 2026-11-21-mentor-payouts): its booking's payout becomes
+   * eligible again. Idempotent: a resolved report keeps its first time.
+   */
+  async resolve(reportId: string): Promise<{ resolvedAt: string }> {
+    const report = await this.em.findOne(BookingReport, { id: reportId });
+
+    if (report === null) {
+      throw new NotFoundError(REPORT_NOT_FOUND_MESSAGE);
+    }
+
+    if (report.resolvedAt == null) {
+      await this.em.nativeUpdate(BookingReport, { id: reportId, resolvedAt: null }, { resolvedAt: this.clock.now() });
+      this.em.clear();
+    }
+
+    const resolved = (await this.em.findOne(BookingReport, { id: reportId })) as BookingReport;
+
+    return { resolvedAt: (resolved.resolvedAt as Date).toISOString() };
   }
 
   /** One email per operator address, best effort; the message itself stays on `/admin`. */

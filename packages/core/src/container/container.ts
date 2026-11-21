@@ -11,6 +11,9 @@ import { AccountService } from '../services/auth/account.service';
 import { GithubOAuthService } from '../services/auth/github-oauth.service';
 import { PlatformSettingsService } from '../services/operator/platform-settings.service';
 import { StripeCheckoutGateway } from '../services/payments/stripe-checkout-gateway';
+import { ConnectService } from '../services/payments/connect.service';
+import { PayoutService } from '../services/payments/payout.service';
+import { StripeConnectGateway } from '../services/payments/stripe-connect-gateway';
 import { StripeClient } from '../services/payments/stripe-client';
 import { createStripeEventHandlers } from '../services/payments/stripe-event-handlers';
 import { StripeInboxService } from '../services/payments/stripe-inbox.service';
@@ -64,6 +67,7 @@ async function buildContainer(): Promise<AwilixContainer<Cradle>> {
     // Singletons: stateless Stripe access over the shared fetchJson (spec 2026-11-20-booking-stripe-checkout).
     stripeClient: asClass(StripeClient).singleton(),
     checkoutGateway: asClass(StripeCheckoutGateway).singleton(),
+    connectGateway: asClass(StripeConnectGateway).singleton(),
     em: asFunction(({ orm }: Cradle) => orm.em.fork()).scoped(),
     rateLimiter: asClass(RateLimiter).scoped(),
     healthService: asClass(HealthService).scoped(),
@@ -78,6 +82,8 @@ async function buildContainer(): Promise<AwilixContainer<Cradle>> {
     bookingReportService: asClass(BookingReportService).scoped(),
     sessionService: asClass(SessionService).scoped(),
     sessionNoteService: asClass(SessionNoteService).scoped(),
+    connectService: asClass(ConnectService).scoped(),
+    payoutService: asClass(PayoutService).scoped(),
     stripeEventHandlers: asFunction(createStripeEventHandlers).scoped(),
     stripeInboxService: asClass(StripeInboxService).scoped(),
   });

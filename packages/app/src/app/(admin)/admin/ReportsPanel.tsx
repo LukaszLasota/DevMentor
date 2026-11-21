@@ -1,5 +1,6 @@
 import { withScope } from "@devmentor/core";
-import { EmptyState, LocalTime, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@devmentor/ui";
+import { ResolveReportButton } from "./ResolveReportButton";
+import { Badge, EmptyState, LocalTime, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@devmentor/ui";
 
 /**
  * /admin "Reported bookings" (spec 2026-11-20-booking-cancellation, phase 2, AC3): every dispute a
@@ -26,6 +27,9 @@ export async function ReportsPanel() {
               <TableHead>Mentor</TableHead>
               <TableHead>Booking</TableHead>
               <TableHead>Message</TableHead>
+              <TableHead>
+                <span className="sr-only">Resolution</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -43,6 +47,9 @@ export async function ReportsPanel() {
                   {report.bookingId} ({report.bookingStatus})
                 </TableCell>
                 <TableCell className="max-w-prose whitespace-pre-wrap">{report.message}</TableCell>
+                <TableCell className="text-right">
+                  {report.resolvedAt === null ? <ResolveReportButton reportId={report.reportId} /> : <Badge tone="success">Resolved</Badge>}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

@@ -80,6 +80,9 @@ export {
   type SessionIdParams,
 } from './sessions';
 export type { NoteState, NoteVersionView, NoteView } from '../services/sessions/session-note.service';
+export { refreshConnect, releasePayouts, resolveReport, startConnect, type ReportIdParams } from './payouts';
+export type { ConnectView } from '../services/payments/connect.service';
+export type { PayoutItem, ReleaseResult } from '../services/payments/payout.service';
 export type {
   SessionAnswerView,
   SessionListItem,

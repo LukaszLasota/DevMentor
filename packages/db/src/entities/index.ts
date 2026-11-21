@@ -9,6 +9,8 @@ import { EmailVerificationTokenSchema } from './auth/email-verification-token.en
 import { UserSchema } from './auth/user.entity';
 import { InvitationSchema } from './invitations/invitation.entity';
 import { MentorProfileSchema } from './mentors/mentor-profile.entity';
+import { ConnectAccountSchema } from './payments/connect-account.entity';
+import { PayoutSchema } from './payments/payout.entity';
 import { StripeEventSchema } from './payments/stripe-event.entity';
 
 // Register every entity here; the list is shared by the runtime and CLI configs.
@@ -20,6 +22,8 @@ export const entities = [
   MentorProfileSchema,
   SlotSchema,
   StripeEventSchema,
+  ConnectAccountSchema,
+  PayoutSchema,
   BookingSchema,
   BookingReportSchema,
   SessionMessageSchema,

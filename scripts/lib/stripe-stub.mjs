@@ -11,6 +11,14 @@
 // its delivery status; `POST /__stub/events/<id>/resend` delivers it again (a Stripe redelivery);
 // `GET /__stub/refunds` lists refunds; `POST /__stub/refunds/fail-next` makes the next new refund
 // fail with a 400 (as Stripe does for, e.g., a disputed charge).
+//
+// Connect (spec 2026-11-21-mentor-payouts): Express accounts (`/v1/accounts`), onboarding links whose
+// hosted page completes onboarding (`/connect/<acct>`), and transfers (`/v1/transfers`) that need an
+// enabled destination and a known charge. Transfers keep Stripe's idempotency: the same key replays the
+// first answer (errors too) and other parameters answer 400 `idempotency_error`. Test control:
+// `GET /__stub/transfers`, `POST /__stub/transfers/drop-next` (make it, answer 500),
+// `POST /__stub/transfers/fail-next` (refuse it), `POST /__stub/accounts/<acct>/enable`,
+// `POST /__stub/charges/<session>/dispute`.
 import { createHmac, randomBytes } from 'node:crypto';
 import { createServer } from 'node:http';
 
@@ -75,6 +83,92 @@ export function createStripeStub({ secretKey, webhookSecret, webhookUrl, now = (
   const refunds = new Map();
   const refundByIdempotencyKey = new Map();
   let failNextRefund = false;
+  const accounts = new Map();
+  const accountByKey = new Map();
+  const accountLinks = new Map();
+  /** Charge per session id, created when the session is paid. */
+  const charges = new Map();
+  const transfers = [];
+  const transferByKey = new Map();
+  let dropNextTransfer = false;
+  let failNextTransfer = false;
+
+  const enable = (account) =>
+    Object.assign(account, {
+      payouts_enabled: true,
+      details_submitted: true,
+      capabilities: { transfers: 'active' },
+      requirements: { currently_due: [], past_due: [], disabled_reason: null },
+    });
+
+  function createAccount(form, idempotencyKey) {
+    if (idempotencyKey && accountByKey.has(idempotencyKey)) {
+      return { status: 200, body: { ...accounts.get(accountByKey.get(idempotencyKey)) } };
+    }
+
+    if (form.get('type') !== 'express') {
+      return { status: 400, error: ['invalid_request_error', 'type must be express', 'parameter_invalid_string'] };
+    }
+
+    const account = {
+      id: id('acct_test'),
+      object: 'account',
+      type: 'express',
+      country: form.get('country'),
+      payouts_enabled: false,
+      details_submitted: false,
+      capabilities: { transfers: 'pending' },
+      requirements: { currently_due: ['external_account'], past_due: [], disabled_reason: null },
+      metadata: { mentor_profile_id: form.get('metadata[mentor_profile_id]') ?? undefined },
+    };
+    accounts.set(account.id, account);
+
+    if (idempotencyKey) accountByKey.set(idempotencyKey, account.id);
+
+    return { status: 200, body: { ...account } };
+  }
+
+  function createTransfer(form, idempotencyKey) {
+    const fingerprint = form.toString();
+    const stored = idempotencyKey ? transferByKey.get(idempotencyKey) : undefined;
+
+    if (stored) {
+      return stored.fingerprint === fingerprint
+        ? stored.result
+        : { status: 400, error: ['idempotency_error', 'Keys for idempotent requests can only be used with the same parameters.', undefined] };
+    }
+
+    const destination = accounts.get(form.get('destination'));
+    const charge = [...charges.values()].find((candidate) => candidate.id === form.get('source_transaction'));
+    const amount = Number(form.get('amount'));
+    let result;
+
+    if (failNextTransfer) {
+      failNextTransfer = false;
+      result = { status: 400, error: ['invalid_request_error', 'Transfers are not allowed.', 'transfers_not_allowed'] };
+    } else if (!destination || destination.capabilities.transfers !== 'active') {
+      result = { status: 400, error: ['invalid_request_error', 'The destination cannot receive transfers.', 'insufficient_capabilities_for_transfer'] };
+    } else if (!charge || !Number.isInteger(amount) || amount <= 0 || amount > charge.amount) {
+      result = { status: 400, error: ['invalid_request_error', 'A positive amount up to the source charge is required.', 'parameter_invalid_integer'] };
+    } else {
+      const transfer = {
+        id: id('tr_test'),
+        object: 'transfer',
+        amount,
+        currency: form.get('currency'),
+        destination: destination.id,
+        source_transaction: charge.id,
+        transfer_group: form.get('transfer_group'),
+        metadata: { booking_id: form.get('metadata[booking_id]') ?? undefined },
+      };
+      transfers.push(transfer);
+      result = { status: 200, body: transfer };
+    }
+
+    if (idempotencyKey) transferByKey.set(idempotencyKey, { fingerprint, result });
+
+    return result;
+  }
 
   async function deliver(event) {
     const body = JSON.stringify(event.payload);
@@ -184,6 +278,7 @@ export function createStripeStub({ secretKey, webhookSecret, webhookUrl, now = (
       metadata: { booking_id: form.get('metadata[booking_id]') ?? undefined },
     };
     refunds.set(refund.id, refund);
+    Object.assign(charges.get(session.id), { refunded: true, amount_refunded: refund.amount });
 
     if (idempotencyKey) refundByIdempotencyKey.set(idempotencyKey, refund.id);
 
@@ -196,6 +291,60 @@ export function createStripeStub({ secretKey, webhookSecret, webhookUrl, now = (
 
     if (route === 'GET /__stub/events') {
       sendJson(res, 200, events.map(({ id: eventId, type, deliveries, payload }) => ({ id: eventId, type, deliveries, sessionId: payload.data.object.id })));
+      return;
+    }
+
+    if (route === 'GET /__stub/transfers') {
+      sendJson(res, 200, transfers);
+      return;
+    }
+
+    if (route === 'POST /__stub/transfers/drop-next' || route === 'POST /__stub/transfers/fail-next') {
+      if (route.endsWith('drop-next')) dropNextTransfer = true;
+      else failNextTransfer = true;
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    const enableRoute = /^POST \/__stub\/accounts\/(acct_test_\w+)\/enable$/.exec(route);
+
+    if (enableRoute) {
+      const account = accounts.get(enableRoute[1]);
+
+      if (account) sendJson(res, 200, enable(account));
+      else sendJson(res, 404, { message: 'No such account' });
+      return;
+    }
+
+    const disputeRoute = /^POST \/__stub\/charges\/(cs_test_\w+)\/dispute$/.exec(route);
+
+    if (disputeRoute) {
+      const charge = charges.get(disputeRoute[1]);
+
+      if (charge) sendJson(res, 200, Object.assign(charge, { disputed: true }));
+      else sendJson(res, 404, { message: 'No such charge' });
+      return;
+    }
+
+    const connectPage = /^(GET|POST) \/connect\/(acct_test_\w+)(\/complete)?$/.exec(route);
+
+    if (connectPage) {
+      const link = accountLinks.get(connectPage[2]);
+
+      if (!link || (connectPage[1] === 'GET') !== (connectPage[3] === undefined)) {
+        res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
+        res.end('This onboarding link is not valid.');
+      } else if (connectPage[1] === 'GET') {
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+        res.end(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Stripe stub onboarding</title></head><body>
+<h1>Stripe stub onboarding</h1>
+<form method="post" action="/connect/${connectPage[2]}/complete"><button type="submit">Complete onboarding</button></form>
+</body></html>`);
+      } else {
+        enable(accounts.get(connectPage[2]));
+        res.writeHead(303, { location: link.return_url });
+        res.end();
+      }
       return;
     }
 
@@ -244,6 +393,7 @@ export function createStripeStub({ secretKey, webhookSecret, webhookUrl, now = (
 
       if (page[3] === 'complete') {
         Object.assign(session, { status: 'complete', payment_status: 'paid', url: null, payment_intent: id('pi_test') });
+        charges.set(session.id, { id: id('ch_test'), object: 'charge', amount: session.amount_total, refunded: false, amount_refunded: 0, disputed: false });
         await emit('checkout.session.completed', session);
       }
 
@@ -267,6 +417,53 @@ export function createStripeStub({ secretKey, webhookSecret, webhookUrl, now = (
 
       if (result.error) stripeError(res, result.status, ...result.error);
       else sendJson(res, result.status, result.body);
+      return;
+    }
+
+    if (route === 'POST /v1/accounts' || route === 'POST /v1/transfers') {
+      const form = new URLSearchParams(await readBody(req));
+      const key = req.headers['idempotency-key'];
+      const result = route === 'POST /v1/accounts' ? createAccount(form, key) : createTransfer(form, key);
+
+      if (route === 'POST /v1/transfers' && dropNextTransfer && result.status === 200) {
+        // Stripe made the transfer, but the answer is lost on the way back.
+        dropNextTransfer = false;
+        sendJson(res, 500, { error: { type: 'api_error', message: 'Dropped by the stub.' } });
+      } else if (result.error) {
+        stripeError(res, result.status, ...result.error);
+      } else {
+        sendJson(res, result.status, result.body);
+      }
+      return;
+    }
+
+    if (route === 'POST /v1/account_links') {
+      const form = new URLSearchParams(await readBody(req));
+      const account = accounts.get(form.get('account'));
+
+      if (!account || form.get('type') !== 'account_onboarding' || !form.get('return_url') || !form.get('refresh_url')) {
+        stripeError(res, 400, 'invalid_request_error', 'account, type=account_onboarding, return_url and refresh_url are required', 'parameter_missing');
+        return;
+      }
+
+      accountLinks.set(account.id, { return_url: form.get('return_url'), refresh_url: form.get('refresh_url') });
+      sendJson(res, 200, { object: 'account_link', url: `${url.origin}/connect/${account.id}`, expires_at: now() + 300 });
+      return;
+    }
+
+    const accountRoute = /^GET \/v1\/accounts\/(acct_test_\w+)$/.exec(route);
+
+    if (accountRoute) {
+      const account = accounts.get(accountRoute[1]);
+
+      if (account) sendJson(res, 200, { ...account });
+      else stripeError(res, 404, 'invalid_request_error', 'No such account', 'resource_missing');
+      return;
+    }
+
+    if (route === 'GET /v1/transfers') {
+      const group = url.searchParams.get('transfer_group');
+      sendJson(res, 200, { object: 'list', data: transfers.filter((transfer) => transfer.transfer_group === group) });
       return;
     }
 
@@ -296,7 +493,8 @@ export function createStripeStub({ secretKey, webhookSecret, webhookUrl, now = (
     } else if (!session) {
       stripeError(res, 404, 'invalid_request_error', 'No such checkout.session', 'resource_missing');
     } else if (sessionRoute[1] === 'GET') {
-      sendJson(res, 200, view(session));
+      const expanded = url.searchParams.get('expand[0]') === 'payment_intent.latest_charge' && session.payment_intent;
+      sendJson(res, 200, expanded ? { ...view(session), payment_intent: { id: session.payment_intent, latest_charge: { ...charges.get(session.id) } } } : view(session));
     } else if (session.status !== 'open') {
       stripeError(res, 400, 'invalid_request_error', `Only Checkout Sessions with a status of open can be expired.`);
     } else {
@@ -306,7 +504,7 @@ export function createStripeStub({ secretKey, webhookSecret, webhookUrl, now = (
     }
   }
 
-  return { handle, sessions, events, refunds };
+  return { handle, sessions, events, refunds, accounts, transfers, charges };
 }
 
 /**

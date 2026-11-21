@@ -26,6 +26,9 @@ const operatorEmails = z
   )
   .pipe(z.array(z.email('must be a comma-separated list of email addresses')));
 
+/** R12/D15: the platform keeps 20% of a paid session unless the operator sets `PLATFORM_FEE_BPS`. */
+export const DEFAULT_PLATFORM_FEE_BPS = 2000;
+
 /** Defaults of the hashing gate (`core/src/security/password.ts`): scrypt slots and the wait for one. */
 export const DEFAULT_PASSWORD_HASH_CONCURRENCY = 2;
 export const DEFAULT_PASSWORD_HASH_WAIT_MS = 3_000;
@@ -90,7 +93,7 @@ export type MailProvider = (typeof MAIL_PROVIDERS)[number];
  * - defaulted: SESSION_SECRET_PREVIOUS, OPERATOR_EMAILS, DEVMENTOR_GITHUB_OAUTH_URL, DEVMENTOR_GITHUB_API_URL, STRIPE_API_URL,
  *   TRUSTED_PROXY_HOPS (0: no client IP is trusted), PASSWORD_HASH_CONCURRENCY, PASSWORD_HASH_WAIT_MS,
  *   MAIL_PROVIDER (`log` in development and test, `resend` in production), INVITATION_TTL_DAYS,
- *   MENTOR_PUBLISH_WINDOW_DAYS (14 each).
+ *   MENTOR_PUBLISH_WINDOW_DAYS (14 each), PLATFORM_FEE_BPS (2000 = 20%).
  */
 const envShape = z.object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -123,6 +126,8 @@ const envShape = z.object({
     PLATFORM_CURRENCY: optional(z.string().refine(isTwoDecimalCurrency, 'must be an ISO 4217 currency with two decimals')),
     /** Price bounds per session length in cents of PLATFORM_CURRENCY (Q-P2); no default. */
     PLATFORM_PRICE_BOUNDS: optional(platformPriceBounds),
+    /** Platform fee in basis points (R12/D15: 2000 = 20%), snapshotted on each booking at confirmation; below 10000 so a payout is never zero. */
+    PLATFORM_FEE_BPS: optional(z.coerce.number().int().min(0).max(9999)).transform((bps) => bps ?? DEFAULT_PLATFORM_FEE_BPS),
     /** Stripe API secret key (`sk_test_…` / `sk_live_…`); never logged. */
     STRIPE_SECRET_KEY: optional(z.string()),
     /** Signing secret of the Checkout webhook endpoint (`whsec_…`). */

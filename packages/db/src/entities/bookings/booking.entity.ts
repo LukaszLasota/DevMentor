@@ -39,6 +39,8 @@ export const BOOKING_ENDS_CHECK = 'ends_at = starts_at + make_interval(mins => l
 export const BOOKING_CONFIRMED_CHECK = "status <> 'confirmed' or (confirmed_at is not null and lead_minutes is not null)";
 export const BOOKING_REFUND_STATUS_CHECK = `refund_status in (${REFUND_STATUSES.map((status) => `'${status}'`).join(', ')})`;
 export const BOOKING_CANCELLED_CHECK = "status <> 'cancelled' or (cancelled_at is not null and refund_status is not null)";
+export const BOOKING_FEE_BPS_CHECK = 'fee_bps is null or fee_bps between 0 and 9999';
+export const BOOKING_FEE_SNAPSHOT_CHECK = "status <> 'confirmed' or fee_bps is not null";
 
 const now = () => new Date();
 
@@ -59,6 +61,8 @@ export const BookingSchema = defineEntity({
     { name: 'bookings_confirmed_check', expression: BOOKING_CONFIRMED_CHECK },
     { name: 'bookings_refund_status_check', expression: BOOKING_REFUND_STATUS_CHECK },
     { name: 'bookings_cancelled_check', expression: BOOKING_CANCELLED_CHECK },
+    { name: 'bookings_fee_bps_check', expression: BOOKING_FEE_BPS_CHECK },
+    { name: 'bookings_fee_snapshot_check', expression: BOOKING_FEE_SNAPSHOT_CHECK },
   ],
   uniques: [
     {
@@ -88,6 +92,8 @@ export const BookingSchema = defineEntity({
     refundStatus: p.string().$type<RefundStatus>().columnType('text').nullable(),
     /** Stripe refund id (`re_…`), for the operator's reconciliation. */
     refundId: p.text().nullable(),
+    /** The platform fee rate in basis points, snapshotted at confirmation (spec 2026-11-21-mentor-payouts). */
+    feeBps: p.smallint().nullable(),
     createdAt: p.datetime().onCreate(now),
     updatedAt: p.datetime().onCreate(now).onUpdate(now),
   },

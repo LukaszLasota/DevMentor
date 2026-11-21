@@ -31,6 +31,7 @@ describe('parseEnv', () => {
       MAIL_FROM: undefined,
       PLATFORM_CURRENCY: undefined,
       PLATFORM_PRICE_BOUNDS: undefined,
+      PLATFORM_FEE_BPS: 2000,
       STRIPE_SECRET_KEY: undefined,
       STRIPE_WEBHOOK_SECRET: undefined,
       STRIPE_API_URL: 'https://api.stripe.com',
@@ -245,6 +246,16 @@ describe('parseEnv', () => {
       ['PASSWORD_HASH_WAIT_MS', 'soon'],
     ])('rejects %s=%s', (key, value) => {
       expect(() => parseEnv({ DATABASE_URL, [key]: value })).toThrow(new RegExp(key));
+    });
+  });
+
+  describe('platform fee', () => {
+    it('defaults to 20% and takes 0 to 9999 basis points', () => {
+      expect(parseEnv({ DATABASE_URL, PLATFORM_FEE_BPS: '' }).PLATFORM_FEE_BPS).toBe(2000);
+      expect(parseEnv({ DATABASE_URL, PLATFORM_FEE_BPS: '1500' }).PLATFORM_FEE_BPS).toBe(1500);
+      expect(parseEnv({ DATABASE_URL, PLATFORM_FEE_BPS: '0' }).PLATFORM_FEE_BPS).toBe(0);
+      expect(() => parseEnv({ DATABASE_URL, PLATFORM_FEE_BPS: '10000' })).toThrow(/PLATFORM_FEE_BPS/);
+      expect(() => parseEnv({ DATABASE_URL, PLATFORM_FEE_BPS: '12.5' })).toThrow(/PLATFORM_FEE_BPS/);
     });
   });
 

@@ -42,6 +42,15 @@ export interface Refund {
   status: RefundState;
 }
 
+/** The charge a session was paid with, as payouts check it (spec 2026-11-21-mentor-payouts). */
+export interface SessionCharge {
+  id: string;
+  refunded: boolean;
+  amountRefunded: number;
+  /** A chargeback is open or was lost. */
+  disputed: boolean;
+}
+
 /** A full refund of one booking's Checkout payment. */
 export interface RefundInput {
   /** Our booking id: `metadata.booking_id` and the idempotency key (`refund-<bookingId>`). */
@@ -69,4 +78,6 @@ export interface CheckoutGateway {
   refund(input: RefundInput): Promise<CheckoutResult<Refund>>;
   /** Reads a refund's current state (a `pending` one may have settled since). */
   getRefund(refundId: string): Promise<CheckoutResult<Refund>>;
+  /** The session's charge (PaymentIntent `latest_charge`), or `null` when it was not paid through a charge. */
+  chargeOf(sessionId: string): Promise<CheckoutResult<SessionCharge | null>>;
 }

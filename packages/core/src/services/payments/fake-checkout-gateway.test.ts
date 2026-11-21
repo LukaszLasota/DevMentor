@@ -103,4 +103,18 @@ describe('FakeCheckoutGateway', () => {
     gateway.nextFailure = { kind: 'retryable' };
     await expect(gateway.getRefund('re_fake_b-1')).resolves.toEqual({ kind: 'retryable' });
   });
+
+  it('reads the charge of a paid session, with the state a test set, and null before payment', async () => {
+    const gateway = new FakeCheckoutGateway();
+    await gateway.createSession(INPUT);
+
+    await expect(gateway.chargeOf('cs_fake_b-1')).resolves.toEqual({ kind: 'ok', data: null });
+    await expect(gateway.chargeOf('cs_missing')).resolves.toEqual({ kind: 'ok', data: null });
+    gateway.complete('cs_fake_b-1');
+    await expect(gateway.chargeOf('cs_fake_b-1')).resolves.toEqual({ kind: 'ok', data: { id: 'ch_fake_b-1', refunded: false, amountRefunded: 0, disputed: false } });
+    gateway.chargeChanges.set('cs_fake_b-1', { disputed: true });
+    await expect(gateway.chargeOf('cs_fake_b-1')).resolves.toMatchObject({ data: { disputed: true } });
+    gateway.nextFailure = { kind: 'retryable' };
+    await expect(gateway.chargeOf('cs_fake_b-1')).resolves.toEqual({ kind: 'retryable' });
+  });
 });

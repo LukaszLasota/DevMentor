@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { CheckoutGateway, CheckoutResult, CheckoutSession, CheckoutSessionInput, Refund, RefundInput } from './checkout-gateway';
+import type { CheckoutGateway, CheckoutResult, CheckoutSession, CheckoutSessionInput, Refund, RefundInput, SessionCharge } from './checkout-gateway';
 import type { StripeClient } from './stripe-client';
 
 /** The fields of a Stripe Checkout Session this platform reads; everything else is dropped. */
@@ -39,6 +39,32 @@ export const stripeRefundSchema = z
       status: refund.status === 'succeeded' ? 'succeeded' : refund.status === 'failed' || refund.status === 'canceled' ? 'failed' : 'pending',
     }),
   );
+
+/** A session read with `expand[]=payment_intent.latest_charge`: only the charge's state is kept. */
+export const sessionChargeSchema = z
+  .object({
+    payment_intent: z
+      .object({
+        latest_charge: z
+          .object({
+            id: z.string().min(1),
+            refunded: z.boolean().optional(),
+            amount_refunded: z.number().int().optional(),
+            disputed: z.boolean().optional(),
+          })
+          .nullable()
+          .optional(),
+      })
+      .nullable()
+      .optional(),
+  })
+  .transform((session): SessionCharge | null => {
+    const charge = session.payment_intent?.latest_charge;
+
+    return charge
+      ? { id: charge.id, refunded: charge.refunded === true, amountRefunded: charge.amount_refunded ?? 0, disputed: charge.disputed === true }
+      : null;
+  });
 
 const SESSIONS_PATH = '/v1/checkout/sessions';
 const REFUNDS_PATH = '/v1/refunds';
@@ -128,6 +154,15 @@ export class StripeCheckoutGateway implements CheckoutGateway {
     }
 
     return refund;
+  }
+
+  chargeOf(sessionId: string): Promise<CheckoutResult<SessionCharge | null>> {
+    return this.stripeClient.request({
+      method: 'GET',
+      path: `${SESSIONS_PATH}/${encodeURIComponent(sessionId)}`,
+      schema: sessionChargeSchema,
+      params: { expand: ['payment_intent.latest_charge'] },
+    });
   }
 
   getRefund(refundId: string): Promise<CheckoutResult<Refund>> {

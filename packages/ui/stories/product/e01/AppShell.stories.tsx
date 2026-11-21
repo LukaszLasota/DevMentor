@@ -56,7 +56,7 @@ export const MentorAndOperator: Story = {
   args: { email: "adam@devmentor.test", roles: ["mentee", "mentor", "operator"], area: "Admin", path: "/admin", heading: "Admin" },
   play: async ({ canvas }) => {
     const nav = canvas.getByRole("navigation", { name: "Main" });
-    await expect(linkNames(nav)).toEqual(["Mentors", "My sessions", "Mentor workspace", "Your page", "Prices", "Open times", "Dashboard"]);
+    await expect(linkNames(nav)).toEqual(["Mentors", "My sessions", "Mentor workspace", "Your page", "Prices", "Open times", "Payouts", "Dashboard"]);
     await expect(canvas.getByRole("list", { name: "Admin" })).toBeVisible();
     await expect(canvas.getByRole("link", { name: "Dashboard" })).toHaveAttribute("aria-current", "page");
   },
