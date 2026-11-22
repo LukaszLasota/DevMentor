@@ -12,6 +12,7 @@ import { offerState } from '../mentors/mentor-profile.service';
 import type { CheckoutSession } from '../payments/checkout-gateway';
 import { cancellationTerms } from './cancellation-terms';
 import { endOf, freeLengths, overlaps } from './occupancy';
+import { mentorNameForMentee } from '../mentors/mentor-name';
 
 /** Stripe's minimum session lifetime is 30 minutes; one more absorbs latency and clock skew. */
 export const CHECKOUT_LIFETIME_MS = 31 * 60_000;
@@ -230,7 +231,8 @@ export class BookingService {
       priceCents: booking.priceCents,
       currency: booking.currency,
       startsAt: booking.startsAt.toISOString(),
-      mentor: { displayName: profile.displayName ?? '', slug: profile.slug ?? null },
+      // A link only to a page that is public now (#86); a name never blank (#85).
+      mentor: { displayName: mentorNameForMentee(profile.displayName), slug: profile.publishedAt != null ? (profile.slug ?? null) : null },
       cancellation: cancellable ? { refundDue: terms.refundDue, freeUntil: terms.freeUntil.toISOString() } : null,
       cancelledAt: booking.cancelledAt?.toISOString() ?? null,
       refundStatus: booking.refundStatus ?? null,

@@ -94,7 +94,8 @@ export async function BookingContent({ params }: { params: Promise<{ id: string 
         <Alert>
           <AlertTitle>This booking was not completed</AlertTitle>
           <AlertDescription>
-            <p>You were not charged. The time may still be open.</p>
+            {/* "The time may still be open" only next to a page the mentee can open (#86 review). */}
+            <p>{mentorLink === null ? "You were not charged." : "You were not charged. The time may still be open."}</p>
             {mentorLink === null ? null : (
               <a href={mentorLink} className="text-link underline underline-offset-4">
                 Back to {booking.mentor.displayName}
