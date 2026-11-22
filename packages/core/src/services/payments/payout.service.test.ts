@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { Booking, BookingReport, ConnectAccount, LockMode, MentorProfile, PAYOUT_BOOKING_UNIQUE, Payout, UniqueConstraintViolationException } from '@devmentor/db';
+import { Booking, BookingReport, ConnectAccount, LockMode, MentorProfile, PAYOUT_BOOKING_UNIQUE, Payout, UniqueConstraintViolationException, User } from '@devmentor/db';
 import { describe, expect, it, vi } from 'vitest';
 import type { Cradle } from '../../container/cradle';
 import { FakeCheckoutGateway } from './fake-checkout-gateway';
@@ -35,7 +35,8 @@ function matches(row: object, where: Where): boolean {
 async function setup({ bookings = 1, connected = true, enabled = true } = {}) {
   const checkout = new FakeCheckoutGateway();
   const connect = new FakeConnectGateway();
-  const profile = Object.assign(new MentorProfile(), { id: randomUUID(), displayName: 'Ada' });
+  const mentorUser = Object.assign(new User(), { id: randomUUID(), email: 'ada@devmentor.test' });
+  const profile = Object.assign(new MentorProfile(), { id: randomUUID(), displayName: 'Ada', user: Object.assign(mentorUser, { getEntity: () => mentorUser }) });
   const rows = {
     bookings: [] as Booking[],
     payouts: [] as Payout[],
@@ -330,11 +331,12 @@ describe('PayoutService.list', () => {
         feeCents: 3000,
         currency: 'PLN',
         startsAt: booking.startsAt.toISOString(),
-        mentorName: '',
+        // #87: an operator gets the mentor's e-mail, never a blank cell.
+        mentorName: 'ada@devmentor.test',
         updatedAt: NOW.toISOString(),
       },
     ]);
-    expect(em.find).toHaveBeenCalledWith(Payout, { status: { $ne: 'transferred' } }, { populate: ['booking', 'mentorProfile'], orderBy: { updatedAt: 'desc' } });
+    expect(em.find).toHaveBeenCalledWith(Payout, { status: { $ne: 'transferred' } }, { populate: ['booking', 'mentorProfile.user'], orderBy: { updatedAt: 'desc' } });
     expect(rows.payouts).toHaveLength(1);
 
     (rows.payouts[0] as Payout).failureCode = 'x';
