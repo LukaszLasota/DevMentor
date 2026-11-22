@@ -1,6 +1,6 @@
 # Execution plan — mentor page (E01-S03)
 
-Source doc: .ai/specs/2026-10-21-mentor-page.md
+Source doc: .ai/specs/implemented/2026-10-21-mentor-page.md
 Issue: #23 · Epic: #16
 Branch: feat/mentor-page
 
