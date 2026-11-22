@@ -12,6 +12,8 @@
 #            worktree — the snapshot is now backed up before migrating and restored after.
 # 2026-11-22 review of PR #68: fingerprint uses tree hashes of packages/ (a .ai-only commit rebuilt for 34s) and
 #            covers untracked files; reuse also requires the running instance's fingerprint to match.
+# 2026-11-22 the snapshot is restored from the EXIT trap, so a Ctrl-C during db:migrate no longer leaves it
+#            rewritten (spec 2026-11-22-qa-session-walk, step 1).
 set -eu
 
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
@@ -44,7 +46,16 @@ if [ -f "$LOCK" ] && kill -0 "$(cat "$LOCK")" 2>/dev/null; then
   echo "test-env: another bootstrap is running (pid $(cat "$LOCK"))" >&2; exit 1
 fi
 echo $$ > "$LOCK"
-trap 'rm -f "$LOCK"' EXIT
+SNAPSHOT="$ROOT/packages/db/src/migrations/.snapshot-devmentor.json"
+MIGRATING=0
+# On any exit — Ctrl-C included (dash runs the EXIT trap only after an explicit exit) — drop the lock and,
+# while db:migrate is in flight, put the MikroORM snapshot back.
+cleanup() {
+  [ "$MIGRATING" = 1 ] && cp "$STATE_DIR/snapshot.bak" "$SNAPSHOT"
+  rm -f "$LOCK"
+}
+trap cleanup EXIT
+trap 'exit 130' INT TERM
 
 healthy() { curl -fsS "$1/api/health" >/dev/null 2>&1; }
 
@@ -97,10 +108,11 @@ sleep 1
 DATABASE_URL="postgres://devmentor:devmentor@127.0.0.1:$PG_PORT/devmentor"
 export DATABASE_URL
 
-SNAPSHOT="$ROOT/packages/db/src/migrations/.snapshot-devmentor.json"
 cp "$SNAPSHOT" "$STATE_DIR/snapshot.bak"
-(cd "$ROOT" && npm run db:migrate >/dev/null) || { cp "$STATE_DIR/snapshot.bak" "$SNAPSHOT"; exit 1; }
+MIGRATING=1
+(cd "$ROOT" && npm run db:migrate >/dev/null)
 cp "$STATE_DIR/snapshot.bak" "$SNAPSHOT"
+MIGRATING=0
 (cd "$ROOT" && npm run db:seed >/dev/null)
 
 APP_PORT=$(node -e "const s=require('net').createServer();s.listen(0,'127.0.0.1',()=>{console.log(s.address().port);s.close()})")
