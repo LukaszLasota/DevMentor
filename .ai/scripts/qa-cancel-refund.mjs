@@ -71,7 +71,18 @@ const mentee = browser(`qa-cancel-mentee-${process.pid}`);
 try {
   // Setup: one new open time 72 hours ahead (outside the 24-hour line).
   const mentorCookie = await signIn(mentor, 'mock-mentor', '/mentor');
-  const { slug } = await api('/api/mentors/me', mentorCookie);
+  let { slug, publishedAt, prices } = await api('/api/mentors/me', mentorCookie);
+  // A fresh test env has a mentor without a page: fill the profile, publish and price it (as the mentor would).
+  if (publishedAt === null) {
+    await api('/api/mentors/me', mentorCookie, 'PUT', {
+      displayName: 'Mock Mentor',
+      publicWorkUrl: 'https://github.com/mock-mentor',
+      bio: 'Mock Mentor reviews TypeScript and React code for the QA walk.',
+      stackTags: ['typescript'],
+    });
+    ({ slug } = await api('/api/mentors/me/publish', mentorCookie, 'POST'));
+  }
+  if (!prices) await api('/api/mentors/me/prices', mentorCookie, 'PUT', { price25: '100', price50: '200' });
   const startsAt = new Date(Date.now() + 72 * 3_600_000);
   startsAt.setUTCMinutes(0, 0, 0);
   const slot = await api('/api/availability/slots', mentorCookie, 'POST', { startsAt: startsAt.toISOString() });
