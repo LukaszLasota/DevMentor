@@ -82,7 +82,11 @@ try {
   await mentee.open(`${baseUrl}/m/${slug}`);
   await mentee.idle();
   await mentee.shot('01-mentor-page');
-  await mentee.clickButton('Book');
+  // The page lists every open time in the API's order: press Book on the row of the time created above,
+  // not on whichever time comes first.
+  const index = (await api(`/api/mentors/${slug}`, '')).slots.filter((s) => s.bookableLengths.length > 0).findIndex((s) => s.id === slot.id);
+  if (index < 0) throw new Error('the new time is not offered on the public page');
+  await mentee.eval(`[...document.querySelectorAll('main button')].filter((b) => b.textContent.trim() === 'Book')[${index}].click()`);
   await mentee.waitUrl('**/pay/**');
   await mentee.shot('02-stripe-stub');
   await mentee.clickButton('Pay');
