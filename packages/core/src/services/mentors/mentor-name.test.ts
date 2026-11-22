@@ -6,10 +6,8 @@ describe('mentorNameForMentee', () => {
     expect(mentorNameForMentee('Ada')).toBe('Ada');
   });
 
-  it('falls back for a missing or blank name', () => {
+  it.each([null, undefined, '', '   '])('falls back to "Your mentor" for %j', (name) => {
+    expect(mentorNameForMentee(name)).toBe(MENTOR_NAME_FALLBACK);
     expect(MENTOR_NAME_FALLBACK).toBe('Your mentor');
-    expect(mentorNameForMentee(null)).toBe(MENTOR_NAME_FALLBACK);
-    expect(mentorNameForMentee(undefined)).toBe(MENTOR_NAME_FALLBACK);
-    expect(mentorNameForMentee('   ')).toBe(MENTOR_NAME_FALLBACK);
   });
 });

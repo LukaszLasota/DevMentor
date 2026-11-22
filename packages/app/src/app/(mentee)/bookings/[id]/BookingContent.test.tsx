@@ -140,6 +140,9 @@ describe("/bookings/[id]", () => {
     render(await BookingContent(params()));
 
     expect(screen.queryByRole("link")).toBeNull();
+    // Without a public page there is no time to go back to.
+    expect(screen.getByText("You were not charged.")).toBeTruthy();
+    expect(screen.queryByText(/may still be open/)).toBeNull();
   });
 
   it("payment_orphaned: tells the mentee the operator will follow up", async () => {
