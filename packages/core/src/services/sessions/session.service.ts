@@ -3,6 +3,7 @@ import type { Cradle } from '../../container/cradle';
 import { ConflictError, ForbiddenError, NotFoundError } from '../../http/errors';
 import type { SessionAnswerInput, SessionMessageInput, SessionReadQuery } from '../../validators/sessions/session-message.schema';
 import { lockForUpdate } from '../bookings/booking.service';
+import { mentorNameForMentee } from '../mentors/mentor-name';
 
 /** Messages can be sent from the start until this long after the end (a short wrap-up). */
 export const MESSAGE_GRACE_MS = 30 * 60_000;
@@ -228,7 +229,7 @@ export class SessionService {
   }
 
   private async tellMentee(booking: Booking): Promise<void> {
-    const mentor = booking.mentorProfile.getEntity().displayName ?? 'Your mentor';
+    const mentor = mentorNameForMentee(booking.mentorProfile.getEntity().displayName);
 
     try {
       await this.mailSender.send({
@@ -248,7 +249,7 @@ function roleOf(booking: Booking, userId: string): SessionRole {
 
 function otherPartyOf(booking: Booking, role: SessionRole): { displayName: string } {
   return role === 'mentee'
-    ? { displayName: booking.mentorProfile.getEntity().displayName ?? 'Your mentor' }
+    ? { displayName: mentorNameForMentee(booking.mentorProfile.getEntity().displayName) }
     : { displayName: booking.mentee.getEntity().githubLogin ?? 'Your mentee' };
 }
 

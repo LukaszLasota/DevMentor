@@ -685,13 +685,33 @@ describe('BookingService.getOwn', () => {
     });
   });
 
-  it('shows a blank name and no link for a profile without them', async () => {
-    const profile = makeMentor({ displayName: null, slug: null });
+  // #85: a mentor who unpublished and cleared the name must not leave "session with  on …" on the page.
+  it('names a mentor without a display name "Your mentor", as the session page does', async () => {
+    const profile = makeMentor({ displayName: null, slug: null, publishedAt: null });
     const slot = makeSlot(profile, hoursFromNow(24));
     const booking = makeBooking(slot);
     const { service } = setup({ profiles: [profile], slots: [slot], bookings: [booking] });
 
-    await expect(service.getOwn(MENTEE.id, booking.id)).resolves.toMatchObject({ mentor: { displayName: '', slug: null } });
+    await expect(service.getOwn(MENTEE.id, booking.id)).resolves.toMatchObject({ mentor: { displayName: 'Your mentor', slug: null } });
+  });
+
+  // #86: "Back to <mentor>" must not lead to a 404 — the slug is a link only while the page is public.
+  it('gives no link to a page the mentor has unpublished', async () => {
+    const profile = makeMentor({ publishedAt: null });
+    const slot = makeSlot(profile, hoursFromNow(24));
+    const booking = makeBooking(slot, { status: 'expired' });
+    const { service } = setup({ profiles: [profile], slots: [slot], bookings: [booking] });
+
+    await expect(service.getOwn(MENTEE.id, booking.id)).resolves.toMatchObject({ mentor: { displayName: 'Ada', slug: null } });
+  });
+
+  it('gives no link when a published profile has no slug', async () => {
+    const profile = makeMentor({ slug: null });
+    const slot = makeSlot(profile, hoursFromNow(24));
+    const booking = makeBooking(slot, { status: 'expired' });
+    const { service } = setup({ profiles: [profile], slots: [slot], bookings: [booking] });
+
+    await expect(service.getOwn(MENTEE.id, booking.id)).resolves.toMatchObject({ mentor: { displayName: 'Ada', slug: null } });
   });
 
   it('answers 404 for another mentee\'s booking or an unknown id', async () => {
