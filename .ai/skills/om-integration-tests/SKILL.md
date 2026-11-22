@@ -21,3 +21,6 @@ Load the installed `om-integration-tests` skill first; the rules below are added
 - Stripe is the stub: drive payments with `POST <checkoutUrl>/complete`, redeliveries with `resendStubEvent`, Connect with `/__stub/accounts/<acct>/enable`; assert what the app sent (transfers, refunds) through `/__stub/*`.
 - Text read from `agent-browser` collapses whitespace differently than the DOM: normalise with `.replace(/\s+/g, ' ')` before `toContain`.
 - Before pushing, the owner runs the affected integration files locally (lesson 2026-11-21: CI is never the first run).
+- `agent-browser` selectors are plain CSS: Playwright pseudo-classes such as `:has-text()` match nothing (count 0). Scope a row by its text instead (e.g. the normalised `main` text matching `<label>\s*<booking id>`).
+- The operator's payout release is global: assert its response (`remaining: 0`) so another file's leftovers cannot push this booking out of the batch.
+- `npm run test:integration` rewrites `packages/db/src/migrations/.snapshot-devmentor.json` (key order only): restore it with `git checkout --` before committing.

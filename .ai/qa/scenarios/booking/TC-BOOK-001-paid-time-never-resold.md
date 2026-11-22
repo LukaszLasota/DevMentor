@@ -8,7 +8,10 @@
 - **Given** mentee A paid on Stripe Checkout, but the completion webhook never reached the app: the booking is still `pending_payment` and its hold has expired, so the time looks free on the mentor page.
 - **When** mentee B presses Book on the same time.
 - **Then** the app asks Stripe first, finds the session paid and confirms A's booking; B gets 409 `SLOT_TAKEN` and no Checkout; the slot has exactly one booking and leaves the public page.
-- **And** the late webhook, delivered for the first time afterwards, is acknowledged (200) and changes nothing; no refund is created; A's page says Booked.
+- **And** the webhook, redelivered afterwards (the inbox lost the first delivery), is acknowledged (200) and changes nothing; no refund is created; A's page says Booked.
+
+## Simulation note
+The test lets the stub deliver the webhook, then deletes its inbox row and resets the booking to an expired hold. Side effects of that first delivery (confirmation emails, `fee_bps`) are not undone, so confirmation emails go out twice in this test; nothing asserts on them.
 
 ## Levels checked
 API (409 + code), database (booking status, `confirmed_at`, one booking per slot, no refund status), Stripe stub (no refund, event delivered), UI (/bookings/[id] Booked).

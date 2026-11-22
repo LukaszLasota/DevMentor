@@ -85,19 +85,27 @@ describe('a reported session is not paid out until the operator resolves the rep
     expect((await api(`/api/bookings/${bookingId}/report`, menteeCookie, { method: 'POST', body: { message } })).status).toBe(200);
     await psql(`update bookings set starts_at = now() - interval '2 days', ends_at = now() - interval '2 days' + interval '25 minutes' where id = '${bookingId}'`);
 
-    // When: the operator releases payouts.
-    expect((await release()).status).toBe(200);
+    // When: the operator releases payouts (one call settles every due booking: nothing may be left over).
+    const first = await release();
+    expect(first.status).toBe(200);
+    expect(first.body.data).toMatchObject({ remaining: 0 });
+    expect(first.body.data.held).toBeGreaterThanOrEqual(1);
 
     // Then: the payout is held for the report, no money moves, and /admin says why.
     expect(await payout(bookingId)).toBe('held|disputed|12000');
     expect(await transfersOf(bookingId)).toEqual([]);
     await operator.open(`${baseUrl}/admin`);
     await operator.waitForText('Held: reported booking');
+    // This booking's row carries the label: the State cell is followed by the Booking id cell
+    // (other files' held payouts may be listed too).
+    expect((await operator.text('main')).replace(/\s+/g, ' ')).toMatch(new RegExp(`Held: reported booking\\s*${bookingId}`));
 
     // When: the operator marks the report resolved and releases again.
     const reportId = await psql(`select id from booking_reports where booking_id = '${bookingId}'`);
     expect((await api(`/api/admin/reports/${reportId}/resolve`, operatorCookie, { method: 'POST' })).status).toBe(200);
-    expect((await release()).status).toBe(200);
+    const second = await release();
+    expect(second.status).toBe(200);
+    expect(second.body.data).toMatchObject({ remaining: 0 });
 
     // Then: exactly one transfer of 80% (120.00 of 150.00 PLN) reaches the mentor; a repeat adds nothing.
     expect(await payout(bookingId)).toBe('transferred||12000');
