@@ -10,6 +10,8 @@
 # 2026-11-21 generated (lesson 11 manual test of booking → session → payout). Verified: cold 29s (rebuilt), warm reused.
 # 2026-11-21 db:migrate rewrote packages/db/src/migrations/.snapshot-devmentor.json (key order) and dirtied the
 #            worktree — the snapshot is now backed up before migrating and restored after.
+# 2026-11-22 review of PR #68: fingerprint uses tree hashes of packages/ (a .ai-only commit rebuilt for 34s) and
+#            covers untracked files; reuse also requires the running instance's fingerprint to match.
 set -eu
 
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
@@ -46,10 +48,21 @@ trap 'rm -f "$LOCK"' EXIT
 
 healthy() { curl -fsS "$1/api/health" >/dev/null 2>&1; }
 
-# Reuse: a live launcher whose app answers /api/health.
+# Build inputs only: tree hashes of the committed sources, uncommitted edits and untracked files under
+# packages/ — a commit that touches only .ai/ or docs does not force a rebuild.
+FINGERPRINT=$(cd "$ROOT" && {
+  git rev-parse HEAD:packages HEAD:package.json HEAD:package-lock.json
+  git diff HEAD -- packages package.json package-lock.json
+  git ls-files --others --exclude-standard -z packages | xargs -0 -r sha256sum
+} | sha256sum | cut -d' ' -f1)
+
+# Reuse: a live launcher whose app answers /api/health and was started from the same sources.
 if [ "$FORCE" = 0 ] && [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null && [ -f "$DESCRIPTOR" ]; then
   BASE_URL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$DESCRIPTOR','utf8')).baseUrl)")
-  if healthy "$BASE_URL"; then
+  RUNNING_FP=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$DESCRIPTOR','utf8')).fingerprint ?? '')")
+  if [ "$RUNNING_FP" != "$FINGERPRINT" ]; then
+    echo "test-env: sources changed since the running instance started, restarting"
+  elif healthy "$BASE_URL"; then
     echo "test-env: reused"
     echo "BASE_URL=$BASE_URL"
     exit 0
@@ -61,9 +74,6 @@ fi
 rm -f "$PIDFILE"
 
 START=$(date +%s)
-
-# Build cache: rebuild only when the sources changed since the cached build.
-FINGERPRINT=$(cd "$ROOT" && { git rev-parse HEAD; git diff HEAD -- packages package.json package-lock.json; } | sha256sum | cut -d' ' -f1)
 CACHED=$( [ -f "$BUILD_CACHE" ] && node -e "console.log(JSON.parse(require('fs').readFileSync('$BUILD_CACHE','utf8')).fingerprint)" || echo none)
 if [ "$FORCE_REBUILD" = 1 ] || [ "$CACHED" != "$FINGERPRINT" ] || [ ! -f "$ROOT/packages/app/.next/BUILD_ID" ]; then
   echo "test-env: building"
@@ -116,6 +126,7 @@ fs.writeFileSync('$DESCRIPTOR', JSON.stringify({
   status: 'running',
   baseUrl: '$BASE_URL',
   startedByThisRepo: true,
+  fingerprint: '$FINGERPRINT',
   startScript: '.ai/scripts/test-env-up.sh',
   stopScript: '.ai/scripts/test-env-down.sh',
   platform: 'posix',
