@@ -6,7 +6,7 @@ import { formatMoney } from '../../money/money';
 import type { BookingCancelInput } from '../../validators/bookings/booking-cancel.schema';
 import { BOOKING_NOT_FOUND_MESSAGE, type BookingView, lockForUpdate, utcLabel } from './booking.service';
 import { cancellationTerms } from './cancellation-terms';
-import { mentorNameForOperator, mentorNameInSentence } from '../mentors/mentor-name';
+import { mentorNameForOperator, mentorNameForMenteeInSentence } from '../mentors/mentor-name';
 
 export const NOT_CANCELLABLE_MESSAGE = 'This booking can no longer be cancelled.';
 export const TERMS_CHANGED_MESSAGE = 'The cancellation terms changed. Check them and confirm again.';
@@ -233,7 +233,7 @@ export function cancellationMails(booking: Booking, appUrl: string): MailMessage
   return [
     {
       to: booking.mentee.getEntity().email,
-      subject: `Cancelled: ${length} session with ${mentorNameInSentence(profile.displayName)}`,
+      subject: `Cancelled: ${length} session with ${mentorNameForMenteeInSentence(profile.displayName)}`,
       text: [`You cancelled your ${length} text session on ${when}.`, refund, `${appUrl}/bookings/${booking.id}`].join('\n\n'),
     },
     {

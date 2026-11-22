@@ -12,7 +12,7 @@ import { offerState } from '../mentors/mentor-profile.service';
 import type { CheckoutSession } from '../payments/checkout-gateway';
 import { cancellationTerms } from './cancellation-terms';
 import { endOf, freeLengths, overlaps } from './occupancy';
-import { mentorNameForMentee, mentorNameInSentence } from '../mentors/mentor-name';
+import { mentorNameForMentee, mentorNameForMenteeInSentence } from '../mentors/mentor-name';
 
 /** Stripe's minimum session lifetime is 30 minutes; one more absorbs latency and clock skew. */
 export const CHECKOUT_LIFETIME_MS = 31 * 60_000;
@@ -490,9 +490,9 @@ export function confirmationMails(booking: Booking, appUrl: string): MailMessage
   return [
     {
       to: booking.mentee.getEntity().email,
-      subject: `Booked: ${length} session with ${mentorNameInSentence(profile.displayName)}`,
+      subject: `Booked: ${length} session with ${mentorNameForMenteeInSentence(profile.displayName)}`,
       text: [
-        `Your ${length} text session with ${mentorNameInSentence(profile.displayName)} is booked for ${when}. ${localTime}`,
+        `Your ${length} text session with ${mentorNameForMenteeInSentence(profile.displayName)} is booked for ${when}. ${localTime}`,
         `You paid ${formatMoney(booking.priceCents, booking.currency)}.`,
         `${appUrl}/bookings/${booking.id}`,
       ].join('\n\n'),

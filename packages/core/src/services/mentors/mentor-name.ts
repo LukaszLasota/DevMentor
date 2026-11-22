@@ -9,7 +9,7 @@ export function mentorNameForMentee(displayName: string | null | undefined): str
 }
 
 /** The same inside a sentence of mentee e-mail copy ("session with your mentor") (#87). */
-export function mentorNameInSentence(displayName: string | null | undefined): string {
+export function mentorNameForMenteeInSentence(displayName: string | null | undefined): string {
   return present(displayName) ? displayName : MENTOR_NAME_FALLBACK.toLowerCase();
 }
 

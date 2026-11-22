@@ -16,6 +16,11 @@ function valueOf(actual: unknown): unknown {
   return actual !== null && typeof actual === 'object' && 'id' in actual ? (actual as { id: string }).id : actual;
 }
 
+/** A loaded reference, as MikroORM's `Ref`: the entity with `getEntity()`. */
+function ref<T extends object>(entity: T) {
+  return Object.assign(entity, { getEntity: () => entity });
+}
+
 /** Equality (references by id), `$in`, `$ne`, `$lte` on dates. */
 function matches(row: object, where: Where): boolean {
   return Object.entries(where).every(([key, expected]) => {
@@ -35,8 +40,8 @@ function matches(row: object, where: Where): boolean {
 async function setup({ bookings = 1, connected = true, enabled = true } = {}) {
   const checkout = new FakeCheckoutGateway();
   const connect = new FakeConnectGateway();
-  const mentorUser = Object.assign(new User(), { id: randomUUID(), email: 'ada@devmentor.test' });
-  const profile = Object.assign(new MentorProfile(), { id: randomUUID(), displayName: 'Ada', user: Object.assign(mentorUser, { getEntity: () => mentorUser }) });
+  const mentorUser = ref(Object.assign(new User(), { id: randomUUID(), email: 'ada@devmentor.test' }));
+  const profile = Object.assign(new MentorProfile(), { id: randomUUID(), displayName: 'Ada', user: mentorUser });
   const rows = {
     bookings: [] as Booking[],
     payouts: [] as Payout[],
