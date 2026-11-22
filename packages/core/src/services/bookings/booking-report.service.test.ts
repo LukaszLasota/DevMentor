@@ -17,7 +17,7 @@ function ref<T extends object>(entity: T) {
 function makeBooking(fields: Partial<Booking> = {}): Booking {
   return Object.assign(new Booking(), {
     id: randomUUID(),
-    mentorProfile: ref(Object.assign(new MentorProfile(), { id: randomUUID(), displayName: 'Ada' })),
+    mentorProfile: ref(Object.assign(new MentorProfile(), { id: randomUUID(), displayName: 'Ada', user: ref(Object.assign(new User(), { id: randomUUID(), email: 'ada@devmentor.test' })) })),
     mentee: ref(Object.assign(new User(), { id: MENTEE_ID, email: 'mentee@devmentor.test' })),
     startsAt: NOW,
     status: 'confirmed',
@@ -180,8 +180,9 @@ describe('BookingReportService.list', () => {
         mentorName: 'Ada',
       },
     ]);
-    expect(em.find).toHaveBeenCalledWith(BookingReport, {}, { populate: ['booking.mentee', 'booking.mentorProfile'], orderBy: { createdAt: 'desc' } });
-    await expect(unnamed.service.list()).resolves.toMatchObject([{ mentorName: '' }]);
+    expect(em.find).toHaveBeenCalledWith(BookingReport, {}, { populate: ['booking.mentee', 'booking.mentorProfile.user'], orderBy: { createdAt: 'desc' } });
+    // #87: the mentor's e-mail instead of a blank cell.
+    await expect(unnamed.service.list()).resolves.toMatchObject([{ mentorName: 'ada@devmentor.test' }]);
   });
 });
 

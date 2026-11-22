@@ -1,6 +1,7 @@
 import { Booking, BookingReport, ConnectAccount, type HoldReason, isUniqueViolation, Payout, PAYOUT_BOOKING_UNIQUE, type PayoutStatus } from '@devmentor/db';
 import type { Cradle } from '../../container/cradle';
 import { lockForUpdate } from '../bookings/booking.service';
+import { mentorNameForOperator } from '../mentors/mentor-name';
 
 /** A session is due this long after its end: the written-answer window (#31) has closed. */
 export const PAYOUT_DELAY_MS = 24 * 60 * 60_000;
@@ -94,7 +95,7 @@ export class PayoutService {
 
   /** Payouts not yet transferred, for the operator. */
   async list(): Promise<PayoutItem[]> {
-    const payouts = await this.em.find(Payout, { status: { $ne: 'transferred' } }, { populate: ['booking', 'mentorProfile'], orderBy: { updatedAt: 'desc' } });
+    const payouts = await this.em.find(Payout, { status: { $ne: 'transferred' } }, { populate: ['booking', 'mentorProfile.user'], orderBy: { updatedAt: 'desc' } });
 
     return payouts.map((payout) => ({
       bookingId: payout.booking.id,
@@ -105,7 +106,7 @@ export class PayoutService {
       feeCents: payout.feeCents,
       currency: payout.currency,
       startsAt: payout.booking.getEntity().startsAt.toISOString(),
-      mentorName: payout.mentorProfile.getEntity().displayName ?? '',
+      mentorName: mentorNameForOperator(payout.mentorProfile.getEntity().displayName, payout.mentorProfile.getEntity().user.getEntity().email),
       updatedAt: payout.updatedAt.toISOString(),
     }));
   }

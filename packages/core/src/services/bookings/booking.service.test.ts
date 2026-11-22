@@ -811,6 +811,11 @@ describe('confirmationMails', () => {
     expect(confirmationMails(makeBooking(slot, { mentee: mentee as unknown as Booking['mentee'] }), '')[0]?.subject).toBe(
       'Booked: 25-minute session with your mentor',
     );
+    // #87: a blank name is as missing as a null one, in the subject and the text.
+    const blank = makeMentor({ displayName: '  ' });
+    const [mail] = confirmationMails(makeBooking(makeSlot(blank, hoursFromNow(24)), { mentee: mentee as unknown as Booking['mentee'] }), '');
+    expect(mail?.subject).toBe('Booked: 25-minute session with your mentor');
+    expect(mail?.text).toContain('Your 25-minute text session with your mentor is booked');
   });
 });
 

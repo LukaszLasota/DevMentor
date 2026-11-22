@@ -332,7 +332,7 @@ describe('BookingCancellationService.needsAttention', () => {
     expect(em.find).toHaveBeenCalledWith(
       Booking,
       { $or: [{ status: 'cancelled', refundStatus: { $in: ['requested', 'pending', 'failed'] } }, { status: 'payment_orphaned' }] },
-      { populate: ['mentorProfile', 'mentee'], orderBy: { startsAt: 'asc' } },
+      { populate: ['mentorProfile.user', 'mentee'], orderBy: { startsAt: 'asc' } },
     );
   });
 
@@ -340,7 +340,7 @@ describe('BookingCancellationService.needsAttention', () => {
     const orphan = await setup({ status: 'payment_orphaned' }, { pay: false });
     (orphan.booking.mentorProfile as unknown as MentorProfile).displayName = null;
     await expect(orphan.service.needsAttention()).resolves.toEqual([
-      expect.objectContaining({ status: 'payment_orphaned', refundStatus: null, refundId: null, checkoutSessionId: null, cancelledAt: null, mentorName: '' }),
+      expect.objectContaining({ status: 'payment_orphaned', refundStatus: null, refundId: null, checkoutSessionId: null, cancelledAt: null, mentorName: 'ada@devmentor.test' }),
     ]);
 
     const settled = await setup({ status: 'cancelled', cancelledAt: NOW, refundStatus: 'succeeded' });
@@ -368,6 +368,9 @@ describe('cancellationMails', () => {
     (forfeited.mentorProfile as unknown as MentorProfile).displayName = null;
     const [late] = cancellationMails(forfeited, '');
     expect(late?.subject).toBe('Cancelled: 25-minute session with your mentor');
+    // #87: a blank name is as missing as a null one.
+    (forfeited.mentorProfile as unknown as MentorProfile).displayName = '  ';
+    expect(cancellationMails(forfeited, '')[0]?.subject).toBe('Cancelled: 25-minute session with your mentor');
     expect(late?.text).toContain(`The ${formatMoney(15000, 'PLN')} fee is not refunded: the booking was cancelled 24 hours or less before the start.`);
     expect(late?.text).not.toMatch(/respond|reply within|guarantee/i);
   });

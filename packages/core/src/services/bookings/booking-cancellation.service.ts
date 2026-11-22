@@ -6,6 +6,7 @@ import { formatMoney } from '../../money/money';
 import type { BookingCancelInput } from '../../validators/bookings/booking-cancel.schema';
 import { BOOKING_NOT_FOUND_MESSAGE, type BookingView, lockForUpdate, utcLabel } from './booking.service';
 import { cancellationTerms } from './cancellation-terms';
+import { mentorNameForOperator, mentorNameForMenteeInSentence } from '../mentors/mentor-name';
 
 export const NOT_CANCELLABLE_MESSAGE = 'This booking can no longer be cancelled.';
 export const TERMS_CHANGED_MESSAGE = 'The cancellation terms changed. Check them and confirm again.';
@@ -153,7 +154,7 @@ export class BookingCancellationService {
     const bookings = await this.em.find(
       Booking,
       { $or: [{ status: 'cancelled', refundStatus: { $in: OPEN_REFUNDS } }, { status: 'payment_orphaned' }] },
-      { populate: ['mentorProfile', 'mentee'], orderBy: { startsAt: 'asc' } },
+      { populate: ['mentorProfile.user', 'mentee'], orderBy: { startsAt: 'asc' } },
     );
 
     return bookings.map((booking) => ({
@@ -167,7 +168,7 @@ export class BookingCancellationService {
       startsAt: booking.startsAt.toISOString(),
       cancelledAt: booking.cancelledAt?.toISOString() ?? null,
       menteeEmail: booking.mentee.getEntity().email,
-      mentorName: booking.mentorProfile.getEntity().displayName ?? '',
+      mentorName: mentorNameForOperator(booking.mentorProfile.getEntity().displayName, booking.mentorProfile.getEntity().user.getEntity().email),
     }));
   }
 
@@ -232,7 +233,7 @@ export function cancellationMails(booking: Booking, appUrl: string): MailMessage
   return [
     {
       to: booking.mentee.getEntity().email,
-      subject: `Cancelled: ${length} session with ${profile.displayName ?? 'your mentor'}`,
+      subject: `Cancelled: ${length} session with ${mentorNameForMenteeInSentence(profile.displayName)}`,
       text: [`You cancelled your ${length} text session on ${when}.`, refund, `${appUrl}/bookings/${booking.id}`].join('\n\n'),
     },
     {

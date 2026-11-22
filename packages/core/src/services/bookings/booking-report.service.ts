@@ -3,6 +3,7 @@ import type { Cradle } from '../../container/cradle';
 import { ConflictError, NotFoundError } from '../../http/errors';
 import type { BookingReportInput } from '../../validators/bookings/booking-report.schema';
 import { BOOKING_NOT_FOUND_MESSAGE } from './booking.service';
+import { mentorNameForOperator } from '../mentors/mentor-name';
 
 export const NOT_REPORTABLE_MESSAGE = 'Only a paid booking can be reported.';
 export const REPORT_NOT_FOUND_MESSAGE = 'Report not found.';
@@ -89,7 +90,7 @@ export class BookingReportService {
     const reports = await this.em.find(
       BookingReport,
       {},
-      { populate: ['booking.mentee', 'booking.mentorProfile'], orderBy: { createdAt: 'desc' } },
+      { populate: ['booking.mentee', 'booking.mentorProfile.user'], orderBy: { createdAt: 'desc' } },
     );
 
     return reports.map((report) => {
@@ -104,7 +105,7 @@ export class BookingReportService {
         resolvedAt: report.resolvedAt?.toISOString() ?? null,
         startsAt: booking.startsAt.toISOString(),
         menteeEmail: booking.mentee.getEntity().email,
-        mentorName: booking.mentorProfile.getEntity().displayName ?? '',
+        mentorName: mentorNameForOperator(booking.mentorProfile.getEntity().displayName, booking.mentorProfile.getEntity().user.getEntity().email),
       };
     });
   }
