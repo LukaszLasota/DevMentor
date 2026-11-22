@@ -1,0 +1,76 @@
+name: Nightly
+
+# Lesson 13 automation: maintenance checks that run on their own every night against main, so new
+# advisories and environment drift show up without anyone starting them. A failure opens (or updates)
+# one tracking issue; the owner triages it in the next review block, not on the notification.
+on:
+  schedule:
+    - cron: "17 2 * * *" # 02:17 UTC daily (off the hour to avoid the scheduler rush)
+  workflow_dispatch:
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  audit:
+    name: Dependency audit (new advisories)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      # Same gate as CI; new high/critical advisories appear here even when nobody pushes.
+      - run: npm run audit
+
+  integration:
+    name: Integration tests on main
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Test values only, as in ci.yml.
+    env:
+      OPERATOR_EMAILS: mock-operator@devmentor.test
+      ALLOW_TEST_OVERRIDES: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npx agent-browser install --with-deps
+      - run: npm run test:integration
+
+  report:
+    name: Open a tracking issue on failure
+    needs: [audit, integration]
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - name: Open or update the nightly-failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Nightly checks failed on main"
+          existing=$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number')
+          body="The nightly run failed: $RUN_URL (audit: ${{ needs.audit.result }}, integration: ${{ needs.integration.result }})."
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "$title" --body "$body"
+          fi
