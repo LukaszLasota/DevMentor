@@ -35,9 +35,7 @@
     "ask": [
       "Bash(npm run dev)",
       "Bash(npm run test:integration)",
-      "Bash(docker compose *)",
-      "Bash(git push)",
-      "Bash(git push *)"
+      "Bash(docker compose *)"
     ]
   },
   "sandbox": {
