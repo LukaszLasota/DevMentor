@@ -1,6 +1,6 @@
 # A mentee can browse mentors filtered by stack tag, ordered by most recent availability, with no scores
 
-Status: approved
+Status: implemented (#52)
 Issue: #27 (E02-S01) · Epic: #17 · Depends on: #23 (`.ai/specs/implemented/2026-10-21-mentor-page.md`: public DTO, projection rule, stack-tag vocabulary, readiness primitive, `@devmentor/ui/mentors`) and #25 (`.ai/specs/implemented/2026-10-21-availability-slots.md`: `Slot`, `last_published_availability_at`, `meetsLeadTime`, `hasBookableSlot`); reads #24's price requirements and `prices` (`.ai/specs/implemented/2026-10-21-mentor-prices.md`) when merged · Source: `.ai/specs/product-brief.md` (R08, N02, D08, R04) · Builds on: `.ai/specs/implemented/2026-10-21-platform-primitives.md`, `.ai/specs/implemented/2026-10-21-sign-in-github-and-email.md` · Follows the course reference specs `2026-09-04-platform-primitives.md` (B18 list query, F1 surfaces), `2026-09-08-platform-primitives-ii.md` (B26 ordering key, A11 vocabulary, F11) and `2026-09-08-mentors-become-bookable.md`, adapted to this repository; the course has no story spec for its list (#20)
 
 ## 📝 TLDR

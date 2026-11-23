@@ -1,6 +1,6 @@
 # QA walk of a text session and its note, and a safe migrations snapshot
 
-Status: approved (scope chosen by the owner on 2026-11-22: follow-ups from the PR #68 review)
+Status: implemented in #71 (scope chosen by the owner on 2026-11-22: follow-ups from the PR #68 review)
 
 ## 📝 TLDR
 The owner and the agent can run the cancel → refund walk against the local test env in one command, but a booked session cannot be checked by hand before its slot opens (tomorrow at the earliest), and a Ctrl-C during `db:migrate` in `test-env-up.sh` leaves the MikroORM snapshot rewritten. This adds `.ai/scripts/qa-session-note.mjs` — book, open the session by moving the booking's times in the test database, exchange messages, write, decline, resend and approve the note in the browser — and restores the snapshot on any exit of the up script.

@@ -14,7 +14,7 @@ marketplace booking flow). Decisions below were confirmed with the project owner
 
 Implementation plan and progress: [2026-10-20-engineering-standards-plan.md](2026-10-20-engineering-standards-plan.md). Where this document and the repo differ, these notes win:
 
-- **Implemented now (foundation):** §3 in `AGENTS.md`; §5 step 2 except `auth.ts`; ESLint boundaries; `core/src/config/env.ts`, `core/src/logger.ts`, container in `core/src/container/`; Vitest; `npm audit` gate. `auth.ts` lands with the auth concept (owner decision, YAGNI).
+- **Implemented now (foundation):** §3 in `AGENTS.md`; §5 step 2; ESLint boundaries; `core/src/config/env.ts`, `core/src/logger.ts`, container in `core/src/container/`; Vitest; `npm audit` gate. `auth.ts` landed with the auth concept (`packages/core/src/http/auth.ts`, Epic 01).
 - **Not applicable here:** §5 steps 1, 3 and 8 refer to files this repo never had (`user.entity.ts`, `mentor-profile.entity.ts`, `user.service.ts`, `/admin/users`, `docs/product-scope.md`, `base.entity.ts`). The reference example is `/api/health` (`HealthService` + `apiHandler`) and `/admin` (`apiCall` + `DataTable`).
 - **`export const dynamic = "force-dynamic"`** (§1 Architecture) is removed in Next.js 16 with `cacheComponents`. Uncached DB access already runs at request time; the rule is "no `dynamic` config, no `use cache` around DB reads, build passes with no database".
 - **Paths:** `packages/app/src/app`, routes `src/app/api/<concept>/route.ts`. `(site)` is now `(marketing)`; `(admin)` remains for the shadcn panel.
@@ -137,7 +137,8 @@ a dumping ground):
 - Shared Zod schemas live in `core/src/validators/<concept>/`, imported by both the
   API route (server validation) and the form component (client validation) — one
   schema, two call sites, never redefined.
-- DB access stays confined to `export const dynamic = "force-dynamic"` routes/pages;
+- ~~DB access stays confined to `export const dynamic = "force-dynamic"` routes/pages;~~
+  superseded by the Adaptation notes above (no `dynamic` config with `cacheComponents`);
   the app must build and boot with no database reachable.
 - Booking/payment flows that mutate shared state (slot availability) go through a DB
   transaction in the service layer — never split a check-then-write across two

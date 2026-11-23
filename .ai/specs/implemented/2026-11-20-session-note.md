@@ -1,7 +1,7 @@
 # The mentor drafts a session note; the mentee approves it or declines it with a comment
 
 Status: implemented (branch feat/session-note; autonomous defaults; independent review applied)
-Issue: #32 (E04-S02) · Epic: #19 · Depends on: #31 (`.ai/specs/2026-11-20-text-session.md`) · Source: `.ai/specs/product-brief.md` (R15, R03, D20, D02)
+Issue: #32 (E04-S02) · Epic: #19 · Depends on: #31 (`.ai/specs/implemented/2026-11-20-text-session.md`) · Source: `.ai/specs/product-brief.md` (R15, R03, D20, D02)
 
 ## 📝 TLDR
 Today a session (#31) ends with a chat transcript and the mentor's written answer, but nothing turns it into an agreed record. Proposed (future behaviour): after a session ends, the mentor writes a note and sends it to the mentee; the mentee approves it as it is, or declines it with a comment; the mentor reads the comment and sends a new version; there is no co-editing. An approved note is visible only to the two of them and published nowhere (R03).

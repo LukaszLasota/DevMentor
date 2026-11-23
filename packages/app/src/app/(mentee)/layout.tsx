@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: "DevMentor",
 };
 
-// Mentee pages (/mentors; favorites and sessions later): panel surface via @devmentor/ui. No layout
+// Mentee pages (/mentors, /sessions, /bookings/[id]): panel surface via @devmentor/ui. No layout
 // guard — the group has several paths and a layout cannot know which one is open, so every page
 // calls `requirePageSession(<its path>)`; the account bar and the sidebar render only with a session.
 export default function MenteeRootLayout({ children }: { children: React.ReactNode }) {

@@ -8,7 +8,7 @@ Matter-of-fact, not generic. Dense where people scan (mentor and slot lists: thi
 ## Surfaces (which entry to use)
 - Public pages (`(marketing)`: `/mentors`, `/m/[slug]`, `/`): Tailwind only, import from `@devmentor/ui/mentors` only.
 - `/invitation/[token]` (public, session-aware; own root layout outside the groups, decided 2026-11-14): panel stylesheet like `(auth)`, because it signs out and accepts through the panel layer (`apiCall`, `SignOutButton`); the panel itself is the Tailwind-only `InvitationPanel` (states `signed-out`, `match` with `onAccept`/`accepting`/`acceptError`, `mismatch` with a `signOut` slot, `already-mentor`, `invalid`).
-- Signed-in pages — `(auth)`, `(mentor)`, `(mentee)` (mentee pages such as favorites or sessions), `(admin)`: panel surface, import from `@devmentor/ui`; they may also use the Tailwind-only components from `@devmentor/ui/mentors` (e.g. `TagList`, `MentorTagFilter` with `basePath`).
+- Signed-in pages — `(auth)`, `(mentor)`, `(mentee)` (mentee pages such as `/sessions` and `/bookings/[id]`), `(admin)`: panel surface, import from `@devmentor/ui`; they may also use the Tailwind-only components from `@devmentor/ui/mentors` (e.g. `TagList`, `MentorTagFilter` with `basePath`).
 - Interface language: English.
 
 ## Where things are
@@ -53,6 +53,9 @@ Matter-of-fact, not generic. Dense where people scan (mentor and slot lists: thi
 - Many comparable records in a panel → Table; people on public pages → MentorCard list.
 
 ## Lists and row actions (from the agent test, 2026-10-22)
+
+"Favorites" below is the hypothetical screen of the lesson-06 agent test, used only to illustrate the rules. It is not in the brief or the backlog: do not build it unless a story asks for it.
+
 - People and saved items are rows separated by thin lines (MentorCard style); `DataTable` is for record tables in panels. The name in a row is the link to the profile (`/m/<slug>`); secondary line `text-body-small text-muted-foreground`.
 - Row actions: one action → Button `appearance="text"`, several → `appearance="soft"`; size `sm` in dense rows and tables, `md` in forms and panels. The accessible name includes the object ("Remove Marta Kowal from favorites").
 - Confirm only when the action cannot be undone in one click or affects other people (remove a bookable slot, revoke an invitation, unpublish). Removing from your own list (favorites) needs no confirmation: remove the row, show a status line above the list ("Removed Marta Kowal from favorites." + Undo button), move focus to the next row's action or, if none, the list heading.
