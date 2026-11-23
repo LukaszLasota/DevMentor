@@ -48,7 +48,7 @@ beforeEach(() => {
   scope.cradle = {
     env: parseEnv({ DATABASE_URL: 'postgres://u:p@localhost:5432/db', SESSION_SECRET: SECRET }),
     clock,
-    logger: { warn: vi.fn(), error: vi.fn() },
+    logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
     em: { findOne: vi.fn(async (_entity: unknown, where: { id: string }) => (where.id === user.id ? user : null)) },
     accountService: { reconcileOperator: vi.fn(async (u: User) => u) },
     bookingService,
@@ -199,6 +199,10 @@ describe('POST /api/admin/bookings/[id]/refund', () => {
 
     expect(await response.json()).toEqual({ ok: true, data: { refundStatus: 'succeeded' } });
     expect(bookingCancellationService.retryRefund).toHaveBeenCalledWith(BOOKING_ID);
+    expect((scope.cradle as { logger: { info: unknown } }).logger.info).toHaveBeenCalledWith(
+      { operator: { id: USER_ID }, action: 'refund.retry', booking: { id: BOOKING_ID }, refundStatus: 'succeeded' },
+      'Operator action',
+    );
   });
 
   it('answers 403 to anyone else and 404 for a malformed id', async () => {

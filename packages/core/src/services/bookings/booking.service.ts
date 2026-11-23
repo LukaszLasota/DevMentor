@@ -276,8 +276,10 @@ export class BookingService {
     const now = this.clock.now();
     const slot = await em.findOne(Slot, { id: booking.slot.id });
     const others = await em.find(Booking, { ...activeBookingsWhere([booking.mentorProfile.id], now), id: { $ne: booking.id } });
+    // T-08: a hold that already names its Checkout session is paid only by that session.
     const matches =
       booking.status === 'pending_payment' &&
+      (booking.checkoutSessionId == null || booking.checkoutSessionId === session.id) &&
       session.amountTotal === booking.priceCents &&
       session.currency === booking.currency &&
       slot !== null &&

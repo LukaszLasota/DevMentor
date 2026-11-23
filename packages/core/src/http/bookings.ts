@@ -75,8 +75,12 @@ export async function cancelOwnBooking({ req, params, cradle }: HandlerArgs<Book
 export async function retryBookingRefund({ req, params, cradle }: HandlerArgs<BookingIdParams>): Promise<{ refundStatus: RefundStatus }> {
   const user = await requireSession(req, cradle);
   requireRole(user, 'operator');
+  const id = bookingId(params);
+  const result = await cradle.bookingCancellationService.retryRefund(id);
+  // T-14: every operator money action names the operator (no PII, ids only).
+  cradle.logger.info({ operator: { id: user.id }, action: 'refund.retry', booking: { id }, refundStatus: result.refundStatus }, 'Operator action');
 
-  return cradle.bookingCancellationService.retryRefund(bookingId(params));
+  return result;
 }
 
 /**

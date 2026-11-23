@@ -423,7 +423,7 @@ describe('BookingService.start', () => {
       const mentee = ref(Object.assign(new User(), { id: MENTEE.id, email: MENTEE.email }));
       const old = stale(slot, { mentee: mentee as unknown as Booking['mentee'] });
       const { service, gateway, events, mailSender, em } = setup({ profiles: [profile], slots: [slot], bookings: [old] });
-      vi.spyOn(gateway, 'expireSession').mockResolvedValueOnce({ kind: 'ok', data: session(old) });
+      vi.spyOn(gateway, 'expireSession').mockResolvedValueOnce({ kind: 'ok', data: session(old, { id: old.checkoutSessionId as string }) });
 
       expect(await rejection(service.start(MENTEE, { slotId: slot.id, length: '25' }))).toMatchObject({ code: 'SLOT_TAKEN' });
       expect(old).toMatchObject({ status: 'confirmed', confirmedAt: NOW });
@@ -560,6 +560,21 @@ describe('BookingService.applyCompleted / applyExpired', () => {
     });
     expect(booking).toMatchObject({ status: 'payment_orphaned', checkoutSessionId: 'cs_kept' });
     expect(logger.error).toHaveBeenCalledWith({ booking: { id: booking.id }, checkout: { id: `cs_${booking.id}` } }, expect.any(String));
+  });
+
+  it('orphans a paid session whose id differs from the Checkout session stored on the hold (threat model T-08)', async () => {
+    const { service, em, booking, logger } = held({ checkoutSessionId: 'cs_the_hold_own_session' });
+
+    await expect(service.applyCompleted(em as unknown as Cradle['em'], session(booking))).resolves.toMatchObject({ outcome: 'orphaned' });
+    expect(booking).toMatchObject({ status: 'payment_orphaned', checkoutSessionId: 'cs_the_hold_own_session' });
+    expect(logger.error).toHaveBeenCalledWith({ booking: { id: booking.id }, checkout: { id: `cs_${booking.id}` } }, expect.any(String));
+  });
+
+  it('confirms a paid session whose id matches the stored one', async () => {
+    const { service, em, booking } = held();
+    booking.checkoutSessionId = `cs_${booking.id}`;
+
+    await expect(service.applyCompleted(em as unknown as Cradle['em'], session(booking))).resolves.toMatchObject({ outcome: 'confirmed' });
   });
 
   it('orphans a late payment whose time another active booking now overlaps (never two sessions at once)', async () => {
@@ -841,7 +856,7 @@ describe('BookingService.releaseOwnHold', () => {
 
   it('confirms and announces instead when the session was paid meanwhile', async () => {
     const { service, gateway, booking, events } = own();
-    vi.spyOn(gateway, 'expireSession').mockResolvedValueOnce({ kind: 'ok', data: session(booking) });
+    vi.spyOn(gateway, 'expireSession').mockResolvedValueOnce({ kind: 'ok', data: session(booking, { id: booking.checkoutSessionId as string }) });
     (booking as unknown as { mentee: unknown }).mentee = ref(Object.assign(new User(), { id: MENTEE.id, email: MENTEE.email }));
     (booking.mentorProfile.getEntity().user as unknown as User).email = 'ada@devmentor.test';
 

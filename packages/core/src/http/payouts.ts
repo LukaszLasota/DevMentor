@@ -26,9 +26,13 @@ export async function refreshConnect({ req, cradle }: HandlerArgs<RouteParams>):
 
 /** `POST /api/admin/payouts/release` → what this run did (at most 25 bookings). */
 export async function releasePayouts({ req, cradle }: HandlerArgs<RouteParams>): Promise<ReleaseResult> {
-  requireRole(await requireSession(req, cradle), 'operator');
+  const operator = await requireSession(req, cradle);
+  requireRole(operator, 'operator');
+  const result = await cradle.payoutService.releaseDue();
+  // T-14: every operator money action names the operator (no PII, ids only).
+  cradle.logger.info({ operator: { id: operator.id }, action: 'payouts.release', result }, 'Operator action');
 
-  return cradle.payoutService.releaseDue();
+  return result;
 }
 
 /** Route params of `/api/admin/reports/[id]/resolve`. */
@@ -43,5 +47,9 @@ export async function resolveReport({ req, params, cradle }: HandlerArgs<ReportI
     throw new NotFoundError(REPORT_NOT_FOUND_MESSAGE);
   }
 
-  return cradle.bookingReportService.resolve(operator.id, params.id);
+  const result = await cradle.bookingReportService.resolve(operator.id, params.id);
+  // T-14: every operator money action names the operator (no PII, ids only).
+  cradle.logger.info({ operator: { id: operator.id }, action: 'report.resolve', report: { id: params.id } }, 'Operator action');
+
+  return result;
 }

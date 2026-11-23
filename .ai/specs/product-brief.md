@@ -157,6 +157,7 @@ For senior engineers who already help others for free, and developers stuck with
 | D24 | 2026-10-21 | the beachhead is English-speaking TypeScript, React, Python and AI-agent developers; invitations and stack tags come only from that pool | reference brief (agent-recommended on founder A's instruction; not confirmed against this evidence) | founder A | active | 2026-11-28 (D23) | founder A | `[DOCUMENT]` research/decisions/D07-D24-adopted-from-course-reference.md | none |
 | D25 | 2026-11-20 | a free cancellation (24 h or more ahead) is refunded automatically through the Stripe API; disputes stay with the operator | the cancellation spec's Q1, confirmed by the session owner | Łukasz Lasota (session owner) | active | 2026-11-28 (D23) | founder A | `[DOCUMENT]` research/decisions/D25-D26-recorded-from-specs.md | D10 (refund clause) |
 | D26 | 2026-11-20 | the text session happens on a session screen in DevMentor (answers Q01) | the text-session spec, answered by the session owner | Łukasz Lasota (session owner) | active | 2026-11-28 (D23) | founder A with founder B | `[DOCUMENT]` research/decisions/D25-D26-recorded-from-specs.md | none |
+| D27 | 2026-11-23 | a payout does not wait for the mentor's written answer: a confirmed session is paid 24 hours after it ends unless the mentee reported it (threat model T-07 accepted) | lesson 16 fix plan; the 24-hour report window is the mentee's protection | Łukasz Lasota (session owner) | active | 2026-11-28 (D23) | founder A | `[DOCUMENT]` docs/security/fix-plan.md | none |
 
 ## Riskiest assumptions
 

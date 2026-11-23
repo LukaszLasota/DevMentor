@@ -135,6 +135,24 @@ describe('text session (agent-browser, two parties)', () => {
     expect((await api(`/api/sessions/${randomUUID()}`, menteeCookie)).status).toBe(404);
   });
 
+  it('another mentor and an operator (signed in, with their own access) cannot read or write it either (threat model T-02)', async () => {
+    const before = (await api(`/api/sessions/${sessionId}`, menteeCookie)).body.data.messages;
+    const otherMentor = await seedBookableMentor(seeder, { login: `ts-bo-${run}`, displayName: `Session Bo ${run}`, stackTags: ['python'], batch, slotInHours: 48 });
+    const operator = createAgentBrowser(`devmentor-session-operator-${process.pid}`);
+    const operatorCookie = await signIn(operator, 'mock-operator');
+    await operator.close();
+    // Positive controls: both accounts are signed in and reach what is theirs.
+    expect((await api('/api/mentors/me', otherMentor.cookie)).status).toBe(200);
+    expect((await api('/api/auth/me', operatorCookie)).body.data.user.roles).toContain('operator');
+
+    for (const cookie of [otherMentor.cookie, operatorCookie]) {
+      expect((await api(`/api/sessions/${sessionId}`, cookie)).status).toBe(404);
+      expect((await api(`/api/sessions/${sessionId}/messages`, cookie, { method: 'POST', body: { body: `let me in ${run}` } })).status).toBe(404);
+      expect((await api(`/api/sessions/${sessionId}/note`, cookie)).status).toBe(404);
+    }
+    expect((await api(`/api/sessions/${sessionId}`, menteeCookie)).body.data.messages).toEqual(before);
+  });
+
   it('the mentee cannot submit the answer; the mentor submits it once; the mentee reads it and is emailed (AC3)', async () => {
     const byMentee = await api(`/api/sessions/${sessionId}/answer`, menteeCookie, { method: 'POST', body: { body: ANSWER } });
     expect(byMentee.status).toBe(403);
