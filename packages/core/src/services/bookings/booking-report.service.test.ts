@@ -207,6 +207,7 @@ describe('BookingReportService.resolve', () => {
     await expect(service.resolve(mentorUserId, id)).rejects.toMatchObject({ status: 403, code: 'FORBIDDEN', message: OWN_BOOKING_REPORT_MESSAGE });
     expect(reports[0]?.resolvedAt ?? null).toBeNull();
     expect(em.nativeUpdate).not.toHaveBeenCalled();
+    expect(em.findOne).toHaveBeenCalledWith(BookingReport, { id }, { populate: ['booking.mentorProfile'] });
   });
 
   it('answers 404 for an unknown report', async () => {

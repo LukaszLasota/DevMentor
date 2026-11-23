@@ -35,7 +35,6 @@ const HEALTH_POLL_MS = 500;
 /** CI operator: the GitHub stub gives login `mock-operator` this verified email. */
 const OPERATOR_EMAIL = 'mock-operator@devmentor.test';
 
-
 function freePort(): Promise<number> {
   return new Promise((resolve, reject) => {
     const server = createServer();

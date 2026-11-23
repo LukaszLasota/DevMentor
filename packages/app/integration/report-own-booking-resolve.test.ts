@@ -51,8 +51,9 @@ async function reportedBooking(slug: string): Promise<string> {
 const cleanup = async () => {
   const people = `select id from users where email = '${opMentorEmail}' or email like 'ro-%-${run}@devmentor.test'`;
   const profiles = `select id from mentor_profiles where user_id in (${people})`;
-  await psql(`delete from booking_reports where booking_id in (select id from bookings where mentor_profile_id in (${profiles}))`);
   await psql(`delete from payouts where mentor_profile_id in (${profiles})`);
+  await psql(`delete from connect_accounts where mentor_profile_id in (${profiles})`);
+  await psql(`delete from booking_reports where booking_id in (select id from bookings where mentor_profile_id in (${profiles}))`);
   await psql(`delete from bookings where mentor_profile_id in (${profiles}) or mentee_id in (${people})`);
   await psql(`delete from invitations where batch = '${batch}' or email = '${opMentorEmail}'`);
   await psql(`delete from users where email = '${opMentorEmail}' or email like 'ro-%-${run}@devmentor.test'`);

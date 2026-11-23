@@ -33,7 +33,8 @@ function positive(name, ok, detail) {
 
 const leaks = (res, ...secrets) => secrets.some((s) => s && res.text.includes(s));
 const denied = (res) => res.status === 403 || res.status === 404;
-const sql = (s) => s.replaceAll("'", "''");
+// Ids interpolated into SQL come from this app's own responses (UUIDs) and the test DB only; assert the shape anyway.
+const uuid = (s) => { if (!/^[0-9a-f-]{36}$/.test(s)) throw new Error(`not a uuid: ${s}`); return s; };
 
 await finish(async () => {
   const mentorPage = browser('acl-mentor');
@@ -64,19 +65,19 @@ await finish(async () => {
   positive('T-01 mentee B reads own booking', (await call(`/api/bookings/${ownB}`, bCookie)).status === 200);
 
   const read1 = await call(`/api/bookings/${booking1}`, bCookie);
-  check('T-01 mentee B cannot read A booking', denied(read1) && !leaks(read1, booking1 && before1.json.data.startsAt), `HTTP ${read1.status}`);
+  check('T-01 mentee B cannot read A booking', denied(read1) && !leaks(read1, before1.json.data.startsAt), `HTTP ${read1.status}`);
   const cancel1 = await call(`/api/bookings/${booking1}/cancel`, bCookie, 'POST', { expectRefund: true });
   check('T-01 mentee B cannot cancel A booking', denied(cancel1), `HTTP ${cancel1.status}`);
   const report1 = await call(`/api/bookings/${booking1}/report`, bCookie, 'POST', { message: `This booking is not mine at all (${tag}).` });
   check('T-01 mentee B cannot report A booking', denied(report1), `HTTP ${report1.status}`);
   const after1 = await call(`/api/bookings/${booking1}`, aCookie);
   check('T-01 A booking unchanged after the attempts', after1.status === 200 && JSON.stringify(after1.json.data) === JSON.stringify(before1.json.data));
-  check('T-01 no report row written', (await testDb(`select count(*) from booking_reports where booking_id = '${booking1}'`)) === '0');
+  check('T-01 no report row written', (await testDb(`select count(*) from booking_reports where booking_id = '${uuid(booking1)}'`)) === '0');
 
   // ---- T-02: mentee B and the operator vs A's text session (read + write) ----
   const slot2 = await createSlot(mentorCookie, 96);
   const booking2 = await bookAndPay(menteeA, slug, slot2.id);
-  await testDb(`update bookings set starts_at = now() - interval '1 minute', ends_at = now() - interval '1 minute' + make_interval(mins => length_minutes) where id = '${booking2}'`);
+  await testDb(`update bookings set starts_at = now() - interval '1 minute', ends_at = now() - interval '1 minute' + make_interval(mins => length_minutes) where id = '${uuid(booking2)}'`);
   const secret = `private question ${tag}`;
   const sent = await call(`/api/sessions/${booking2}/messages`, aCookie, 'POST', { body: secret });
   positive('T-02 mentee A writes in own session', sent.status === 200, `HTTP ${sent.status}`);
@@ -117,7 +118,7 @@ await finish(async () => {
     const booking = await bookAndPay(menteeA, mentorSlug, (await createSlot(mentorCk, 96)).id);
     const res = await call(`/api/bookings/${booking}/report`, aCookie, 'POST', { message: `The mentor never showed up for this session (${tag}).` });
     positive('T-06 mentee A reports a booking', res.status === 200, `HTTP ${res.status}`);
-    return testDb(`select id from booking_reports where booking_id = '${booking}'`);
+    return testDb(`select id from booking_reports where booking_id = '${uuid(booking)}'`);
   };
   const ownReport = await report(opPage.slug, opMentorCookie);
   const otherReport = await report(slug, mentorCookie);
@@ -126,5 +127,5 @@ await finish(async () => {
   positive('T-06 the operator resolves a dispute on another mentor\'s booking', other.status === 200, `HTTP ${other.status}`);
   const self = await call(`/api/admin/reports/${ownReport}/resolve`, opMentorCookie, 'POST', {});
   check('T-06 the operator cannot resolve the dispute on their own booking', self.status === 403, `HTTP ${self.status} ${self.json?.error?.code ?? ''}`);
-  check('T-06 own report still open after the attempt', (await testDb(`select resolved_at is null from booking_reports where id = '${sql(ownReport)}'`)) === 't');
+  check('T-06 own report still open after the attempt', (await testDb(`select resolved_at is null from booking_reports where id = '${uuid(ownReport)}'`)) === 't');
 });

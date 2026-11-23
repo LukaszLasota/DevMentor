@@ -37,7 +37,8 @@ if [ "$WHAT" = sast ] || [ "$WHAT" = all ]; then
 fi
 
 if [ "$WHAT" = dast ] || [ "$WHAT" = all ]; then
-  URL=$(node -e 'const e=require("./.ai/qa/test-env.json"); if (e.status!=="running") { console.error("test env is not running: sh .ai/scripts/test-env-up.sh"); process.exit(1) } console.log(e.baseUrl)')
+  # Local test env only: refuse any host other than the loopback the descriptor's own app binds to.
+  URL=$(node -e 'const e=require("./.ai/qa/test-env.json"); if (e.status!=="running") { console.error("test env is not running: sh .ai/scripts/test-env-up.sh"); process.exit(1) } const h=new URL(e.baseUrl).hostname; if (!["127.0.0.1","localhost"].includes(h)) { console.error(`refusing to scan non-local host ${h}`); process.exit(1) } console.log(e.baseUrl)')
   echo "== DAST: ZAP baseline (passive spider + passive rules, no attacks) on $URL"
   digest "$ZAP_IMAGE" > "$OUT/zap.image"
   docker run --rm --network host -u "$(id -u):$(id -g)" -v "$OUT:/zap/wrk:rw" "$ZAP_IMAGE" \

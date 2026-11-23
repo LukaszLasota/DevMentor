@@ -47,7 +47,7 @@ The fee rate is snapshotted on the booking at confirmation (`fee_bps`, from `PLA
 | `POST /api/mentors/me/connect/start` | mentor + CSRF | `{ url }` (fresh Account Link); 503 `PAYMENTS_UNAVAILABLE` without Stripe; 409 `CONNECT_FAILED` when Stripe rejects the account |
 | `POST /api/mentors/me/connect/refresh` | mentor + CSRF | `{ onboardingStatus, lastReconciledAt }`; 404 without an account |
 | `POST /api/admin/payouts/release` | operator + CSRF | `{ transferred, held, failed, inFlight, remaining }` for this run (at most 25 bookings) |
-| `POST /api/admin/reports/[id]/resolve` | operator + CSRF | `{ resolvedAt }`; idempotent |
+| `POST /api/admin/reports/[id]/resolve` | operator + CSRF | `{ resolvedAt }`; idempotent; 403 `FORBIDDEN` when the operator owns the booking's mentor page (resolving would release their own held payout; added 2026-11-23, threat model T-06) |
 
 All `no-store`; codes additive. Stripe calls: `POST /v1/accounts` (`type=express`, `country=PL`, `capabilities[transfers][requested]=true`, `metadata[mentor_profile_id]`, idempotency key), `POST /v1/account_links` (`type=account_onboarding`, return/refresh URLs from `APP_URL`), `GET /v1/accounts/:id`, `GET /v1/checkout/sessions/:id?expand[]=payment_intent.latest_charge`, `GET /v1/transfers?transfer_group=booking_<id>`, `POST /v1/transfers` (`amount`, `currency`, `destination`, `source_transaction`, `transfer_group=booking_<id>`, `metadata[booking_id]`, idempotency key `payout-<bookingId>-<attempt>`). The mentor routes take no id (the account is always the session user's); Account Link return and refresh URLs are built only from `APP_URL`, and Account Link URLs are never logged or stored.
 
