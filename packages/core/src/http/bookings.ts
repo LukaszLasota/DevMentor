@@ -6,7 +6,7 @@ import { bookingCancelSchema } from '../validators/bookings/booking-cancel.schem
 import { bookingReportSchema } from '../validators/bookings/booking-report.schema';
 import { bookingStartSchema } from '../validators/bookings/booking-start.schema';
 import type { ApiHandlerOptions, HandlerArgs, RouteParams } from './apiHandler';
-import { BOOKING_CHANGE_RATE_LIMITS, BOOKING_START_RATE_LIMITS, rateLimitChecks } from '../security/rate-limit';
+import { BOOKING_CHANGE_RATE_LIMITS, BOOKING_START_RATE_LIMITS, clientIp, rateLimitChecks } from '../security/rate-limit';
 import { requireRole, requireSession } from './auth';
 import { NotFoundError } from './errors';
 import { parseJsonBody } from './parse';
@@ -25,7 +25,8 @@ export type BookingIdParams = { id: string };
 export async function startBooking({ req, cradle }: HandlerArgs<RouteParams>): Promise<BookingStarted> {
   const user = await requireSession(req, cradle);
   const input = await parseJsonBody(req, bookingStartSchema);
-  await cradle.rateLimiter.consumeAll(rateLimitChecks(BOOKING_START_RATE_LIMITS, { email: user.email, ip: null }));
+  const ip = clientIp(req.headers, cradle.env.TRUSTED_PROXY_HOPS, cradle.logger);
+  await cradle.rateLimiter.consumeAll(rateLimitChecks(BOOKING_START_RATE_LIMITS, { email: user.email, ip }));
 
   return cradle.bookingService.start({ id: user.id, email: user.email }, input);
 }

@@ -60,10 +60,11 @@ beforeEach(() => {
 
 async function request(
   method: 'GET' | 'POST',
-  { csrf = true, signedIn = true, body }: { csrf?: boolean; signedIn?: boolean; body?: unknown } = {},
+  { csrf = true, signedIn = true, body, forwardedFor }: { csrf?: boolean; signedIn?: boolean; body?: unknown; forwardedFor?: string } = {},
 ): Promise<Request> {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
 
+  if (forwardedFor !== undefined) headers['x-forwarded-for'] = forwardedFor;
   if (csrf) headers[CSRF_HEADER] = CSRF_HEADER_VALUE;
   if (signedIn) headers.cookie = `dm_session=${await signSession({ sub: USER_ID, sv: 0 }, SECRET, clock)}`;
 
@@ -119,6 +120,18 @@ describe('booking rate limits', () => {
       ['booking-start'],
       ['booking-change'],
       ['booking-change'],
+    ]);
+  });
+
+  it('also counts starts per client IP behind a trusted proxy, IP first (threat model T-11: many accounts, one machine)', async () => {
+    Object.assign(scope.cradle as object, { env: parseEnv({ DATABASE_URL: 'postgres://u:p@localhost:5432/db', SESSION_SECRET: SECRET, TRUSTED_PROXY_HOPS: '1' }) });
+
+    await START(await request('POST', { body: { slotId: SLOT_ID, length: '25' }, forwardedFor: '203.0.113.9' }), noParams);
+
+    const [checks] = rateLimiter.consumeAll.mock.calls[0] as [{ policy: { action: string; subject: string } }[]];
+    expect(checks.map((check) => [check.policy.action, check.policy.subject])).toEqual([
+      ['booking-start', 'ip'],
+      ['booking-start', 'email'],
     ]);
   });
 

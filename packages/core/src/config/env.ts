@@ -210,6 +210,12 @@ export function assertProductionEnv(env: Env): void {
   if (missing.length > 0) {
     throw new Error(`Invalid environment: ${missing.join(', ')} must be set in production`);
   }
+
+  // T-12: with 0 hops no client IP is derivable and every per-IP limit is skipped. Behind a proxy that
+  // is the count of proxies that append to x-forwarded-for; the test runners (no proxy) opt out.
+  if (env.TRUSTED_PROXY_HOPS === 0 && !env.ALLOW_TEST_OVERRIDES) {
+    throw new Error('Invalid environment: TRUSTED_PROXY_HOPS must be 1 or more in production (per-IP rate limits)');
+  }
 }
 
 let cachedEnv: Env | undefined;

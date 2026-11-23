@@ -332,7 +332,7 @@ describe('assertProductionEnv', () => {
     ).toThrow('Invalid environment: APP_URL must be set in production');
   });
 
-  it('passes in production with SESSION_SECRET, APP_URL and the resend key and sender', () => {
+  it('passes in production with SESSION_SECRET, APP_URL, the resend key and sender, and the proxy hops', () => {
     const env = parseEnv({
       DATABASE_URL,
       NODE_ENV: 'production',
@@ -340,9 +340,19 @@ describe('assertProductionEnv', () => {
       APP_URL: 'https://x.test',
       MAIL_API_KEY: 're_x',
       MAIL_FROM: 'a@b.test',
+      TRUSTED_PROXY_HOPS: '1',
     });
 
     expect(() => assertProductionEnv(env)).not.toThrow();
+  });
+
+  it('refuses production with 0 trusted proxy hops, so per-IP limits cannot be off silently (threat model T-12)', () => {
+    const ready = { DATABASE_URL, NODE_ENV: 'production', SESSION_SECRET: SECRET, APP_URL: 'https://x.test', MAIL_API_KEY: 're_x', MAIL_FROM: 'a@b.test' };
+
+    expect(() => assertProductionEnv(parseEnv(ready))).toThrow(/TRUSTED_PROXY_HOPS must be 1 or more in production/);
+    expect(() => assertProductionEnv(parseEnv({ ...ready, TRUSTED_PROXY_HOPS: '0' }))).toThrow(/TRUSTED_PROXY_HOPS/);
+    // The integration runner and the local test env run production builds without a proxy.
+    expect(() => assertProductionEnv(parseEnv({ ...ready, ALLOW_TEST_OVERRIDES: '1' }))).not.toThrow();
   });
 
   it('does not require the resend key when the log mailer is legitimately set', () => {

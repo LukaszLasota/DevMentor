@@ -26,6 +26,8 @@ export const REGISTER_PER_EMAIL: RateLimitPolicy = { action: 'register', subject
 export const RESEND_PER_EMAIL: RateLimitPolicy = { action: 'resend', subject: 'email', limit: 3, windowMs: HOUR_MS };
 /** Booking starts per account (each opens a Stripe Checkout Session and holds a time). */
 export const BOOKING_START_PER_EMAIL: RateLimitPolicy = { action: 'booking-start', subject: 'email', limit: 20, windowMs: HOUR_MS };
+/** Booking starts per client IP: many throwaway accounts on one machine cannot hold every time (T-11); above the per-account limit for shared NATs. */
+export const BOOKING_START_PER_IP: RateLimitPolicy = { action: 'booking-start', subject: 'ip', limit: 30, windowMs: HOUR_MS };
 /** Releases and cancellations per account (each may call Stripe). */
 export const BOOKING_CHANGE_PER_EMAIL: RateLimitPolicy = { action: 'booking-change', subject: 'email', limit: 20, windowMs: HOUR_MS };
 
@@ -33,7 +35,7 @@ export const BOOKING_CHANGE_PER_EMAIL: RateLimitPolicy = { action: 'booking-chan
 export const SIGN_IN_RATE_LIMITS = [SIGN_IN_PER_IP, SIGN_IN_PER_EMAIL] as const;
 export const REGISTER_RATE_LIMITS = [REGISTER_PER_IP, REGISTER_PER_EMAIL] as const;
 export const RESEND_RATE_LIMITS = [RESEND_PER_EMAIL] as const;
-export const BOOKING_START_RATE_LIMITS = [BOOKING_START_PER_EMAIL] as const;
+export const BOOKING_START_RATE_LIMITS = [BOOKING_START_PER_IP, BOOKING_START_PER_EMAIL] as const;
 export const BOOKING_CHANGE_RATE_LIMITS = [BOOKING_CHANGE_PER_EMAIL] as const;
 
 /**
