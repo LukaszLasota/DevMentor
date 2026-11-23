@@ -41,7 +41,7 @@ beforeEach(() => {
   scope.cradle = {
     env: parseEnv({ DATABASE_URL: 'postgres://u:p@localhost:5432/db', SESSION_SECRET: SECRET }),
     clock,
-    logger: { warn: vi.fn(), error: vi.fn() },
+    logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
     em: { findOne: vi.fn(async (_entity: unknown, where: { id: string }) => (where.id === user.id ? user : null)) },
     accountService: { reconcileOperator: vi.fn(async (u: User) => u) },
     ...services,
@@ -90,6 +90,12 @@ describe('operator payout routes', () => {
     expect(await (await RELEASE(await request(), noParams)).json()).toEqual({ ok: true, data: { transferred: 1, held: 0, failed: 0, inFlight: 0, remaining: 0 } });
     expect(await (await RESOLVE(await request(), idParams(REPORT_ID))).json()).toEqual({ ok: true, data: { resolvedAt: '2026-06-22T16:00:00.000Z' } });
     expect(services.bookingReportService?.resolve).toHaveBeenCalledWith(USER_ID, REPORT_ID);
+    // T-14: both money actions name the operator.
+    expect((scope.cradle as { logger: { info: unknown } }).logger.info).toHaveBeenCalledWith(
+      { operator: { id: USER_ID }, action: 'payouts.release', result: { transferred: 1, held: 0, failed: 0, inFlight: 0, remaining: 0 } },
+      'Operator action',
+    );
+    expect((scope.cradle as { logger: { info: unknown } }).logger.info).toHaveBeenCalledWith({ operator: { id: USER_ID }, action: 'report.resolve', report: { id: REPORT_ID } }, 'Operator action');
   });
 
   it('refuse anyone else (403) and a malformed report id (404)', async () => {
