@@ -1,0 +1,45 @@
+flowchart LR
+  subgraph internet [Untrusted: internet]
+    Mentee[Mentee browser]
+    Mentor[Mentor browser]
+    Operator[Operator browser - may also be a mentor]
+    Other[Anonymous user or another signed-in account]
+  end
+  subgraph app [Trusted: DevMentor Next.js app]
+    Proxy(Proxy /m/:slug)
+    Pages(Server pages + page guards)
+    API(API routes via apiHandler + requireSession/requireRole)
+    Inbox(Stripe webhook inbox)
+    Payout(Payout + refund services)
+  end
+  subgraph data [Trusted: data]
+    DB[(PostgreSQL: users, bookings, messages, notes, reports, payouts, stripe_events)]
+  end
+  subgraph ext [Semi-trusted: providers]
+    Stripe[Stripe Checkout + Connect]
+    GitHub[GitHub OAuth]
+    Mail[Mail provider]
+  end
+  subgraph ops [Trusted: owner workstation]
+    CLI(invite / seed scripts)
+  end
+  Mentee -->|"session cookie, booking ids, cancel/report (T-01, T-03, T-11, T-13)"| API
+  Mentor -->|"session cookie, slots, profile, prices, Connect start (T-03, T-04)"| API
+  Operator -->|"refund retry, resolve report, release payouts (T-05, T-06, T-14)"| API
+  Other -->|"swapped booking/session/slot ids, someone else's session messages, password guesses (T-01, T-02, T-04, T-05, T-12)"| API
+  Mentee -->|page requests| Pages
+  Other -->|"/m/slug, Host header (open question)"| Proxy
+  Proxy -->|status probe of public mentor page| API
+  Pages -->|session check, scoped reads| DB
+  API -->|"queries scoped by session user (T-01, T-02, T-04)"| DB
+  API -->|"Checkout Session for server-held price (T-08)"| Stripe
+  Stripe -->|"signed checkout.session.* events (T-08)"| Inbox
+  Inbox -->|confirm / orphan / expire booking| DB
+  API -->|"cancel refund, operator release (T-06, T-07)"| Payout
+  Payout -->|"refunds, transfers with idempotency keys (T-07, T-09, T-10)"| Stripe
+  Payout -->|payout rows, refund status| DB
+  API -->|code + PKCE verifier, verified primary email| GitHub
+  API -->|verification links, booking mails| Mail
+  CLI -->|invitation tokens, seed data| DB
+  classDef boundary stroke-dasharray: 5 5
+  class internet,app,data,ext,ops boundary

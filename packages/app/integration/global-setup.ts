@@ -11,6 +11,7 @@ import type { TestProject } from 'vitest/node';
 import { startGithubStub } from '../../../scripts/lib/github-stub.mjs';
 import { startStripeStub } from '../../../scripts/lib/stripe-stub.mjs';
 import { STRIPE_TEST_SECRET_KEY, STRIPE_TEST_WEBHOOK_SECRET } from './stripe-credentials';
+import { OPERATOR_MENTOR_LOGIN } from './fixtures/operators';
 
 declare module 'vitest' {
   export interface ProvidedContext {
@@ -120,7 +121,7 @@ export default async function setup(project: TestProject) {
       DEVMENTOR_GITHUB_API_URL: githubStub.url,
       GITHUB_CLIENT_ID: 'integration-client',
       GITHUB_CLIENT_SECRET: 'integration-secret',
-      OPERATOR_EMAILS: OPERATOR_EMAIL,
+      OPERATOR_EMAILS: `${OPERATOR_EMAIL},${OPERATOR_MENTOR_LOGIN}@devmentor.test`,
       // Mentor prices (founder decision 2026-11-20, spec 2026-10-21-mentor-prices).
       PLATFORM_CURRENCY: 'PLN',
       PLATFORM_PRICE_BOUNDS: JSON.stringify({ '25': { minCents: 5000, maxCents: 30000 }, '50': { minCents: 10000, maxCents: 60000 } }),

@@ -89,7 +89,7 @@ describe('operator payout routes', () => {
 
     expect(await (await RELEASE(await request(), noParams)).json()).toEqual({ ok: true, data: { transferred: 1, held: 0, failed: 0, inFlight: 0, remaining: 0 } });
     expect(await (await RESOLVE(await request(), idParams(REPORT_ID))).json()).toEqual({ ok: true, data: { resolvedAt: '2026-06-22T16:00:00.000Z' } });
-    expect(services.bookingReportService?.resolve).toHaveBeenCalledWith(REPORT_ID);
+    expect(services.bookingReportService?.resolve).toHaveBeenCalledWith(USER_ID, REPORT_ID);
   });
 
   it('refuse anyone else (403) and a malformed report id (404)', async () => {

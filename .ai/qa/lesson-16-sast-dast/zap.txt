@@ -1,0 +1,15 @@
+alerts: 14
+- [Medium (High)] Content Security Policy (CSP) Header Not Set (5 URLs) e.g. http://127.0.0.1:43179
+- [Medium (Medium)] Missing Anti-clickjacking Header (5 URLs) e.g. http://127.0.0.1:43179
+- [Low (Medium)] Cross-Origin-Embedder-Policy Header Missing or Invalid (2 URLs) e.g. http://127.0.0.1:43179
+- [Low (Medium)] Cross-Origin-Opener-Policy Header Missing or Invalid (2 URLs) e.g. http://127.0.0.1:43179
+- [Low (Medium)] Cross-Origin-Resource-Policy Header Missing or Invalid (5 URLs) e.g. http://127.0.0.1:43179
+- [Low (Medium)] Permissions Policy Header Not Set (5 URLs) e.g. http://127.0.0.1:43179
+- [Low (Medium)] Server Leaks Information via "X-Powered-By" HTTP Response Header Field(s) (5 URLs) e.g. http://127.0.0.1:43179
+- [Low (Medium)] X-Content-Type-Options Header Missing (5 URLs) e.g. http://127.0.0.1:43179
+- [Informational (High)] Authentication Request Identified (1 URLs) e.g. http://127.0.0.1:43179/sign-in?email=zaproxy%40example.com&password=ZAP&returnTo=%2Fmentors
+- [Informational (Medium)] Information Disclosure - Sensitive Information in URL (3 URLs) e.g. http://127.0.0.1:43179/register?email=zaproxy%40example.com&returnTo=%2Fmentors
+- [Informational (Medium)] Modern Web Application (2 URLs) e.g. http://127.0.0.1:43179/robots.txt
+- [Informational (Medium)] Session Management Response Identified (1 URLs) e.g. http://127.0.0.1:43179/api/auth/github?returnTo=%2Fmentors
+- [Informational (Medium)] Storable and Cacheable Content (5 URLs) e.g. http://127.0.0.1:43179
+- [Informational (Medium)] Storable but Non-Cacheable Content (1 URLs) e.g. http://127.0.0.1:43179/next.svg
