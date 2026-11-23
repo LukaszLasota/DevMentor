@@ -96,6 +96,7 @@ describe('DI container', () => {
     vi.stubEnv('APP_URL', 'https://devmentor.test');
     vi.stubEnv('MAIL_API_KEY', 're_test');
     vi.stubEnv('MAIL_FROM', 'noreply@devmentor.test');
+    vi.stubEnv('TRUSTED_PROXY_HOPS', '1');
     const { getContainer } = await loadContainer();
 
     await getContainer();

@@ -38,4 +38,5 @@
 
 - Done: **T-08** (stored session id compared, unit RED → GREEN), **T-14** partly (operator id logged on refund retry, report resolve and payout release; `resolved_by` column still open), **T-07** accepted (D27).
 - Integration assertions added: **T-01** `/release` by another mentee (`booking-checkout.test.ts`), **T-02** another mentor and an operator on session, messages and note (`text-session.test.ts`), **T-05** mentee and mentor-only on report resolve (`report-own-booking-resolve.test.ts`).
-- Open: T-12 and T-13 (need hosting facts from the owner), `resolved_by`, T-04 Connect two-mentor check, T-10 parallel release.
+- **T-12** done in code: production refuses to start with `TRUSTED_PROXY_HOPS=0` (unless `ALLOW_TEST_OVERRIDES=1`); the owner sets the real count on the host (cyber_Folks: verify `X-Forwarded-For` after the first deploy). **T-11** partly: booking starts are also limited per client IP (30/h, next to 20/h per account).
+- Open: T-13 (headers; the owner confirms what the host adds), `resolved_by`, T-04 Connect two-mentor check, T-10 parallel release.

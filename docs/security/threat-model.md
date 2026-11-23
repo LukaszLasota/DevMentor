@@ -188,3 +188,4 @@ STRIDE notes for letters without their own row. Spoofing: sessions are live-chec
 - 2026-11-23 T-06 confirmed on the test env (operator-mentor resolved its own dispute: HTTP 200) and fixed: 403, report stays open. T-01 and T-02 checked with two accounts, no breach (`.ai/context/2026-11-23-lesson-16-security.md`).
 - 2026-11-23 Fix plan for the remaining High / None / Partial threats: `docs/security/fix-plan.md` (some "Control today" cells understate existing integration coverage; the plan has the current state).
 - 2026-11-23 T-08 fixed (stored Checkout session id compared), T-14 partly (operator id logged on the three money actions), T-07 accepted (D27).
+- 2026-11-23 T-12: production refuses 0 trusted proxy hops; T-11: per-IP limit on booking starts (`docs/security/fix-plan.md` § Status).
