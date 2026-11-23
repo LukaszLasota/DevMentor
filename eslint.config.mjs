@@ -117,7 +117,7 @@ const eslintConfig = defineConfig([
         "error",
         {
           selector:
-            "LogicalExpression[operator=/^(\\?\\?|\\|\\|)$/][left.property.name='displayName']:matches([right.type='Literal'][right.value=/./], [right.type='Literal'][right.value=''], [right.type='TemplateLiteral'])",
+            "LogicalExpression[operator=/^(\\?\\?|\\|\\|)$/]:matches([left.property.name='displayName'], [left.expression.property.name='displayName'], [left.name='displayName'], [left.callee.object.property.name='displayName'], [left.expression.callee.object.property.name='displayName']):not([right.type='Literal'][right.value=null], [right.type='Identifier'][right.name='undefined'])",
           message:
             "No inline fallback for a mentor's displayName: use mentorNameForMentee / mentorNameForMenteeInSentence / mentorNameForOperator from services/mentors/mentor-name.ts (they also catch '' and whitespace).",
         },

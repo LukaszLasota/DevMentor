@@ -20,13 +20,18 @@ describe('no inline mentor-name fallback in core services', () => {
     ["export const a = (p: { displayName: string | null }) => p.displayName ?? 'your mentor';"],
     ["export const a = (p: { displayName: string | null }) => p.displayName || 'Your mentor';"],
     ['export const a = (p: { displayName: string | null }, e: string) => p.displayName ?? `${e}`;'],
+    ["export const a = (p?: { displayName: string | null }) => p?.displayName ?? 'x';"],
+    ["export const a = ({ displayName }: { displayName: string | null }) => displayName ?? 'x';"],
+    ["export const a = (p: { displayName: string | null }) => p.displayName?.trim() || 'x';"],
+    ['export const a = (p: { displayName: string | null }, u: { email: string }) => p.displayName ?? u.email;'],
   ])('flags %s', async (code) => {
     expect(await errors(code)).toEqual([1]);
-  }, 30_000);
+  }, 10_000);
 
   it('allows null mapping, the helper itself and code outside core services', async () => {
     expect(await errors('export const a = (p: { displayName: string | null }) => p.displayName ?? null;')).toEqual([]);
+    expect(await errors('export const a = (p: { displayName: string | null }) => p.displayName ?? undefined;')).toEqual([]);
     expect(await errors("export const a = (p: { displayName: string | null }) => p.displayName ?? '';", 'packages/core/src/services/mentors/mentor-name.ts')).toEqual([]);
     expect(await errors("export const a = (p: { displayName: string | null }) => p.displayName ?? '';", 'packages/app/src/app/x.ts')).toEqual([]);
-  }, 30_000);
+  }, 10_000);
 });

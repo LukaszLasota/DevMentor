@@ -22,7 +22,7 @@ The blank or ad-hoc mentor name came back twice:
 
 Each time a service wrote its own `displayName ?? ''` or `?? 'your mentor'`, which also lets `''` through. LLM reviews passed the first fix without spotting the other sites.
 
-Gate: an ESLint `no-restricted-syntax` rule in `eslint.config.mjs`. It forbids `displayName ?? / || <string or template>` in `packages/core/src/services/**` outside `mentors/mentor-name.ts` and tests. It runs in the CI job "Lint & typecheck", which the ruleset now requires. `scripts/eslint-mentor-name.test.mjs` pins the rule, so it cannot be loosened silently.
+Gate: an ESLint `no-restricted-syntax` rule in `eslint.config.mjs`. It forbids `displayName ?? / || <anything but null/undefined>` (also `p?.displayName`, a destructured `displayName` and `displayName?.trim() ||`) in `packages/core/src/services/**` outside `mentors/mentor-name.ts` and tests. It runs in the CI job "Lint & typecheck", which the ruleset now requires. `scripts/eslint-mentor-name.test.mjs` pins the rule, so it cannot be loosened silently.
 
 ```text
 Evidence card — lint gate for mentor-name fallbacks
@@ -32,7 +32,7 @@ Base and target commit: RED on d061a6d^ (before #88) and 901d19c (after #88, bef
 Environment, seed, account and time: local, 2026-11-23; no app or database needed.
 Check: `git show <commit>:<file> | npx eslint --stdin --stdin-filename <file>`; on the branch `npx eslint packages/core/src/services`; CI job "Lint & typecheck" (required by the ruleset).
 Expected behavior: RED with the rule's message on every inline fallback; GREEN on main.
-Actual result and where: d061a6d^ booking.service.ts → 3 errors (lines 233, 491, 493); 901d19c booking-cancellation.service.ts → 2 (170, 235), booking-report.service.ts → 1 (107), payout.service.ts → 1 (108). These are exactly the 7 sites of #85 and #87. Main: 0 errors.
-What this does not prove: a name built another way, for example `displayName as string`, a ternary, or code in packages/app. It does not check that the helper is called where a name is shown, only that no service invents its own fallback.
+Actual result and where: d061a6d^ booking.service.ts → 3 errors (lines 233, 491, 493); 901d19c booking-cancellation.service.ts → 2 (170, 235), booking-report.service.ts → 1 (107), payments/payout.service.ts → 1 (108). These are exactly the 7 sites of #85 and #87. Main: 0 errors.
+What this does not prove: a name built another way, for example `displayName as string`, a ternary, a renamed variable (`const n = p.displayName; n ?? 'x'`), or code in packages/app. It does not check that the helper is called where a name is shown, only that no service invents its own fallback.
 Decision and owner: required through the CI lint job (ruleset 27903072). Owner: Łukasz Lasota.
 ```
