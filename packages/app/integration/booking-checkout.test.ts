@@ -183,6 +183,7 @@ describe('booking: cancel, race, overlap and refusals over HTTP (Stripe stub)', 
     expect(await psql(`select count(*) from bookings where slot_id = '${slot?.id}'`)).toBe('1');
 
     // Threat model T-01: the loser cannot release the winner's hold; it stays held (404 like an unknown id).
+    // The owner's release itself is proven by the Cancel on Checkout test above.
     const [winnerCookie, loserCookie] = first.status === 200 ? [menteeCookie, rivalCookie] : [rivalCookie, menteeCookie];
     const held = (first.status === 200 ? first : second).body.data.bookingId as string;
     expect((await api(`/api/bookings/${held}`, winnerCookie)).body.data.status).toBe('pending_payment');

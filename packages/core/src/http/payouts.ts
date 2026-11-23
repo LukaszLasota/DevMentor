@@ -48,6 +48,7 @@ export async function resolveReport({ req, params, cradle }: HandlerArgs<ReportI
   }
 
   const result = await cradle.bookingReportService.resolve(operator.id, params.id);
+  // T-14: every operator money action names the operator (no PII, ids only).
   cradle.logger.info({ operator: { id: operator.id }, action: 'report.resolve', report: { id: params.id } }, 'Operator action');
 
   return result;
