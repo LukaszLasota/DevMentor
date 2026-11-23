@@ -1,0 +1,4 @@
+# Raw scanner output stays local; the summaries (*.txt, zap.md) and the image digests are committed.
+*.json
+*.html
+*.yaml

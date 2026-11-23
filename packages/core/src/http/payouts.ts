@@ -36,11 +36,12 @@ export type ReportIdParams = { id: string };
 
 /** `POST /api/admin/reports/[id]/resolve` → `{ resolvedAt }`; the booking's payout may be released again. */
 export async function resolveReport({ req, params, cradle }: HandlerArgs<ReportIdParams>): Promise<{ resolvedAt: string }> {
-  requireRole(await requireSession(req, cradle), 'operator');
+  const operator = await requireSession(req, cradle);
+  requireRole(operator, 'operator');
 
   if (!z.uuid().safeParse(params.id).success) {
     throw new NotFoundError(REPORT_NOT_FOUND_MESSAGE);
   }
 
-  return cradle.bookingReportService.resolve(params.id);
+  return cradle.bookingReportService.resolve(operator.id, params.id);
 }

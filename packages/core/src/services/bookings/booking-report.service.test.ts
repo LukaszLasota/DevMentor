@@ -3,12 +3,13 @@ import { Booking, BOOKING_REPORT_BOOKING_UNIQUE, BookingReport, MentorProfile, U
 import { describe, expect, it, vi } from 'vitest';
 import { parseEnv } from '../../config/env';
 import type { Cradle } from '../../container/cradle';
-import { ALREADY_REPORTED_MESSAGE, BookingReportService, NOT_REPORTABLE_MESSAGE, REPORT_NOT_FOUND_MESSAGE } from './booking-report.service';
+import { ALREADY_REPORTED_MESSAGE, BookingReportService, NOT_REPORTABLE_MESSAGE, OWN_BOOKING_REPORT_MESSAGE, REPORT_NOT_FOUND_MESSAGE } from './booking-report.service';
 import { BOOKING_NOT_FOUND_MESSAGE } from './booking.service';
 
 const NOW = new Date('2026-06-22T16:00:00.000Z');
 const MENTEE_ID = randomUUID();
 const MESSAGE = 'The mentor did not show up for the session.';
+const OPERATOR_ID = randomUUID();
 
 function ref<T extends object>(entity: T) {
   return Object.assign(entity, { getEntity: () => entity });
@@ -192,15 +193,26 @@ describe('BookingReportService.resolve', () => {
     await service.report(MENTEE_ID, booking.id, { message: MESSAGE });
     const id = reports[0]?.id as string;
 
-    await expect(service.resolve(id)).resolves.toEqual({ resolvedAt: NOW.toISOString() });
+    await expect(service.resolve(OPERATOR_ID, id)).resolves.toEqual({ resolvedAt: NOW.toISOString() });
     (reports[0] as BookingReport).resolvedAt = new Date('2026-06-20T00:00:00.000Z');
-    await expect(service.resolve(id)).resolves.toEqual({ resolvedAt: '2026-06-20T00:00:00.000Z' });
+    await expect(service.resolve(OPERATOR_ID, id)).resolves.toEqual({ resolvedAt: '2026-06-20T00:00:00.000Z' });
+  });
+
+  it("refuses (403) an operator who is the booking's mentor and leaves the report open (threat model T-06)", async () => {
+    const { service, booking, reports, em } = setup();
+    await service.report(MENTEE_ID, booking.id, { message: MESSAGE });
+    const id = reports[0]?.id as string;
+    const mentorUserId = booking.mentorProfile.getEntity().user.id;
+
+    await expect(service.resolve(mentorUserId, id)).rejects.toMatchObject({ status: 403, code: 'FORBIDDEN', message: OWN_BOOKING_REPORT_MESSAGE });
+    expect(reports[0]?.resolvedAt ?? null).toBeNull();
+    expect(em.nativeUpdate).not.toHaveBeenCalled();
   });
 
   it('answers 404 for an unknown report', async () => {
     const { service } = setup();
 
-    await expect(service.resolve(randomUUID())).rejects.toMatchObject({ status: 404, message: REPORT_NOT_FOUND_MESSAGE });
+    await expect(service.resolve(OPERATOR_ID, randomUUID())).rejects.toMatchObject({ status: 404, message: REPORT_NOT_FOUND_MESSAGE });
   });
 });
 

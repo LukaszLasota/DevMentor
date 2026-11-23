@@ -1,0 +1,56 @@
+files scanned: 675
+files skipped: 0
+parse errors: 5
+findings: 42
+- [ERROR] ajinabraham.njsscan.generic.hardcoded_secrets.node_password packages/app/integration/account-email-flows.test.ts:14
+- [ERROR] ajinabraham.njsscan.generic.hardcoded_secrets.node_password packages/app/integration/email-browser.test.ts:12
+- [ERROR] ajinabraham.njsscan.generic.hardcoded_secrets.node_password packages/app/integration/email-browser.test.ts:17
+- [ERROR] ajinabraham.njsscan.generic.hardcoded_secrets.node_password packages/app/integration/email-sign-in.test.ts:10
+- [ERROR] ajinabraham.njsscan.generic.hardcoded_secrets.node_password packages/app/integration/invitation-flow.test.ts:28
+- [WARNING] ajinabraham.njsscan.dos.regex_dos.regex_dos packages/app/integration/invitation-flow.test.ts:50
+- [WARNING] ajinabraham.njsscan.dos.regex_dos.regex_dos packages/app/integration/invitation-flow.test.ts:50
+- [ERROR] ajinabraham.njsscan.generic.hardcoded_secrets.node_password packages/app/integration/invitation-routes.test.ts:11
+- [ERROR] ajinabraham.njsscan.generic.hardcoded_secrets.node_secret packages/app/integration/stripe-credentials.ts:2
+- [ERROR] ajinabraham.njsscan.generic.hardcoded_secrets.node_secret packages/app/integration/stripe-credentials.ts:3
+- [ERROR] ajinabraham.njsscan.generic.hardcoded_secrets.node_password packages/app/src/app/(auth)/verify-email/VerifyEmailForm.test.tsx:13
+- [WARNING] ajinabraham.njsscan.crypto.timing_attack_node.node_timing_attack packages/app/src/app/(auth)/verify-email/VerifyEmailForm.tsx:44
+- [WARNING] ajinabraham.njsscan.generic.hardcoded_secrets.node_username packages/app/src/app/api/auth/sign-out/route.test.ts:21
+- [ERROR] ajinabraham.njsscan.generic.hardcoded_secrets.node_password packages/app/src/components/auth/messages.ts:8
+- [WARNING] ajinabraham.njsscan.generic.hardcoded_secrets.node_username packages/core/src/auth/session-user.test.ts:20
+- [ERROR] ajinabraham.njsscan.generic.hardcoded_secrets.node_password packages/core/src/cli/demo-accounts.ts:6
+- [ERROR] ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key packages/core/src/container/container.test.ts:97
+- [WARNING] ajinabraham.njsscan.generic.hardcoded_secrets.node_username packages/core/src/http/availability.test.ts:23
+- [WARNING] ajinabraham.njsscan.generic.hardcoded_secrets.node_username packages/core/src/http/bookings.test.ts:22
+- [WARNING] ajinabraham.njsscan.generic.hardcoded_secrets.node_username packages/core/src/http/email-sign-in.test.ts:35
+- [ERROR] ajinabraham.njsscan.generic.hardcoded_secrets.node_password packages/core/src/http/email-sign-in.test.ts:38
+- [WARNING] ajinabraham.njsscan.generic.hardcoded_secrets.node_username packages/core/src/http/github-sign-in.test.ts:30
+- [WARNING] ajinabraham.njsscan.generic.hardcoded_secrets.node_username packages/core/src/http/invitations.test.ts:27
+- [WARNING] ajinabraham.njsscan.generic.hardcoded_secrets.node_username packages/core/src/http/mentors.test.ts:33
+- [WARNING] ajinabraham.njsscan.crypto.timing_attack_node.node_timing_attack packages/core/src/http/oauth-state-cookie.ts:46
+- [ERROR] ajinabraham.njsscan.generic.hardcoded_secrets.node_secret packages/core/src/http/outbound.test.ts:6
+- [WARNING] ajinabraham.njsscan.generic.hardcoded_secrets.node_username packages/core/src/http/payouts.test.ts:22
+- [WARNING] ajinabraham.njsscan.dos.regex_dos.regex_dos packages/core/src/http/return-to.ts:17
+- [WARNING] ajinabraham.njsscan.generic.hardcoded_secrets.node_username packages/core/src/http/sessions.test.ts:21
+- [ERROR] ajinabraham.njsscan.generic.hardcoded_secrets.node_secret packages/core/src/logger.ts:36
+- [ERROR] ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key packages/core/src/mail/resend-mailer.test.ts:10
+- [ERROR] ajinabraham.njsscan.generic.hardcoded_secrets.node_password packages/core/src/services/auth/account.service.test.ts:627
+- [WARNING] ajinabraham.njsscan.generic.hardcoded_secrets.node_username packages/core/src/services/auth/github-oauth.service.ts:14
+- [WARNING] ajinabraham.njsscan.generic.hardcoded_secrets.node_username packages/core/src/services/bookings/booking.service.test.ts:422
+- [WARNING] ajinabraham.njsscan.generic.hardcoded_secrets.node_username packages/core/src/services/bookings/booking.service.test.ts:730
+- [WARNING] ajinabraham.njsscan.generic.hardcoded_secrets.node_username packages/core/src/services/bookings/booking.service.test.ts:786
+- [WARNING] ajinabraham.njsscan.generic.hardcoded_secrets.node_username packages/core/src/services/bookings/booking.service.test.ts:846
+- [ERROR] ajinabraham.njsscan.generic.hardcoded_secrets.node_secret packages/core/src/services/payments/stripe-client.test.ts:9
+- [ERROR] ajinabraham.njsscan.generic.hardcoded_secrets.node_secret packages/core/src/services/payments/stripe-inbox.service.test.ts:18
+- [WARNING] ajinabraham.njsscan.crypto.timing_attack_node.node_timing_attack packages/core/src/services/payments/stripe-inbox.service.ts:92
+- [ERROR] ajinabraham.njsscan.generic.hardcoded_secrets.node_secret packages/core/src/services/payments/webhook-signature.test.ts:5
+- [ERROR] ajinabraham.njsscan.generic.hardcoded_secrets.node_secret packages/core/src/services/payments/webhook-signature.ts:63
+! PartialParsing,[object Object],[object Object],[object Object],[object Object] packages/app/src/app/(marketing)/page.tsx Syntax error at line /src/packages/app/src/app/(marketing)/page.tsx:19:
+ `&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app
+! PartialParsing,[object Object] packages/app/src/app/api/auth/sign-out/route.test.ts Syntax error at line /src/packages/app/src/app/api/auth/sign-out/route.test.ts:11:
+ `>()` was unexpected
+! PartialParsing,[object Object] packages/app/src/lib/session.test.ts Syntax error at line /src/packages/app/src/lib/session.test.ts:15:
+ `>()` was unexpected
+! PartialParsing,[object Object] packages/db/src/mikro-orm.config.test.ts Syntax error at line /src/packages/db/src/mikro-orm.config.test.ts:6:
+ `>()` was unexpected
+! PartialParsing,[object Object] packages/db/src/orm.test.ts Syntax error at line /src/packages/db/src/orm.test.ts:6:
+ `>()` was unexpected

@@ -1,12 +1,13 @@
 import { Booking, BOOKING_REPORT_BOOKING_UNIQUE, BookingReport, isUniqueViolation } from '@devmentor/db';
 import type { Cradle } from '../../container/cradle';
-import { ConflictError, NotFoundError } from '../../http/errors';
+import { ConflictError, ForbiddenError, NotFoundError } from '../../http/errors';
 import type { BookingReportInput } from '../../validators/bookings/booking-report.schema';
 import { BOOKING_NOT_FOUND_MESSAGE } from './booking.service';
 import { mentorNameForOperator } from '../mentors/mentor-name';
 
 export const NOT_REPORTABLE_MESSAGE = 'Only a paid booking can be reported.';
 export const REPORT_NOT_FOUND_MESSAGE = 'Report not found.';
+export const OWN_BOOKING_REPORT_MESSAGE = 'You cannot resolve a report on your own session. Another operator has to resolve it.';
 export const ALREADY_REPORTED_MESSAGE = 'You already reported this booking. The DevMentor team will reply by email.';
 
 /** Bookings a mentee may report: paid ones, before or after a cancellation. */
@@ -112,13 +113,18 @@ export class BookingReportService {
 
   /**
    * The operator marks a dispute settled (spec 2026-11-21-mentor-payouts): its booking's payout becomes
-   * eligible again. Idempotent: a resolved report keeps its first time.
+   * eligible again. Idempotent: a resolved report keeps its first time. An operator who is the booking's
+   * mentor gets 403 (threat model T-06): resolving would release their own held payout.
    */
-  async resolve(reportId: string): Promise<{ resolvedAt: string }> {
-    const report = await this.em.findOne(BookingReport, { id: reportId });
+  async resolve(operatorId: string, reportId: string): Promise<{ resolvedAt: string }> {
+    const report = await this.em.findOne(BookingReport, { id: reportId }, { populate: ['booking.mentorProfile'] });
 
     if (report === null) {
       throw new NotFoundError(REPORT_NOT_FOUND_MESSAGE);
+    }
+
+    if (report.booking.getEntity().mentorProfile.getEntity().user.id === operatorId) {
+      throw new ForbiddenError(OWN_BOOKING_REPORT_MESSAGE);
     }
 
     if (report.resolvedAt == null) {
