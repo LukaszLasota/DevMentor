@@ -186,3 +186,4 @@ STRIDE notes for letters without their own row. Spoofing: sessions are live-chec
 
 - 2026-11-23 Initial model (branch `feat/lesson-16-security`)
 - 2026-11-23 T-06 confirmed on the test env (operator-mentor resolved its own dispute: HTTP 200) and fixed: 403, report stays open. T-01 and T-02 checked with two accounts, no breach (`.ai/context/2026-11-23-lesson-16-security.md`).
+- 2026-11-23 Fix plan for the remaining High / None / Partial threats: `docs/security/fix-plan.md` (some "Control today" cells understate existing integration coverage; the plan has the current state).
