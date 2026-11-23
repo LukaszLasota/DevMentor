@@ -11,7 +11,7 @@ export function MentorTagFilter({
 }: {
   /** The current tag; `null` = All; `false` = nothing current (an unknown tag). */
   active: StackTagKey | null | false;
-  /** List the filter belongs to, e.g. "/favorites" (agent test 2026-10-22). */
+  /** List the filter belongs to, e.g. "/mentors" (default) or another list page. */
   basePath?: string;
 }) {
   const items = [{ key: null, label: "All" }, ...STACK_TAGS];

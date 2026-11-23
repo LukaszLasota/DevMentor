@@ -1,6 +1,6 @@
 # A mentee opening a share link sees the mentor's public work, prices and open slots
 
-Status: approved
+Status: implemented (#53)
 Issue: #28 (E02-S02) · Epic: #17 · Depends on: #23 (`.ai/specs/implemented/2026-10-21-mentor-page.md`: `/m/[slug]`, public DTO, readiness primitive, `MentorPageView`, `apiHandler` `headers` option), #25 (`.ai/specs/implemented/2026-10-21-availability-slots.md`: `slots`, `meetsLeadTime`, `hasBookableSlot`); #24 (`.ai/specs/implemented/2026-10-21-mentor-prices.md`: `prices`, `offerReady`, `formatMoney`, "Not bookable yet") when merged · Source: `.ai/specs/product-brief.md` (R08, R04, R01, N02, D08) · Sibling: #27 (mentor list, links to this page) · Course: no story spec for this; the course folds the share page into its mentor-page story (`2026-09-08-mentors-become-bookable.md` Slice 2–4, `2026-09-08-platform-primitives-ii.md` B24/F8), adopted below
 
 ## 📝 TLDR

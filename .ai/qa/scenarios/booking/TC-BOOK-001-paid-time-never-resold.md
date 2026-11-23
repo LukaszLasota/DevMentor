@@ -1,7 +1,7 @@
 # TC-BOOK-001 — A paid time is never resold when the payment webhook is late
 
 - Test: [`packages/app/integration/booking-late-webhook.test.ts`](../../../../packages/app/integration/booking-late-webhook.test.ts)
-- Spec: `.ai/specs/2026-11-20-booking-stripe-checkout.md` § Edge cases ("Webhook delivery is down for hours"), R10
+- Spec: `.ai/specs/implemented/2026-11-20-booking-stripe-checkout.md` § Edge cases ("Webhook delivery is down for hours"), R10
 - Category: booking · Priority: High · Type: API + DB + Stripe stub + UI
 
 ## Given–When–Then

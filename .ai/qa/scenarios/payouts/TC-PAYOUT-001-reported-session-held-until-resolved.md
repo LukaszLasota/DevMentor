@@ -1,7 +1,7 @@
 # TC-PAYOUT-001 — A reported session is held until the operator resolves the report
 
 - Test: [`packages/app/integration/payout-report-hold.test.ts`](../../../../packages/app/integration/payout-report-hold.test.ts)
-- Spec: `.ai/specs/2026-11-21-mentor-payouts.md` (hold reasons), `.ai/specs/2026-11-20-booking-cancellation.md` phase 2 (reports), R10
+- Spec: `.ai/specs/implemented/2026-11-21-mentor-payouts.md` (hold reasons), `.ai/specs/implemented/2026-11-20-booking-cancellation.md` phase 2 (reports), R10
 - Category: payouts · Priority: High · Type: API + DB + Stripe stub (Connect, transfers) + UI
 
 ## Given–When–Then

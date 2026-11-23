@@ -1,7 +1,7 @@
 # TC-NOTE-001 — A session note stops at its version limit
 
 - Test: [`packages/app/integration/session-note-version-limit.test.ts`](../../../../packages/app/integration/session-note-version-limit.test.ts)
-- Spec: `.ai/specs/2026-11-20-session-note.md` (at most ten versions per note)
+- Spec: `.ai/specs/implemented/2026-11-20-session-note.md` (at most ten versions per note)
 - Category: notes · Priority: Medium · Type: API + DB + UI (boundary)
 
 ## Given–When–Then

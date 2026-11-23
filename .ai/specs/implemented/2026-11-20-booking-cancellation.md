@@ -1,7 +1,7 @@
 # A mentee cancels a booking (free up to 24 hours before) and can report a dispute
 
 Status: implemented — phase 1 in #58, phase 2 (dispute reports) on branch feat/booking-reports — Q1 confirmed by the owner on 2026-11-20 (refund through the Stripe API)
-Issue: #30 (E03-S02) · Epic: #18 · Depends on: #29 (`.ai/specs/2026-11-20-booking-stripe-checkout.md`, implemented in #55/#56) · Source: `.ai/specs/product-brief.md` (R10, R16, D10)
+Issue: #30 (E03-S02) · Epic: #18 · Depends on: #29 (`.ai/specs/implemented/2026-11-20-booking-stripe-checkout.md`, implemented in #55/#56) · Source: `.ai/specs/product-brief.md` (R10, R16, D10)
 
 ## 📝 TLDR
 Today a confirmed booking (#29) cannot be undone: the mentee has no way to cancel, the money stays with the platform, and nobody can raise a problem about a session. Proposed (future behaviour): on `/bookings/[id]` the mentee cancels a confirmed booking before it starts; more than 24 hours ahead the booking is cancelled, the time reopens and the full payment is refunded through Stripe; later, the mentee is first told the fee is forfeited and must confirm. The mentee can also report a dispute about a booking; the operator sees it on `/admin` and handles it by hand, with no automatic refund (R10, R16). The mentor is told by email and sees the cancellation on `/mentor/slots`.

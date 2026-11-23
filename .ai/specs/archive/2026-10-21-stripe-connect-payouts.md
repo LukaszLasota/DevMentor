@@ -1,6 +1,6 @@
 # A mentor connects Stripe and sees whether payouts are enabled
 
-Status: approved for 1.1
+Status: archived — superseded by `implemented/2026-11-21-mentor-payouts.md` (Connect onboarding and payouts shipped in #65, 2026-11-21)
 Issue: #26 (E01-S06) · Epic: #16 · Source: `.ai/specs/product-brief.md` (R07, R12, R14, R16, D11, D15, Q04) · Depends on: #22 (mentor role and `MentorProfile`); phase 2 only: the durable webhook inbox of #29 (no spec yet) · Builds on: `.ai/specs/implemented/2026-10-21-platform-primitives.md`, `.ai/specs/implemented/2026-10-21-sign-in-github-and-email.md`, `.ai/specs/implemented/2026-10-21-mentor-invitations.md`, `.ai/specs/implemented/2026-10-21-mentor-page.md` · Follows the course reference story `2026-09-08-stripe-connect-onboarding.md` (lesson 05), adapted to this repository
 
 ## 📝 TLDR

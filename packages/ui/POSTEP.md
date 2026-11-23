@@ -1,5 +1,7 @@
 # POSTEP — DevMentor design system
 
+> **Historical log of lesson 06 (2026-10-22).** Statuses, open questions and routes below are as they were then (for example "currency open", "payouts 1.1", `/admin/users`). Current rules: `docs/design-system.md` and the Storybook; current scope: `.ai/specs/product-brief.md`.
+
 Prompt: `lekcja-06/prompt-storybook.md` (copy of `lekcja-06/storybook-devmentor.txt`). Branch: `lekcja-06-design-system` (from `main`).
 
 ## Status
