@@ -48,11 +48,16 @@ export function SlotBookingControls({ lengths, prices, timeLabel, onBook }: Slot
   return (
     <div className="flex w-full flex-col gap-related sm:w-auto sm:items-end">
       <div className="flex flex-wrap items-center gap-related">
-        <fieldset className="flex flex-wrap gap-related" aria-label={`Length for ${timeLabel}`}>
+        {/* #79: the choice read as static badges. A visible "Length" caption and a radio dot make it a choice;
+            the selected option gets the primary border and a filled dot, hover and keyboard focus show too. */}
+        <fieldset className="flex flex-wrap items-center gap-related" aria-label={`Length for ${timeLabel}`}>
+          <span aria-hidden="true" className="text-caption text-muted-foreground">
+            Length
+          </span>
           {lengths.map((option) => (
             <label
               key={option}
-              className="inline-flex cursor-pointer items-center gap-related rounded-control border border-border px-related py-badge-y text-caption has-[:checked]:border-primary has-[:checked]:bg-muted has-[:focus-visible]:focus-ring"
+              className="inline-flex cursor-pointer items-center gap-related rounded-control border border-border px-related py-badge-y text-caption hover:border-primary hover:bg-muted has-[:checked]:border-primary has-[:checked]:bg-muted has-[:disabled]:cursor-not-allowed has-[:focus-visible]:focus-ring"
             >
               <input
                 type="radio"
@@ -61,9 +66,10 @@ export function SlotBookingControls({ lengths, prices, timeLabel, onBook }: Slot
                 checked={length === option}
                 onChange={() => setLength(option)}
                 disabled={busy}
-                className="sr-only"
+                className="peer sr-only"
               />
-              <span className="text-muted-foreground">{option} min</span>{" "}
+              <span aria-hidden="true" className="size-3 shrink-0 rounded-full border border-muted-foreground peer-checked:border-4 peer-checked:border-primary" />
+              <span className="text-muted-foreground peer-checked:text-foreground">{option} min</span>{" "}
               <span className="font-mono font-medium tabular-nums text-foreground">{prices[option]}</span>
             </label>
           ))}

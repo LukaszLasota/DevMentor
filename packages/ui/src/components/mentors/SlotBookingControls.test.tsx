@@ -15,8 +15,19 @@ describe("SlotBookingControls", () => {
     setup();
 
     const group = screen.getByRole("group", { name: "Length for Tue 11:00" });
-    expect(group.textContent).toBe("25 min PLN 150.0050 min PLN 300.00");
+    expect(group.textContent).toBe("Length25 min PLN 150.0050 min PLN 300.00");
     expect((screen.getByRole("radio", { name: "25 min PLN 150.00" }) as HTMLInputElement).checked).toBe(true);
+  });
+
+  it("reads as a choice: a visible Length caption and a radio dot per option, keyboard selection works (#79)", () => {
+    setup();
+
+    expect(screen.getByText("Length").getAttribute("aria-hidden")).toBe("true");
+    const fifty = screen.getByRole("radio", { name: "50 min PLN 300.00" }) as HTMLInputElement;
+    expect(fifty.closest("label")?.querySelectorAll('span[aria-hidden="true"].rounded-full')).toHaveLength(1);
+    fireEvent.click(fifty);
+    expect(fifty.checked).toBe(true);
+    expect((screen.getByRole("radio", { name: "25 min PLN 150.00" }) as HTMLInputElement).checked).toBe(false);
   });
 
   it("offers only the free lengths", () => {
