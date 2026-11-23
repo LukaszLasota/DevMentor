@@ -106,6 +106,24 @@ const eslintConfig = defineConfig([
       pkg("db", "ui must not depend on db."),
     ]),
   },
+  {
+    // Lessons 14 and 17: a blank or ad-hoc mentor name came back twice (#85, then #87 in three more
+    // services) because each service wrote its own fallback. Names shown to people go through
+    // `services/mentors/mentor-name.ts`, which also treats '' and whitespace as missing.
+    files: ["packages/core/src/services/**/*.ts"],
+    ignores: ["packages/core/src/services/mentors/mentor-name.ts", "**/*.test.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "LogicalExpression[operator=/^(\\?\\?|\\|\\|)$/][left.property.name='displayName']:matches([right.type='Literal'][right.value=/./], [right.type='Literal'][right.value=''], [right.type='TemplateLiteral'])",
+          message:
+            "No inline fallback for a mentor's displayName: use mentorNameForMentee / mentorNameForMenteeInSentence / mentorNameForOperator from services/mentors/mentor-name.ts (they also catch '' and whitespace).",
+        },
+      ],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     "**/.next/**",
