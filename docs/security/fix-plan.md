@@ -33,3 +33,9 @@
 - **T-11 (beyond the hop fix):** a hold lasts about 36 min, one hold per account, mentors are invitation-only and few; per-IP limits after T-12 remove the cheap case. A per-mentor cap risks refusing real mentees. Revisit on the first report of blocked slots.
 - **T-07 (if the owner keeps the spec rule):** the payouts spec treats the closed answer window plus the 24 h report window as enough; mentors are invited and known, and operators can still refuse future payouts. Accept only with an explicit owner decision recorded in the spec.
 - **T-13 full script CSP:** framing protection covers clickjacking now; a nonce-based CSP with Next.js `cacheComponents` is a larger change with low added value while React escapes output and no user HTML is rendered.
+
+## Status (2026-11-23)
+
+- Done: **T-08** (stored session id compared, unit RED → GREEN), **T-14** partly (operator id logged on refund retry, report resolve and payout release; `resolved_by` column still open), **T-07** accepted (D27).
+- Integration assertions added: **T-01** `/release` by another mentee (`booking-checkout.test.ts`), **T-02** another mentor and an operator on session, messages and note (`text-session.test.ts`), **T-05** mentee and mentor-only on report resolve (`report-own-booking-resolve.test.ts`).
+- Open: T-12 and T-13 (need hosting facts from the owner), `resolved_by`, T-04 Connect two-mentor check, T-10 parallel release.

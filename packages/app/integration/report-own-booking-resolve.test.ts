@@ -82,6 +82,11 @@ describe('an operator cannot resolve a dispute on their own booking (TC-PAYOUT-0
     const ownReport = await reportedBooking(opMentor.slug as string);
     const otherReport = await reportedBooking(other.slug as string);
 
+    // Threat model T-05: a mentee and a mentor without the operator role are refused (403), the report stays open.
+    expect((await api(`/api/admin/reports/${otherReport}/resolve`, menteeCookie, { method: 'POST' })).status).toBe(403);
+    expect((await api(`/api/admin/reports/${otherReport}/resolve`, other.cookie, { method: 'POST' })).status).toBe(403);
+    expect(await psql(`select resolved_at is null from booking_reports where id = '${otherReport}'`)).toBe('t');
+
     // Positive control: the operator role works on someone else's dispute.
     expect((await api(`/api/admin/reports/${otherReport}/resolve`, opMentor.cookie, { method: 'POST' })).status).toBe(200);
 

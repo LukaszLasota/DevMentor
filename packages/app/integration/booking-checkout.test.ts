@@ -181,6 +181,13 @@ describe('booking: cancel, race, overlap and refusals over HTTP (Stripe stub)', 
     expect([first.status, second.status].sort()).toEqual([200, 409]);
     expect([first, second].find((result) => result.status === 409)?.body.error.code).toBe('SLOT_TAKEN');
     expect(await psql(`select count(*) from bookings where slot_id = '${slot?.id}'`)).toBe('1');
+
+    // Threat model T-01: the loser cannot release the winner's hold; it stays held (404 like an unknown id).
+    const [winnerCookie, loserCookie] = first.status === 200 ? [menteeCookie, rivalCookie] : [rivalCookie, menteeCookie];
+    const held = (first.status === 200 ? first : second).body.data.bookingId as string;
+    expect((await api(`/api/bookings/${held}`, winnerCookie)).body.data.status).toBe('pending_payment');
+    expect((await api(`/api/bookings/${held}/release`, loserCookie, { method: 'POST' })).status).toBe(404);
+    expect(await bookingStatus(held)).toBe('pending_payment');
   });
 
   it('a new Book releases the mentee\'s own earlier unpaid hold: one hold per mentee', async () => {
