@@ -1,7 +1,7 @@
 # TC-INV-004 — Mentors and mentees cannot reach invitations
 
 - Test: [`packages/app/integration/invitation-batches-access.test.ts`](../../../../packages/app/integration/invitation-batches-access.test.ts) (checks 2 and 3)
-- Spec: `.ai/specs/2026-11-24-invitation-batches.md` § API Contracts, AC5; `AGENTS.md` access-control three checks; threat model R16 (operator authority)
+- Spec: `.ai/specs/implemented/2026-11-24-invitation-batches.md` § API Contracts, AC5; `AGENTS.md` access-control three checks; threat model R16 (operator authority)
 - Category: invitations · access control · Priority: High · Type: API + DB + UI
 
 ## Given–When–Then

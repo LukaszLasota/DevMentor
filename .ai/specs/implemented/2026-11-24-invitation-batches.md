@@ -1,6 +1,6 @@
 # Operators invite mentors in batches of 20 and see who published a slot within two weeks
 
-Status: in-progress (implemented 2026-11-24; validate green; full integration suite 216/216 green on the final diff, owner run 14:15; Q2 decided as D28)
+Status: implemented (2026-11-24, PR #100; validate green; full integration suite 216/216 green on the final diff, owner run 14:15; Q2 decided as D28)
 Source: `.ai/context/2026-11-24-lesson-21-brief.md` (lesson 21), adapting the course prompt for the reference project's issue #30 (course material, kept outside this public repository) · Brief: `.ai/specs/product-brief.md` (R13, D13, A02; also R16, D19, D24)
 Extends: .ai/specs/implemented/2026-10-21-mentor-invitations.md
 Supersedes: .ai/specs/implemented/2026-10-21-mentor-invitations.md — sections: Proposed Solution (out of scope: "enforcing batches of 20 and the two-week report"; `create` printing the link for the operator to send by hand)
@@ -380,7 +380,7 @@ Manual check before staging (owner runs `npm run dev`): as `mock-operator` (`/si
 | New files into `coverage.include` | Nothing to add | `vitest.config.mts` includes `packages/*/src/**` by glob. |
 | `formatInstant`/`LocalTime` give day, month name, year | Add `format: "long-date"` to `LocalTime` | The existing `date` format has no year ("Thu 14 Nov"). |
 | "already has an unresolved invitation" under Email | Same, via an `onSubmit` adapter in the board | `apiHandler` sends `fieldErrors` only for 400; `CrudForm` stays unchanged. |
-| `.ai/specs/2026-10-03-invitation-batches.md` | `.ai/specs/2026-11-24-invitation-batches.md` | Repo naming: creation date. |
+| `.ai/specs/2026-10-03-invitation-batches.md` | `.ai/specs/implemented/2026-11-24-invitation-batches.md` | Repo naming: creation date. |
 | Mentors/mentees refused "the same way /admin/users refuses them" | Redirect home with the `operator_only` notice, as `/admin` does; routes 403 | Existing guard behaviour of `requirePageRole`. |
 
 ## ❓ Open Questions

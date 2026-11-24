@@ -1,7 +1,7 @@
 # TC-INV-002 — The invite form refuses an invalid email and missing tags without a request
 
 - Test: [`packages/app/integration/invitation-batches-browser.test.ts`](../../../../packages/app/integration/invitation-batches-browser.test.ts)
-- Spec: `.ai/specs/2026-11-24-invitation-batches.md` § UI/UX (Invite form)
+- Spec: `.ai/specs/implemented/2026-11-24-invitation-batches.md` § UI/UX (Invite form)
 - Category: invitations · Priority: Medium · Type: UI + DB
 
 ## Given–When–Then
