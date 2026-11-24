@@ -2,7 +2,7 @@
 
 All notable changes to DevMentor. Versions follow [Semantic Versioning](https://semver.org/); dates are UTC.
 
-## [1.0.0] — unreleased (draft, lesson 22)
+## [1.0.0] — 2026-11-24
 
 The first release: invited senior engineers publish a mentor page and open times, and a developer books and prepays a 25- or 50-minute text session that happens in DevMentor.
 
