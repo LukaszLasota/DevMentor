@@ -135,6 +135,10 @@ const eslintConfig = defineConfig([
     "**/storybook-static/**",
     "packages/ui/.storybook/public/**",
     "lekcja-07/**",
+    // Vendored skills (installed by `npx skills add`, pinned in skills-lock.json, reviewed through CODEOWNERS)
+    // and scratch/worktrees under .ai/tmp are not our source (#77).
+    ".agents/skills/**",
+    ".ai/tmp/**",
   ]),
 ]);
 

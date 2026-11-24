@@ -27,10 +27,13 @@ Label rules:
 
 - If the PR has no pipeline label when review starts, set `review` before continuing so the state machine is explicit.
 - If the verdict is changes requested, set `changes-requested`.
-- If the verdict is approved, set `merge-queue` — both when the PR requires QA (`needs-qa` present, no `skip-qa`) and when it does not. Keep `needs-qa` in place when present; when `qaGate` is on, the QA-approval gate blocks the actual merge until a QA reviewer adds `qa-approved`. When `qaGate` is off, `needs-qa` is advisory only.
+- If the verdict is approved, set `merge-queue` — both when the PR requires QA (`needs-qa` present, no `skip-qa`) and when it does not. Keep `needs-qa` in place when present; when `qaGate` is on, the QA-approval gate blocks the actual merge until a QA reviewer adds `qa-approved`. When `qaGate` is off, `needs-qa` is advisory only. When `qaGateLabel` names another label, the gate keys on that label and `needs-qa` only asks for automatic QA.
+- **Human-QA gate label.** The QA lane, including the human lane `HUMAN_QA_LABEL` (`qaGateLabel` when it names a label other than `needs-qa`), is decided by the step 2a triage: `references/qa-triage.md`. Honor human-verdict precedence and orchestrator label ownership from that reference. Apply what it decided, record its reasons in the label-rationale comment, never remove a human lane a human or an earlier triage applied, and never apply or remove `qaReadyLabel`.
 - **Never set the `qa` pipeline label from this skill.** `qa` means "manual QA is in progress" and is applied **manually by a QA reviewer** when they pick the PR up to test it. This skill only requests QA with the `needs-qa` meta label; it never sets, moves to, or removes `qa`.
 - **Never apply `qa-approved` based on reading the diff** — code-review approval is not QA approval. `qa-approved` is earned only by manual QA (by a QA reviewer, or by an engineer via the self-QA exception). Until it lands, a `needs-qa` PR sits in `merge-queue` blocked by the QA-approval gate whenever `qaGate` is on.
 - Never leave `review`, `changes-requested`, `qa`, `qa-failed`, and `merge-queue` on the same PR together.
+
+Category labels (verified on every review, when labels are enabled): determine the expected category from the diff and title, add a missing one and remove a wrong one, and record it in the label-rationale comment. A category fix is never a finding and never changes the verdict; a title that does not read as a release-note line is a nit with a suggested title. Change → category table and steps: `references/label-transitions.md`.
 
 Priority and risk labels (always ensure exactly one of each, when labels are enabled): infer and apply one when missing, keep the existing one unless the review shows it is clearly mis-rated, and remove the siblings when changing it. The full priority/risk inference rules and the suggested comment strings for every label live in `references/label-transitions.md`.
 
