@@ -296,7 +296,7 @@ DEVMENTOR_TAG=$(git rev-parse --short HEAD) docker compose -f docker-compose.pro
 DEVMENTOR_TAG=<previous sha> docker compose -f docker-compose.prod.yml up -d --no-build
 ```
 
-Rolling back the image does not roll back the schema. Migrations follow `BACKWARD_COMPATIBILITY.md` (expand → migrate → contract), so the previous image runs on the newer schema; a migration that must be reverted is undone with the newer image before switching tags (`docker compose -f docker-compose.prod.yml run --rm migrate npm run db -- migration:down`), as its PR's rollback note says. Take a backup before every deploy.
+Rolling back the image does not roll back the schema. Migrations follow `BACKWARD_COMPATIBILITY.md` (expand → migrate → contract), so the previous image runs on the newer schema; a migration that must be reverted is undone with the newer image before switching tags (`docker compose -f docker-compose.prod.yml run --rm migrate npm run db -- migration:down`), as the release's section in `UPGRADE_NOTES.md` says. Take a backup before every deploy.
 
 ### Dokploy or Coolify
 
@@ -327,7 +327,20 @@ Both route through their own Traefik: `TRUSTED_PROXY_HOPS=1` (2 with Cloudflare 
 | `npm run db -- migration:create` | Generate a migration from entity changes |
 | `npm run db -- migration:up` / `migration:down` | Apply / roll back migrations |
 | `npm run db -- <command>` | Any other MikroORM CLI command |
+| `npm run release -- <plan\|prepare\|notes>` | Release steps used by the Release workflow (see "Releasing") |
 | `docker compose -f docker-compose.prod.yml up -d --build` | Production stack on a VPS (see "Deploy to a VPS") |
+
+## Releasing
+
+A release is one run of the **Release** workflow (`.github/workflows/release.yml`, Actions → Release → Run workflow, from `main`). Inputs: `bump` (`patch`, `minor`, `major` or `custom`), `version` (exact `X.Y.Z`, only with `custom`) and `dry_run` (on by default: builds the release commit and notes, pushes nothing).
+
+1. Write the `## [X.Y.Z] — unreleased` section in `CHANGELOG.md` (and the upgrade steps in `UPGRADE_NOTES.md`) through a normal PR. The run fails without the section.
+2. Run the workflow. It requires a green CI run on the `main` commit (all required checks, integration included) and a fresh `npm run validate`, refuses a version that is not greater than the current one or whose tag `vX.Y.Z` already exists, then commits `chore(release): vX.Y.Z` on `release/vX.Y.Z` (every `package.json` and the lockfile at the new version, the changelog section dated), tags it, pushes branch and tag together and creates the GitHub Release from the changelog section.
+3. Open the pull request linked in the run summary (`release/vX.Y.Z` → `main`) and merge it with a **merge commit**, so the tagged commit is in `main`'s history.
+
+Why a branch and a PR: the `main` ruleset accepts changes only through pull requests with green required checks, so the workflow cannot push the release commit to `main`, and a PR opened by the workflow's own token would not start CI. Tagging `main` without a commit would release a tree that still has the old versions.
+
+Recovery: tags are never moved. If the tag was pushed but the GitHub Release failed, run the workflow again with `bump=custom` and the same version; it only creates the missing Release from the changelog at the tag. A version that already has a tag and a Release stops the run.
 
 ## For AI agents
 

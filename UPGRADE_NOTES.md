@@ -2,6 +2,8 @@
 
 What an operator does to move a running DevMentor to a new version, and how to go back. The newest version is on top.
 
+Every version is a tag `vX.Y.Z` with a GitHub Release, both made by the Release workflow (README § Releasing); deploy from the tag, never from a branch.
+
 ## 1.0.0 — first release (draft, lesson 22)
 
 There is no earlier released version, so 1.0.0 is a fresh install. These notes also define the procedure every later release follows.
