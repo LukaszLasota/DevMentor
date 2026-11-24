@@ -1,0 +1,182 @@
+name: Release
+
+# Lesson 24: a release is one manual run of this workflow, never a sequence of hand-typed commands.
+# Logic (next version, tag check, version bumps, changelog date and notes) lives in scripts/lib/release.mjs
+# with unit tests; this file only orders the steps.
+#
+# Why a release branch and not a commit on main: the ruleset on main (27903072) accepts changes only through
+# a pull request with green required checks, and its admin bypass covers pull requests only, so a direct push
+# of the release commit is rejected. Tagging main's HEAD without a commit was the other option, but then the
+# tagged tree would still carry the old versions and an "unreleased" changelog. So the run:
+#   1. checks out main and requires a green CI run on that exact commit (all seven required checks, integration
+#      and Storybook included) plus a fresh `npm run validate` on this runner (new advisories since that run);
+#   2. commits `chore(release): v<version>` on `release/v<version>` (versions in every package.json and the
+#      lockfile, CHANGELOG.md section dated) and puts an annotated tag on that commit;
+#   3. pushes the branch and the tag atomically (both or neither), then creates the GitHub Release from the
+#      changelog section;
+#   4. links a pull request `release/v<version>` → main in the job summary. The owner opens it (a PR opened with
+#      GITHUB_TOKEN would not start CI, so the required checks could never pass) and merges it with a merge
+#      commit, so the tagged commit becomes part of main's history.
+#
+# Recovery: an existing tag is never moved or recreated. If a run pushed the tag but the Release failed, run
+# again with bump=custom and the same version: the plan step sees the tag without a Release and only creates
+# the Release (notes from CHANGELOG.md at the tag, `gh release create --verify-tag`). A tag that already has a
+# Release stops the run.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump from the version in main's package.json"
+        type: choice
+        options: [patch, minor, major, custom]
+        default: patch
+        required: true
+      version:
+        description: "Exact version X.Y.Z, used only with bump=custom (also for recovering a Release)"
+        type: string
+        required: false
+      dry_run:
+        description: "Dry run: build the release commit and notes, push and publish nothing"
+        type: boolean
+        default: true
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write # push the release branch and tag, create the GitHub Release
+  actions: read # read the CI run of the main commit being released
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      # Inputs reach the shell as variables, never interpolated into the script.
+      BUMP: ${{ inputs.bump }}
+      CUSTOM_VERSION: ${{ inputs.version }}
+      DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      # The workflow file itself comes from the dispatched ref; only main's copy may release.
+      - name: Refuse a run from another branch
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Run the release workflow from main (this run uses ${GITHUB_REF})."
+          exit 1
+
+      # `runner` is not available in job-level env, so the notes path is set here.
+      - name: Notes file path
+        run: echo "NOTES=${RUNNER_TEMP}/release-notes.md" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      # mode=release: new version (greater than the current one, changelog section present, tag absent locally
+      # and on origin). mode=recover: the tag exists but has no GitHub Release. Anything else fails here.
+      - name: Plan the version
+        id: plan
+        run: node scripts/release.mjs plan --bump "$BUMP" --version "$CUSTOM_VERSION"
+
+      - name: "Gate: CI is green on this main commit"
+        if: steps.plan.outputs.mode == 'release'
+        run: |
+          sha="$(git rev-parse HEAD)"
+          result="$(gh run list --workflow ci.yml --commit "$sha" --event push --limit 1 \
+            --json status,conclusion --jq '.[0] | "\(.status)/\(.conclusion)"')"
+          if [ "$result" != "completed/success" ]; then
+            echo "::error::CI on main ${sha} is '${result:-missing}', not completed/success. Wait for it or re-run it, then release again."
+            exit 1
+          fi
+          echo "CI on main ${sha}: ${result}"
+
+      - name: Install dependencies
+        if: steps.plan.outputs.mode == 'release'
+        run: npm ci
+
+      - name: "Gate: npm run validate"
+        if: steps.plan.outputs.mode == 'release'
+        run: npm run validate
+
+      - name: Bump versions, date the changelog, extract the notes
+        id: prepare
+        if: steps.plan.outputs.mode == 'release'
+        env:
+          TAG: ${{ steps.plan.outputs.tag }}
+          VERSION: ${{ steps.plan.outputs.version }}
+        run: |
+          git switch -c "release/${TAG}"
+          node scripts/release.mjs prepare --version "$VERSION" --notes "$NOTES"
+
+      - name: Release commit and annotated tag
+        if: steps.plan.outputs.mode == 'release'
+        env:
+          TAG: ${{ steps.plan.outputs.tag }}
+          FILES: ${{ steps.prepare.outputs.files }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # FILES is a space-separated list of repository paths written by the script.
+          # shellcheck disable=SC2086
+          git add -- $FILES
+          git commit -m "chore(release): ${TAG}"
+          git tag -a "$TAG" -m "Release ${TAG}"
+          git show --stat HEAD
+
+      - name: Push the release branch and tag
+        if: steps.plan.outputs.mode == 'release' && !inputs.dry_run
+        env:
+          TAG: ${{ steps.plan.outputs.tag }}
+        run: git push --atomic origin "release/${TAG}" "refs/tags/${TAG}"
+
+      # Recovery reads the notes from the changelog as it was tagged, with main's copy of the script.
+      - name: Notes from the existing tag (recovery)
+        if: steps.plan.outputs.mode == 'recover'
+        env:
+          TAG: ${{ steps.plan.outputs.tag }}
+          VERSION: ${{ steps.plan.outputs.version }}
+        run: |
+          git show "${TAG}:CHANGELOG.md" > CHANGELOG.md
+          node scripts/release.mjs notes --version "$VERSION" --notes "$NOTES"
+
+      # --verify-tag: fail instead of creating a tag when it is not on origin.
+      - name: Create the GitHub Release
+        if: ${{ !inputs.dry_run }}
+        env:
+          TAG: ${{ steps.plan.outputs.tag }}
+        run: gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$NOTES"
+
+      - name: Summary
+        if: always() && steps.plan.outputs.tag != ''
+        env:
+          TAG: ${{ steps.plan.outputs.tag }}
+          MODE: ${{ steps.plan.outputs.mode }}
+        run: |
+          {
+            echo "## ${TAG} (${MODE}$([ "$DRY_RUN" = "true" ] && echo ', dry run'))"
+            if [ "$MODE" = "release" ] && [ "$DRY_RUN" != "true" ]; then
+              echo
+              echo "Next: [open the pull request release/${TAG} → main](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/compare/main...release/${TAG}?expand=1)"
+              echo "and merge it with a **merge commit** (not squash or rebase), so the tagged commit stays in main's history."
+            fi
+            if [ -f "$NOTES" ]; then
+              echo
+              echo "### Release notes"
+              echo
+              cat "$NOTES"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

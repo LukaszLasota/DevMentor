@@ -24,7 +24,8 @@
     "invite": "tsx --conditions=react-server --env-file-if-exists=.env scripts/invite.mts",
     "test:coverage": "vitest run --coverage",
     "test:integration": "npm run build && vitest run --config vitest.integration.config.mts",
-    "github:stub": "node scripts/github-stub.mjs"
+    "github:stub": "node scripts/github-stub.mjs",
+    "release": "node scripts/release.mjs"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "^12.2.1",
