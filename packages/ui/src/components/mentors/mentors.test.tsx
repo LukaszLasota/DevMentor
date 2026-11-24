@@ -71,8 +71,14 @@ describe("public mentor components", () => {
     render(<MentorCard {...mentor} nextBookableSlotAt="2026-11-14T18:30:00Z" />);
     expect(screen.getByRole("link", { name: "Marta Kowal" }).getAttribute("href")).toBe("/m/marta-kowal");
     expect(screen.getByRole("link", { name: /github.com/ }).getAttribute("rel")).toBe("noopener nofollow ugc");
-    expect(screen.getByRole("list", { name: "Session prices" }).textContent).toBe("25 min$40.0050 min$75.00");
+    const priceList = screen.getByRole("list", { name: "Session prices" });
+    expect(priceList.textContent).toBe("25 min·$40.0050 min·$75.00");
+    // #98: a plain price list, not chips that look like the length options.
+    expect(priceList.querySelectorAll(".bg-muted, .rounded-control")).toHaveLength(0);
     expect(screen.getByText(/Next open time/)).toBeTruthy();
+    // #78: a visible way to booking, next to the name link.
+    const cta = screen.getByRole("link", { name: "See open times with Marta Kowal" });
+    expect(cta.getAttribute("href")).toBe("/m/marta-kowal#open-times");
     expect(document.body.textContent).not.toMatch(/rating|stars|top|popular/i);
   });
 
@@ -108,6 +114,8 @@ describe("public mentor components", () => {
     );
     expect(screen.getByRole("heading", { level: 1, name: "Marta Kowal" })).toBeTruthy();
     expect(screen.getByText("Sessions are text — no video call. 25 or 50 minutes.")).toBeTruthy();
+    // #78: the card's "See open times" lands on this list.
+    expect(screen.getByRole("list", { name: "Open times" }).id).toBe("open-times");
     const items = screen.getByRole("list", { name: "Open times" }).querySelectorAll("li");
     expect(items[1].getAttribute("aria-disabled")).toBe("true");
     expect(items[1].textContent).toContain("Starts in less than two hours — no longer bookable");

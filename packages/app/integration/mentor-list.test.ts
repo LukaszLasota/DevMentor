@@ -109,6 +109,15 @@ describe('mentor list: who is listed, in which order, by tag (agent-browser)', (
     expect(await browser.text('main')).not.toContain('Not bookable yet');
   });
 
+  it('"See open times" on a card lands on the open times of that mentor (#78)', async () => {
+    await browser.open(`${baseUrl}/mentors?tag=python`);
+    await browser.waitForText('See open times');
+    await browser.click(`a[href="/m/${seeded.first?.slug}#open-times"]`);
+    await browser.waitForUrl(`**/m/${seeded.first?.slug}#open-times`);
+    await browser.waitForText(`First ${run}`);
+    expect(await browser.count('ul#open-times li')).toBeGreaterThan(0);
+  });
+
   it('removing one of several slots keeps a mentor in place (the key never moves back)', async () => {
     const firstSlots = (await (await fetch(`${baseUrl}/api/availability/slots`, { headers: { cookie: seeded.first?.cookie as string } })).json()).data.items;
     const removed = await fetch(`${baseUrl}/api/availability/slots/${firstSlots[1].id}`, {
