@@ -1,5 +1,6 @@
 import { expect, inject } from 'vitest';
 import type { createAgentBrowser } from '../agent-browser';
+import { openFreshBatch } from './invitation-batches';
 
 // Bookable-mentor fixtures (spec 2026-10-21-mentor-list, "Integration fixtures"): a mentor is built
 // the way a real one is — invitation CLI → GitHub stub sign-in → accept → owner API — so every
@@ -45,6 +46,8 @@ export function inHours(hours: number): string {
 export async function seedBookableMentor(browser: Browser, options: MentorFixtureOptions): Promise<MentorFixture> {
   const baseUrl = inject('baseUrl');
   const { runInviteCli } = await import('@devmentor/core/cli');
+  // `create` needs an open batch; a fresh one per mentor keeps fixture batches far below 20.
+  await openFreshBatch();
   const out: string[] = [];
   const err: string[] = [];
   const argv = ['create', '--email', `${options.login}@devmentor.test`, '--tags', 'python', '--operator', 'it', '--batch', options.batch];

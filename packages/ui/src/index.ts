@@ -83,6 +83,15 @@ export { CheckInboxNotice, type CheckInboxNoticeProps } from "./components/auth/
 export { ROLE_NOTICES, RoleNotice, type RoleNoticeCode, type RoleNoticeProps } from "./components/auth/RoleNotice";
 export { SIGN_IN_ERRORS, SignInPanel, type SignInErrorCode, type SignInPanelProps } from "./components/auth/SignInPanel";
 export { SignOutButton, type SignOutButtonProps } from "./components/auth/SignOutButton";
+export {
+  InvitationBatchSection,
+  invitationStatusLabel,
+  type InvitationBatchCounts,
+  type InvitationBatchRow,
+  type InvitationBatchSectionProps,
+  type InvitationBatchState,
+  type InvitationBatchStatus,
+} from "./components/invitations/InvitationBatchSection";
 export { CopyShareLink } from "./components/mentors/CopyShareLink";
 export { ProfileActions, type ProfileActionsProps } from "./components/mentors/ProfileActions";
 export { ReadinessChecklist, type ReadinessChecklistProps, type ReadinessItem } from "./components/mentors/ReadinessChecklist";

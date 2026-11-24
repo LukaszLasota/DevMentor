@@ -137,28 +137,29 @@ Mentor accounts get their mentor profile with the publish-by deadline an accepte
 
 ### Invite a mentor
 
-Only invited engineers become mentors. The operator creates an invitation in the terminal and sends the printed link by hand (R16: no operator screen, no mail transport); the invited person opens it, signs in with the invited, verified email and accepts. Needs `APP_URL` (the links are built from it) and reads `DATABASE_URL` from `.env`.
+Only invited engineers become mentors. Invitations go out in numbered batches of at most 20 (R13, spec `2026-11-24-invitation-batches`): an operator opens a batch on **/admin/invitations** (operators only) and sends invitations there or from the terminal. Every invitation is emailed to the invited address before it is saved; if the email cannot be sent, nothing is saved and you can try again. The invited person opens the link, signs in with the invited, verified email and accepts. The page shows every invitation's status in words and, per batch, "x of 20 sent, y accepted, z published within two weeks". Once batch 1 holds 20 invitations and is decided with fewer than 5 mentors who published a slot within their window (D13), no invitation can be created, resent or batch opened until the founders lift the stop.
+
+The CLI needs `APP_URL` (the links are built from it) and reads `DATABASE_URL` and `MAIL_PROVIDER` from `.env`. **Behaviour change:** `create` refuses until a batch is open ("No batch is open yet; open the first batch."), and with `MAIL_PROVIDER=resend` it no longer prints the link (the email carries it); with `MAIL_PROVIDER=log` (local development) nothing is delivered, so it still prints the link once on stdout.
 
 ```bash
-npm run invite -- create --email <email> --tags <tag,...> [--batch <name>] --operator <your name>
-npm run invite -- list [--batch <name>]   # status, expiry, accepted and publish-by dates
-npm run invite -- resend <id>             # new link and expiry; the old link stops working
-npm run invite -- revoke <id>             # the link stops working
+npm run invite -- create --email <email> --tags <tag,...> [--batch <label>] --operator <your name>
+npm run invite -- list [--batch <label>]   # status, expiry, accepted and publish-by dates
+npm run invite -- resend <id>              # new link and expiry, printed once; refused while invitations are stopped
+npm run invite -- revoke <id>              # the link stops working
 npm run invite -- --help
 ```
 
-Tags: `typescript`, `react`, `python`, `ai-agents` (display names such as `TypeScript` or `"AI agents"` work too, any case). Example:
+Tags: `typescript`, `react`, `python`, `ai-agents` (display names such as `TypeScript` or `"AI agents"` work too, any case). `--batch` is a free-text label kept beside the numbered batch. Example with `MAIL_PROVIDER=resend`:
 
 ```text
 $ npm run invite -- create --email ada@example.com --tags react,typescript --batch b1 --operator lukasz
-Invitation link for ada@example.com (shown once; send it by hand):
-http://localhost:3000/invitation/Xq3v9b2LkT0mWn7pR4sYd8eFh1jC6uAz5gNo-_EiQ0c
+Invitation emailed to ada@example.com (batch 1, 3 of 20).
 
 Audit line for the shared note:
-2026-11-14T20:23:24Z invited ada@example.com tags=typescript,react batch=b1 by lukasz id=3f6c1e2a-8b7d-4c59-9e0f-1a2b3c4d5e6f expires=2026-11-28T20:23:24Z
+2026-11-24T20:23:24Z invited ada@example.com tags=typescript,react batch=b1 in-batch=1 by lukasz id=3f6c1e2a-8b7d-4c59-9e0f-1a2b3c4d5e6f expires=2026-12-08T20:23:24Z
 ```
 
-The link is printed once and only its hash is stored: if it is lost, `resend` makes a new one. Paste the token-free audit line into the shared operator note. An email can hold one unresolved invitation (pending or expired): resend or revoke it before creating another; a current mentor cannot be invited. Errors print the reason (per option for invalid input) and exit with code 1. Times are UTC.
+With `MAIL_PROVIDER=log` the first line is "MAIL_PROVIDER=log: the email was not delivered." followed by the link block ("Invitation link for … (shown once; send it by hand):") and "Invitation created for … (batch N, x of 20).". Only the link's hash is stored: if it is lost, `resend` makes a new one. Paste the token-free audit line into the shared operator note. An email can hold one unresolved invitation (pending or expired): resend or revoke it before creating another; a current mentor cannot be invited. Errors print the reason (per option for invalid input) and exit with code 1. Times are UTC.
 
 ### Sign in with real GitHub (OAuth App)
 

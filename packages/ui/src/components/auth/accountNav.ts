@@ -30,7 +30,13 @@ export function accountNavSections(roles: readonly AccountRole[]): SideNavSectio
   ];
 
   if (roles.includes("operator")) {
-    sections.push({ label: "Admin", items: [{ href: "/admin", label: "Dashboard" }] });
+    sections.push({
+      label: "Admin",
+      items: [
+        { href: "/admin", label: "Dashboard" },
+        { href: "/admin/invitations", label: "Invitations" },
+      ],
+    });
   }
 
   return sections;

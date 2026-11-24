@@ -54,6 +54,8 @@ describe("@devmentor/ui public entry", () => {
         "CardTitle",
         "Checkbox",
         "CheckInboxNotice",
+        "InvitationBatchSection",
+        "invitationStatusLabel",
         "CrudForm",
         "DataTable",
         "EmptyState",

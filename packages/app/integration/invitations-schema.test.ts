@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { afterEach, describe, expect, it } from 'vitest';
+import { resetInvitationBatches } from './fixtures/invitation-batches';
 import { psql } from './psql';
 
 /** Resolves with psql's error output; fails the test when the statement succeeds. */
@@ -46,6 +47,8 @@ function insertProfile(userId: string): string {
 describe('invitations table (migration against a real PostgreSQL)', () => {
   afterEach(async () => {
     await psql('delete from invitations');
+    // Batches opened by other files reference their opener (`on delete restrict`).
+    await resetInvitationBatches();
     await psql('delete from users');
   });
 
@@ -144,6 +147,7 @@ describe('invitations table (migration against a real PostgreSQL)', () => {
 
 describe('mentor_profiles table (migration against a real PostgreSQL)', () => {
   afterEach(async () => {
+    await resetInvitationBatches();
     await psql('delete from users');
   });
 

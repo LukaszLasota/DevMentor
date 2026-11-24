@@ -5,13 +5,14 @@ import { useSyncExternalStore } from "react";
 export interface LocalTimeProps {
   /** ISO 8601 instant (UTC). */
   iso: string;
-  /** "datetime" (default): "Thu 14 Nov, 18:30"; "date": "Thu 14 Nov". */
-  format?: "datetime" | "date";
+  /** "datetime" (default): "Thu 14 Nov, 18:30"; "date": "Thu 14 Nov"; "long-date": "14 November 2026". */
+  format?: "datetime" | "date" | "long-date";
 }
 
 const OPTIONS: Record<NonNullable<LocalTimeProps["format"]>, Intl.DateTimeFormatOptions> = {
   datetime: { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" },
   date: { weekday: "short", day: "numeric", month: "short" },
+  "long-date": { day: "numeric", month: "long", year: "numeric" },
 };
 
 export function formatInstant(iso: string, format: NonNullable<LocalTimeProps["format"]>, timeZone?: string): string {

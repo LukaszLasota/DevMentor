@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, describe, expect, inject, it } from 'vitest';
 import { createAgentBrowser } from './agent-browser';
+import { openFreshBatch } from './fixtures/invitation-batches';
 import { psql } from './psql';
 
 // Mentor page end to end (spec 2026-10-21-mentor-page, step 11): an invited mentor (CLI → GitHub
@@ -33,6 +34,7 @@ type Browser = ReturnType<typeof createAgentBrowser>;
 
 /** `npm run invite -- create` in-process → the printed link. */
 async function invite(email: string, tags: string): Promise<string> {
+  await openFreshBatch();
   const out: string[] = [];
   const err: string[] = [];
   const argv = ['create', '--email', email, '--tags', tags, '--operator', 'it', '--batch', `mp-${run}`];

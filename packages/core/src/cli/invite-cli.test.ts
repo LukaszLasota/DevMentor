@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Env } from '../config/env';
-import type { InvitationView, InvitationWithLink } from '../services/invitations/invitation.service';
+import type { CreatedInvitation, InvitationView, InvitationWithLink } from '../services/invitations/invitation.service';
 
 const { orm, getOrm, getEnv, service, InvitationService } = vi.hoisted(() => {
   const orm = { em: { fork: vi.fn(() => 'forked-em') }, close: vi.fn(async () => undefined) };
   const service = {
-    create: vi.fn<(input: unknown) => Promise<InvitationWithLink>>(),
+    create: vi.fn<(input: unknown, actor: unknown) => Promise<CreatedInvitation>>(),
     revoke: vi.fn<(id: string) => Promise<InvitationView>>(),
     resend: vi.fn<(id: string) => Promise<InvitationWithLink>>(),
     list: vi.fn<(input: unknown) => Promise<InvitationView[]>>(),
@@ -32,8 +32,13 @@ vi.mock('../services/invitations/invitation.service', async (importOriginal) => 
 const { parseEnv } = await import('../config/env');
 const { SlotService } = await import('../services/availability/slot.service');
 const { AccountService } = await import('../services/auth/account.service');
+const { InvitationBatchService } = await import('../services/invitations/invitation-batch.service');
+const { LogMailer } = await import('../mail/log-mailer');
+const { ResendMailer } = await import('../mail/resend-mailer');
+const { INVITATIONS_STOPPED_MESSAGE } = await import('../services/invitations/invitation-batch.rules');
 const { ConflictError, NotFoundError, ServiceUnavailableError, ValidationError } = await import('../http/errors');
 const {
+  cliMailSender,
   executeInviteCommand,
   formatAuditLine,
   formatInvitationTable,
@@ -147,6 +152,9 @@ describe('formatting', () => {
     expect(formatAuditLine('invited', view(), NOW, 'lukasz')).toBe(
       `2026-11-14T20:15:03Z invited ada@example.com tags=typescript,react batch=b1 by lukasz id=${ID} expires=2026-11-28T20:15:03Z`,
     );
+    expect(formatAuditLine('invited', view(), NOW, 'lukasz', 3)).toBe(
+      `2026-11-14T20:15:03Z invited ada@example.com tags=typescript,react batch=b1 in-batch=3 by lukasz id=${ID} expires=2026-11-28T20:15:03Z`,
+    );
     expect(formatAuditLine('resent', view({ batch: null }), NOW)).toBe(
       `2026-11-14T20:15:03Z resent ada@example.com tags=typescript,react batch=- id=${ID} expires=2026-11-28T20:15:03Z`,
     );
@@ -204,24 +212,49 @@ describe('executeInviteCommand', () => {
     return { stdout, clock };
   };
 
-  it('create prints the link once and the audit line with the trimmed operator', async () => {
-    service.create.mockResolvedValue({ invitation: view(), link: LINK });
+  const created = (): CreatedInvitation => ({ invitation: view(), link: LINK, batchNumber: 3, sent: 7 });
+  const AUDIT = `2026-11-14T20:15:03Z invited ada@example.com tags=typescript,react batch=b1 in-batch=3 by lukasz id=${ID} expires=2026-11-28T20:15:03Z`;
+
+  it('create with MAIL_PROVIDER=resend confirms the email and prints the audit line, never the link', async () => {
+    service.create.mockResolvedValue(created());
     const io = out();
 
     await executeInviteCommand(
       { kind: 'create', email: 'ada@example.com', tags: ['react'], batch: undefined, operator: ' lukasz ' },
       service,
-      io,
+      { ...io, mailProvider: 'resend' },
     );
 
-    expect(service.create).toHaveBeenCalledWith({ email: 'ada@example.com', tags: ['react'], batch: undefined, operator: ' lukasz ' });
+    expect(service.create).toHaveBeenCalledWith(
+      { email: 'ada@example.com', tags: ['react'], batch: undefined },
+      { kind: 'cli', operator: ' lukasz ' },
+    );
+    expect(io.stdout).toHaveBeenCalledExactlyOnceWith(
+      ['Invitation emailed to ada@example.com (batch 3, 7 of 20).', '', 'Audit line for the shared note:', AUDIT].join('\n'),
+    );
+    expect(JSON.stringify(io.stdout.mock.calls)).not.toContain('raw-token');
+  });
+
+  it('create with MAIL_PROVIDER=log says nothing was delivered and prints the link block on stdout', async () => {
+    service.create.mockResolvedValue(created());
+    const io = out();
+
+    await executeInviteCommand(
+      { kind: 'create', email: 'ada@example.com', tags: ['react'], batch: undefined, operator: 'lukasz' },
+      service,
+      { ...io, mailProvider: 'log' },
+    );
+
     expect(io.stdout).toHaveBeenCalledExactlyOnceWith(
       [
+        'MAIL_PROVIDER=log: the email was not delivered.',
         'Invitation link for ada@example.com (shown once; send it by hand):',
         LINK,
         '',
+        'Invitation created for ada@example.com (batch 3, 7 of 20).',
+        '',
         'Audit line for the shared note:',
-        `2026-11-14T20:15:03Z invited ada@example.com tags=typescript,react batch=b1 by lukasz id=${ID} expires=2026-11-28T20:15:03Z`,
+        AUDIT,
       ].join('\n'),
     );
   });
@@ -230,7 +263,7 @@ describe('executeInviteCommand', () => {
     service.resend.mockResolvedValue({ invitation: view(), link: LINK });
     const io = out();
 
-    await executeInviteCommand({ kind: 'resend', id: ID }, service, io);
+    await executeInviteCommand({ kind: 'resend', id: ID }, service, { ...io, mailProvider: 'resend' });
 
     expect(service.resend).toHaveBeenCalledWith(ID);
     const [[text]] = io.stdout.mock.calls;
@@ -247,7 +280,7 @@ describe('executeInviteCommand', () => {
     service.revoke.mockResolvedValue(view({ status: 'revoked', revokedAt: NOW }));
     const io = out();
 
-    await executeInviteCommand({ kind: 'revoke', id: ID }, service, io);
+    await executeInviteCommand({ kind: 'revoke', id: ID }, service, { ...io, mailProvider: 'log' });
 
     expect(service.revoke).toHaveBeenCalledWith(ID);
     expect(io.stdout).toHaveBeenCalledExactlyOnceWith(
@@ -259,7 +292,7 @@ describe('executeInviteCommand', () => {
     service.list.mockResolvedValue([]);
     const io = out();
 
-    await executeInviteCommand({ kind: 'list', batch: 'b9' }, service, io);
+    await executeInviteCommand({ kind: 'list', batch: 'b9' }, service, { ...io, mailProvider: 'log' });
 
     expect(service.list).toHaveBeenCalledWith({ batch: 'b9' });
     expect(io.stdout).toHaveBeenCalledExactlyOnceWith('No invitations in batch "b9".');
@@ -299,9 +332,44 @@ describe('runInviteCli', () => {
     expect(deps).toMatchObject({ em: 'forked-em', env: getEnv.mock.results[0].value });
     expect(deps.accountService).toBeInstanceOf(AccountService);
     expect(deps.slotService).toBeInstanceOf(SlotService);
+    expect(deps.invitationBatchService).toBeInstanceOf(InvitationBatchService);
+    expect(deps.mailSender).toBeInstanceOf(LogMailer);
     expect(lines(stdout)[0]).toContain('ada@example.com');
     expect(stderr).not.toHaveBeenCalled();
     expect(orm.close).toHaveBeenCalledOnce();
+  });
+
+  it('create with the log mailer prints the link on stdout only, never on stderr (exit 0)', async () => {
+    service.create.mockResolvedValue({ invitation: view(), link: LINK, batchNumber: 1, sent: 1 });
+    const { stdout, stderr, code } = run(['create', '--email', 'ada@example.com', '--tags', 'react', '--operator', 'lukasz']);
+
+    expect(await code).toBe(0);
+    expect(lines(stdout).join('\n')).toContain(LINK);
+    expect(stderr).not.toHaveBeenCalled();
+  });
+
+  it('create with MAIL_PROVIDER=resend builds the Resend mailer and prints no link', async () => {
+    getEnv.mockReturnValue(
+      parseEnv({ DATABASE_URL: 'postgres://localhost/dev', APP_URL: 'http://localhost:3000', MAIL_PROVIDER: 'resend', MAIL_API_KEY: 're_test', MAIL_FROM: 'DevMentor <hello@devmentor.test>' }),
+    );
+    service.create.mockResolvedValue({ invitation: view(), link: LINK, batchNumber: 1, sent: 1 });
+    const { stdout, stderr, code } = run(['create', '--email', 'ada@example.com', '--tags', 'react', '--operator', 'lukasz']);
+
+    expect(await code).toBe(0);
+    const [[deps]] = InvitationService.mock.calls as unknown as [[Record<string, unknown>]];
+    expect(deps.mailSender).toBeInstanceOf(ResendMailer);
+    expect(lines(stdout).join('\n')).not.toContain(LINK);
+    expect(lines(stdout)[0]).toContain('Invitation emailed to ada@example.com (batch 1, 1 of 20).');
+    expect(stderr).not.toHaveBeenCalled();
+  });
+
+  it('resend while stopped prints the stopped message (exit 1)', async () => {
+    service.resend.mockRejectedValue(new ConflictError(INVITATIONS_STOPPED_MESSAGE, { code: 'INVITATIONS_STOPPED' }));
+    const { stdout, stderr, code } = run(['resend', ID]);
+
+    expect(await code).toBe(1);
+    expect(lines(stderr)).toEqual([INVITATIONS_STOPPED_MESSAGE]);
+    expect(stdout).not.toHaveBeenCalled();
   });
 
   it('prints service warnings as plain lines on stderr and drops info lines', async () => {
@@ -360,5 +428,21 @@ describe('runInviteCli', () => {
     const second = run(['list']);
     expect(await second.code).toBe(1);
     expect(lines(second.stderr)).toEqual(['invite failed: not an Error']);
+  });
+});
+
+describe('cliMailSender', () => {
+  it('picks Resend or the log mailer by MAIL_PROVIDER and writes no warning', () => {
+    const logger = { warn: vi.fn(), info: vi.fn() };
+    const resendEnv = parseEnv({
+      DATABASE_URL: 'postgres://localhost/dev',
+      MAIL_PROVIDER: 'resend',
+      MAIL_API_KEY: 're_test',
+      MAIL_FROM: 'DevMentor <hello@devmentor.test>',
+    });
+
+    expect(cliMailSender(resendEnv, logger as never)).toBeInstanceOf(ResendMailer);
+    expect(cliMailSender(env(), logger as never)).toBeInstanceOf(LogMailer);
+    expect(logger.warn).not.toHaveBeenCalled();
   });
 });

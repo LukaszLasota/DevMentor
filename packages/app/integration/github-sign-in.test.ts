@@ -54,6 +54,7 @@ describe('GitHub sign-in through the stub (agent-browser)', () => {
     expect(await browser.text('nav[aria-label="Main"] a[aria-current="page"]')).toBe('Mentors');
     expect(await browser.count('a[href="/admin"]')).toBe(0);
     expect(await browser.count('a[href="/mentor"]')).toBe(0);
+    expect(await browser.count('a[href="/admin/invitations"]')).toBe(0);
     expect(await psql("select roles from users where email = 'mock-mentee@devmentor.test'")).toBe('{mentee}');
 
     menteeSession = await sessionCookie();
@@ -110,6 +111,8 @@ describe('GitHub sign-in through the stub (agent-browser)', () => {
     expect(await browser.text('nav[aria-label="Main"] a[aria-current="page"]')).toBe('Dashboard');
     expect(await browser.attr('nav[aria-label="Main"] a[aria-current="page"]', 'href')).toBe('/admin');
     expect(await browser.count('nav[aria-label="Main"] a[href="/mentors"]')).toBe(1);
+    // Invitation batches (spec 2026-11-24-invitation-batches): "Invitations" after "Dashboard", operators only.
+    expect(await browser.count('nav[aria-label="Main"] a[href="/admin/invitations"]')).toBe(1);
     expect(await browser.count('a[href="/mentor"]')).toBe(0);
     expect(await psql("select roles from users where email = 'mock-operator@devmentor.test'")).toBe('{mentee,operator}');
   });

@@ -37,6 +37,14 @@ export {
 export { bookingStartSchema, type BookingStartInput } from './bookings/booking-start.schema';
 export { MAX_STACK_TAGS, StackTags, type StackTagKey } from '../domain/vocabularies/stack-tags';
 export {
+  invitationCreateSchema,
+  STACK_TAG_DUPLICATE_MESSAGE,
+  STACK_TAG_REQUIRED_MESSAGE,
+  STACK_TAG_UNKNOWN_MESSAGE,
+  STACK_TAGS_TOO_MANY_MESSAGE,
+  type InvitationCreateInput,
+} from './invitations/invitation-create.schema';
+export {
   ANSWER_MAX,
   ANSWER_MIN,
   MESSAGE_MAX,

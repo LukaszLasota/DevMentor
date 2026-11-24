@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
-import { afterAll, afterEach, beforeAll, describe, expect, inject, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, inject, it } from 'vitest';
+import { openFreshBatch } from './fixtures/invitation-batches';
 import { psql } from './psql';
 
 // InvitationService runs in this process against the migrated test database (the in-process
@@ -24,6 +25,11 @@ afterAll(async () => {
   await container.cradle.orm.close();
 });
 
+// `create` needs an open batch; each test creates at most 10 invitations, so one batch never fills.
+beforeEach(async () => {
+  await openFreshBatch();
+});
+
 afterEach(async () => {
   await psql(`delete from invitations where email like '%${DOMAIN}'`);
   await psql(`delete from users where email like '%${DOMAIN}'`);
@@ -40,7 +46,7 @@ async function seedVerifiedUser(email: string): Promise<string> {
 
 async function createInvitation(email: string): Promise<{ id: string; token: string }> {
   const { invitation, link } = await core.withScope(({ invitationService }) =>
-    invitationService.create({ email, tags: ['typescript'], operator: 'integration' }),
+    invitationService.create({ email, tags: ['typescript'] }, { kind: 'cli', operator: 'integration' }),
   );
 
   return { id: invitation.id, token: link.split('/invitation/')[1] };
@@ -137,7 +143,7 @@ describe('InvitationService against PostgreSQL', () => {
 
       expect(results.map((result) => result.status).sort()).toEqual(['fulfilled', 'rejected']);
       expect(results.find((result) => result.status === 'rejected')).toMatchObject({
-        reason: { status: 409, code: 'CONFLICT' },
+        reason: { status: 409, code: 'ALREADY_INVITED' },
       });
       expect(await psql(`select count(*) from invitations where email = '${email}'`)).toBe('1');
     }
@@ -160,7 +166,8 @@ describe('InvitationService against PostgreSQL', () => {
       ]);
 
       expect(accepted.status).toBe('fulfilled');
-      expect(created).toMatchObject({ status: 'rejected', reason: { status: 409, code: 'CONFLICT' } });
+      expect(created).toMatchObject({ status: 'rejected', reason: { status: 409 } });
+      expect(['EMAIL_IS_MENTOR', 'ALREADY_INVITED']).toContain((created as PromiseRejectedResult).reason.code);
       expect(
         await psql(
           `select count(*) from invitations where email = '${email}' and accepted_at is null and revoked_at is null`,

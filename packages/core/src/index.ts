@@ -32,6 +32,8 @@ export { getSessionUser, type SessionUser, type SessionUserDeps } from './auth/s
 export { formatMoney, parseMajorAmount, toMajorString, withinBounds, type Cents } from './money/money';
 export { allowedRange } from './services/mentors/mentor-profile.service';
 export { homeFor } from './auth/home';
+// The D13 stop banner on /admin/invitations shows this sentence word for word.
+export { INVITATIONS_STOPPED_MESSAGE } from './services/invitations/invitation-batch.rules';
 export type { Role } from '@devmentor/db';
 export { EventBus, type DomainEventListener, type DomainEventName, type DomainEvents } from './events/events';
 export { HealthService, type HealthStatus } from './services/health/health.service';

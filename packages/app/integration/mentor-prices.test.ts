@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, describe, expect, inject, it } from 'vitest';
 import { createAgentBrowser } from './agent-browser';
+import { openFreshBatch } from './fixtures/invitation-batches';
 import { psql } from './psql';
 
 // Mentor prices end to end (spec 2026-10-21-mentor-prices, step 8), with the approved bounds the
@@ -23,6 +24,7 @@ const CSRF = { 'x-devmentor-request': '1', 'content-type': 'application/json' };
 const NBSP = /\s/g;
 
 async function onboardMentor(login: string): Promise<string> {
+  await openFreshBatch();
   const out: string[] = [];
   const err: string[] = [];
   const argv = ['create', '--email', `${login}@devmentor.test`, '--tags', 'python', '--operator', 'it', '--batch', `pr-${run}`];
