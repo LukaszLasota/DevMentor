@@ -2,7 +2,9 @@
   "version": 1,
   "baseBranch": "auto",
   "tracker": "github",
-  "browser": { "provider": "agent-browser" },
+  "browser": {
+    "provider": "agent-browser"
+  },
   "validation": {
     "commands": [
       "npm run lint",
@@ -15,15 +17,52 @@
   },
   "labels": {
     "enabled": true,
-    "pipeline": ["review", "changes-requested", "qa", "qa-failed", "merge-queue", "blocked", "do-not-merge"],
-    "category": ["bug", "feature", "refactor", "security", "dependencies", "documentation"],
-    "meta": ["needs-qa", "skip-qa", "qa-approved", "qa-self-verified", "in-progress", "ci-monitoring"],
-    "priority": ["priority-low", "priority-medium", "priority-high", "priority-extreme"],
-    "risk": ["risk-low", "risk-medium", "risk-high"]
+    "pipeline": [
+      "review",
+      "changes-requested",
+      "qa",
+      "qa-failed",
+      "merge-queue",
+      "blocked",
+      "do-not-merge"
+    ],
+    "category": [
+      "bug",
+      "feature",
+      "refactor",
+      "security",
+      "dependencies",
+      "documentation"
+    ],
+    "meta": [
+      "needs-qa",
+      "skip-qa",
+      "qa-approved",
+      "qa-self-verified",
+      "in-progress",
+      "ci-monitoring"
+    ],
+    "priority": [
+      "priority-low",
+      "priority-medium",
+      "priority-high",
+      "priority-extreme"
+    ],
+    "risk": [
+      "risk-low",
+      "risk-medium",
+      "risk-high"
+    ]
   },
   "qaGate": true,
-  "ci": { "maxWaitMinutes": 40 },
-  "engine": { "loopStepThreshold": 20, "executorTier": "standard", "stepReview": "final" },
+  "ci": {
+    "maxWaitMinutes": 40
+  },
+  "engine": {
+    "loopStepThreshold": 20,
+    "executorTier": "standard",
+    "stepReview": "final"
+  },
   "paths": {
     "runs": ".ai/runs",
     "analysis": ".ai/analysis",
@@ -37,6 +76,76 @@
   "closeKeywords": [],
   "discovery": {
     "enabled": true,
-    "roles": { "domainExpert": false, "designer": false }
+    "roles": {
+      "domainExpert": false,
+      "designer": false
+    }
+  },
+  "agentHarness": {
+    "version": 1,
+    "preset": "custom",
+    "host": "claude",
+    "delivery": {
+      "mode": "stage-only",
+      "issueClaim": "hold"
+    },
+    "retry": {
+      "maxAttempts": 4,
+      "backoffMs": 5000,
+      "backoffMultiplier": 2,
+      "timeoutEscalation": 1.5,
+      "maxTimeoutMs": 2400000
+    },
+    "models": {
+      "nemotron": {
+        "adapter": "openai-compatible",
+        "family": "nvidia",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+        "roles": [
+          "reviewer"
+        ],
+        "endpoint": "https://openrouter.ai/api/v1/chat/completions",
+        "credentialEnv": "OPENROUTER_API_KEY",
+        "maxOutputTokens": 16000,
+        "timeoutMs": 600000
+      },
+      "ernie": {
+        "adapter": "openai-compatible",
+        "family": "baidu",
+        "model": "baidu/ernie-5.5-flash-preview:free",
+        "roles": [
+          "reviewer"
+        ],
+        "endpoint": "https://openrouter.ai/api/v1/chat/completions",
+        "credentialEnv": "OPENROUTER_API_KEY",
+        "maxOutputTokens": 16000,
+        "timeoutMs": 600000
+      }
+    },
+    "profiles": {
+      "standard": {
+        "workers": [],
+        "reviewers": [],
+        "reviewPolicy": {
+          "mode": "advisory"
+        }
+      },
+      "multi": {
+        "workers": [],
+        "reviewers": [
+          "nemotron",
+          "ernie"
+        ],
+        "maxParallel": 2,
+        "maxInputBytes": 700000,
+        "reviewPolicy": {
+          "mode": "all-required",
+          "requiredReviewers": [
+            "nemotron",
+            "ernie"
+          ]
+        }
+      }
+    }
   }
 }
