@@ -5,10 +5,19 @@ import type { NextConfig } from "next";
 // Env files live at the monorepo root, shared with the MikroORM CLI. Next has already
 // loaded (and cached) env for this app directory, so force a reload from the root and
 // add the parsed values to Next's initial snapshot so later env reloads keep them.
-const { parsedEnv } = loadEnvConfig(path.resolve(process.cwd(), "../.."), process.env.NODE_ENV !== "production", console, true);
+const repoRoot = path.resolve(process.cwd(), "../..");
+const { parsedEnv } = loadEnvConfig(repoRoot, process.env.NODE_ENV !== "production", console, true);
 updateInitialEnv(parsedEnv ?? {});
 
+// The Docker image (Dockerfile) builds with NEXT_OUTPUT=standalone: a self-contained server in
+// .next/standalone with only the traced node_modules. Opt-in, because `next start` (the integration
+// runner, `npm start`) does not serve a standalone build. Tracing starts at the monorepo root so the
+// workspace packages (@devmentor/*) and the hoisted node_modules are included.
+const standalone: NextConfig =
+  process.env.NEXT_OUTPUT === "standalone" ? { output: "standalone", outputFileTracingRoot: repoRoot } : {};
+
 const nextConfig: NextConfig = {
+  ...standalone,
   experimental: {
     agentFeedback: true,
     // MikroORM finds entity metadata by class, falling back to the class name. Route handlers and

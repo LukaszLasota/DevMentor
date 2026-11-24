@@ -88,7 +88,7 @@ describe("/m/[slug]", () => {
     expect(items[0]?.textContent).toContain("Starts in less than two hours — no longer bookable");
     expect(items[1]?.getAttribute("aria-disabled")).toBeNull();
     expect(screen.queryByText("Not bookable yet")).toBeNull();
-    expect(screen.getByRole("list", { name: "Session prices" }).textContent).toBe("25 minPLN 150.0050 minPLN 300.00");
+    expect(screen.getByRole("list", { name: "Session prices" }).textContent).toBe("25 min·PLN 150.0050 min·PLN 300.00");
     // Booking controls only on the bookable time, with the formatted prices (spec #29).
     expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual(["Book b 25/50 PLN 150.00 ada-lovelace"]);
     expect(document.body.textContent).not.toMatch(/\b(ratings?|scores?|reviews?|rank(ing)?|stars?|guaranteed|reserved)\b/i);

@@ -198,6 +198,115 @@ With `MAIL_PROVIDER=log` (the default outside production) no email is sent: the 
 3. Open the link, type a password (12–128 characters; "Show password" shows it), "Set password and sign in" → `/mentors`, signed in.
 4. "Sign out", then sign in on `/sign-in` with the email and password. A used or expired link shows "This link does not work any more" with "Send a new link".
 
+## Deploy to a VPS
+
+One VPS (e.g. a cyber_Folks VPS) running Docker Compose: `docker-compose.prod.yml` starts PostgreSQL, a one-shot `migrate` service and the app, built from the multi-stage `Dockerfile` (Next.js standalone server, non-root user, healthcheck on `/api/health`). The dev database in `docker-compose.yml` is unchanged. The image never contains `.env*`, `.git`, `.ai/`, `.agents/`, `.claude/`, tests or host `node_modules` (`.dockerignore`).
+
+### Prerequisites
+
+- Docker Engine with the Compose v2 plugin (`docker compose version`), a domain pointing at the VPS, and a reverse proxy with TLS in front of the app: Caddy or nginx on the host, or Dokploy/Coolify (their Traefik). The app publishes port 3000 on `127.0.0.1` only, so the proxy is the one way in.
+- About 4 GB RAM to build the image on the VPS (or build elsewhere and push the image to a registry).
+- Production accounts: a Resend API key with a verified sender domain, Stripe live keys, a GitHub OAuth App for the production domain.
+
+### Env file (never committed)
+
+Create `.env.production` next to the compose file from `.env.example`. `.gitignore` ignores `.env*` and `.dockerignore` keeps it out of the image; compose hands it to the containers at runtime.
+
+```bash
+cp .env.example .env.production && chmod 600 .env.production
+```
+
+Then set at least these (production refuses to boot without `SESSION_SECRET`, `APP_URL`, the Resend keys and `TRUSTED_PROXY_HOPS` of 1 or more):
+
+```bash
+SESSION_SECRET=<openssl rand -hex 32>
+APP_URL=https://devmentor.example.com           # public origin, no trailing slash
+MAIL_PROVIDER=resend
+MAIL_API_KEY=<Resend API key>
+MAIL_FROM=DevMentor <noreply@devmentor.example.com>
+TRUSTED_PROXY_HOPS=1                            # see below
+POSTGRES_USER=devmentor
+POSTGRES_PASSWORD=<openssl rand -hex 24>        # hex: nothing to escape in the URL
+POSTGRES_DB=devmentor
+DATABASE_URL=postgres://devmentor:<same password>@postgres:5432/devmentor
+OPERATOR_EMAILS=<founder emails, comma-separated>
+GITHUB_CLIENT_ID=<production OAuth App>
+GITHUB_CLIENT_SECRET=<production OAuth App>
+STRIPE_SECRET_KEY=<sk_live_…>
+STRIPE_WEBHOOK_SECRET=<whsec_… of the production endpoint>
+```
+
+Keep `PLATFORM_CURRENCY` / `PLATFORM_PRICE_BOUNDS` from `.env.example`; remove `ALLOW_TEST_OVERRIDES` and every override URL (refused in production). The same file feeds `postgres` (which reads only its `POSTGRES_*` keys), `migrate` and `app`; `DATABASE_URL` uses the compose host `postgres`, which is not published on the host.
+
+**`TRUSTED_PROXY_HOPS`** is the number of proxies that append the client IP to `X-Forwarded-For`; per-IP rate limits read the IP that many entries from the right, and production refuses 0. One reverse proxy (Caddy, nginx, the Traefik of Dokploy/Coolify) → `1`; Cloudflare (proxied) in front of it → `2`. Too low rate-limits the proxy's IP for everyone; too high trusts a header the client wrote. Check the real `X-Forwarded-For` chain on the host before go-live (threat model T-12).
+
+### Start
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml ps        # app "healthy", migrate "exited (0)"
+docker compose -f docker-compose.prod.yml logs -f app
+```
+
+`migrate` runs `npm run db:migrate` and exits; `app` starts only after it succeeded and PostgreSQL is healthy. Every `up` applies pending migrations, so a deploy is: pull the repo, `up -d --build`. The env-file path, image tag and host port come from the shell: `DEVMENTOR_ENV_FILE` (default `.env.production`), `DEVMENTOR_TAG` (default `latest`), `APP_PORT` (default `3000`).
+
+### First-time steps
+
+1. `https://<domain>/api/health` returns `200 { ok: true }`.
+2. **GitHub OAuth App** for production (see "Sign in with real GitHub"): Homepage URL `https://<domain>`, Authorization callback URL `https://<domain>/api/auth/github/callback`; its origin must equal `APP_URL`.
+3. **Operators:** `OPERATOR_EMAILS` lists the founders' verified emails. After a change: `docker compose -f docker-compose.prod.yml up -d --force-recreate app`.
+4. Sign in as an operator, open **/admin/invitations** and open batch 1; invitations go out through Resend (see "Invite a mentor").
+5. **Stripe webhook:** Dashboard → Developers → Webhooks → endpoint `https://<domain>/api/webhooks/stripe`, API version `2024-06-20`, events `checkout.session.completed` and `checkout.session.expired`; put its signing secret in `STRIPE_WEBHOOK_SECRET` and recreate the app.
+6. **Security headers (threat model T-13, open):** the app sets no CSP, framing protection or HSTS, so set them at the proxy: `Strict-Transport-Security: max-age=31536000; includeSubDomains`, `Content-Security-Policy: frame-ancestors 'none'` (plus `X-Frame-Options: DENY` for old browsers), `X-Content-Type-Options: nosniff`. Do not override the `Referrer-Policy` / `Cache-Control` the app sends on `/verify-email` and `/invitation/*`. Caddy:
+
+   ```caddy
+   devmentor.example.com {
+     reverse_proxy 127.0.0.1:3000
+     header {
+       Strict-Transport-Security "max-age=31536000; includeSubDomains"
+       Content-Security-Policy "frame-ancestors 'none'"
+       X-Frame-Options "DENY"
+       X-Content-Type-Options "nosniff"
+       ?Referrer-Policy "strict-origin-when-cross-origin"
+     }
+   }
+   ```
+
+   In Dokploy/Coolify add the same headers as a Traefik `headers` middleware on the app's domain. Check with `curl -sI https://<domain>/admin`.
+
+### Backup and restore
+
+```bash
+# Backup (custom format), e.g. daily from cron; copy the file off the VPS
+docker compose -f docker-compose.prod.yml exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > devmentor-$(date +%F).dump
+
+# Restore into the running database (replaces its objects)
+docker compose -f docker-compose.prod.yml exec -T postgres sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists' < devmentor-2026-11-24.dump
+```
+
+The data lives in the named volume `devmentor_postgres-data`: `docker compose down` keeps it, `down -v` deletes it.
+
+### Release tags and rollback
+
+Tag each build with the commit so the previous image stays on the host:
+
+```bash
+DEVMENTOR_TAG=$(git rev-parse --short HEAD) docker compose -f docker-compose.prod.yml up -d --build
+# Rollback: start the previous tag again, without building
+DEVMENTOR_TAG=<previous sha> docker compose -f docker-compose.prod.yml up -d --no-build
+```
+
+Rolling back the image does not roll back the schema. Migrations follow `BACKWARD_COMPATIBILITY.md` (expand → migrate → contract), so the previous image runs on the newer schema; a migration that must be reverted is undone with the newer image before switching tags (`docker compose -f docker-compose.prod.yml run --rm migrate npm run db -- migration:down`), as the release's section in `UPGRADE_NOTES.md` says. Take a backup before every deploy.
+
+### Dokploy or Coolify
+
+Both deploy a compose file from the GitHub repository; point them at `docker-compose.prod.yml`.
+
+- **Dokploy:** create a *Compose* service from the repo, compose path `./docker-compose.prod.yml`. Paste the `.env.production` content into its Environment tab and add `DEVMENTOR_ENV_FILE=.env` (Dokploy writes that tab to `.env` beside the compose file). Add the domain on the `app` service, container port 3000, HTTPS on.
+- **Coolify:** new resource → *Docker Compose* build pack, compose location `/docker-compose.prod.yml`. Enter the variables in its Environment Variables view, set `DEVMENTOR_ENV_FILE=.env` (Coolify writes them to `.env` beside the compose file) and give the `app` service the domain on port 3000.
+
+Both route through their own Traefik: `TRUSTED_PROXY_HOPS=1` (2 with Cloudflare in front), and the loopback port is unused. Confirm in the platform's current docs how it writes the env file before the first deploy.
+
 ## Scripts
 
 | Command | Description |
@@ -219,6 +328,7 @@ With `MAIL_PROVIDER=log` (the default outside production) no email is sent: the 
 | `npm run db -- migration:up` / `migration:down` | Apply / roll back migrations |
 | `npm run db -- <command>` | Any other MikroORM CLI command |
 | `npm run release -- <plan\|prepare\|notes>` | Release steps used by the Release workflow (see "Releasing") |
+| `docker compose -f docker-compose.prod.yml up -d --build` | Production stack on a VPS (see "Deploy to a VPS") |
 
 ## Releasing
 

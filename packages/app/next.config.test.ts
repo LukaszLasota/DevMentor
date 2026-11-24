@@ -65,4 +65,22 @@ describe('next.config', () => {
       },
     ]);
   });
+
+  it('builds the default output unless NEXT_OUTPUT=standalone, so `next start` keeps working', async () => {
+    vi.stubEnv('NEXT_OUTPUT', '');
+
+    const config = await loadConfig({});
+
+    expect(config.output).toBeUndefined();
+    expect(config.outputFileTracingRoot).toBeUndefined();
+  });
+
+  it('builds a standalone server traced from the monorepo root for the Docker image', async () => {
+    vi.stubEnv('NEXT_OUTPUT', 'standalone');
+
+    const config = await loadConfig({});
+
+    expect(config.output).toBe('standalone');
+    expect(config.outputFileTracingRoot).toBe('/repo');
+  });
 });

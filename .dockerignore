@@ -1,0 +1,51 @@
+# Build context of the production image (Dockerfile). Keep secrets, agent config, VCS data,
+# host dependencies/build output and tests out of every image layer.
+
+# Secrets and env files (the image gets its env at runtime; .env.example is not needed either)
+.env*
+**/.env*
+*.pem
+**/*.pem
+
+# VCS and CI
+.git
+.gitignore
+.github
+
+# Agent workshop and AI artifacts
+.ai
+.agents
+.claude
+.mcp.json
+.qodo
+skills-lock.json
+**/AGENTS.md
+**/CLAUDE.md
+
+# Host dependencies and build output (rebuilt inside the image)
+**/node_modules
+**/.next
+**/dist
+**/coverage
+**/storybook-static
+**/.storybook
+packages/ui/stories
+**/*.tsbuildinfo
+**/next-env.d.ts
+
+# Tests and test tooling
+**/*.test.ts
+**/*.test.tsx
+**/*.test.mjs
+**/*.test.mts
+packages/app/integration
+**/vitest.*
+scripts/hooks
+
+# Docs, local tooling and deploy files
+docs
+prototypes
+*.md
+Dockerfile
+.dockerignore
+docker-compose*.yml

@@ -1,0 +1,54 @@
+# Production stack for a single VPS (README, "Deploy to a VPS"):
+#   docker compose -f docker-compose.prod.yml up -d --build
+# Env comes from an uncommitted file (default .env.production, created from .env.example; override the
+# path with DEVMENTOR_ENV_FILE, e.g. `.env` on Dokploy). The dev database stays in docker-compose.yml.
+# Images are tagged with DEVMENTOR_TAG (default `latest`) so a previous tag can be started again (rollback).
+name: devmentor
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    # POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB from the env file; DATABASE_URL must match them.
+    env_file: ${DEVMENTOR_ENV_FILE:-.env.production}
+    # No `ports`: reachable only on the compose network (host `postgres`), never from the internet.
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # One-shot: applies pending migrations, then exits; the app starts only after it succeeded.
+  migrate:
+    build:
+      context: .
+      target: migrate
+    image: devmentor-migrate:${DEVMENTOR_TAG:-latest}
+    restart: "no"
+    env_file: ${DEVMENTOR_ENV_FILE:-.env.production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  app:
+    build:
+      context: .
+      target: runner
+    image: devmentor-app:${DEVMENTOR_TAG:-latest}
+    restart: unless-stopped
+    env_file: ${DEVMENTOR_ENV_FILE:-.env.production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    # Loopback only: the reverse proxy on the host (Caddy, nginx) is the one entry point, so nobody
+    # can bypass it and forge X-Forwarded-For (TRUSTED_PROXY_HOPS). Dokploy/Coolify route through
+    # their own Traefik on the Docker network and need no published port at all.
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+
+volumes:
+  postgres-data:

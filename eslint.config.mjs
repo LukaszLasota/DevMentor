@@ -139,6 +139,7 @@ const eslintConfig = defineConfig([
     // and scratch/worktrees under .ai/tmp are not our source (#77).
     ".agents/skills/**",
     ".ai/tmp/**",
+    ".claude/worktrees/**",
   ]),
 ]);
 
