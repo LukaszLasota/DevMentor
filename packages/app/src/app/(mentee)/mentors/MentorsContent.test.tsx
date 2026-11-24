@@ -42,7 +42,7 @@ describe("MentorsContent (/mentors, #27)", () => {
     expect(document.querySelector("ol")).toBeNull();
     expect(document.querySelectorAll("main > ul > li, ul > li > article").length).toBe(2);
     expect(screen.getByRole("link", { name: "ADA" }).getAttribute("href")).toBe("/m/ada");
-    expect(screen.getAllByRole("list", { name: "Session prices" })[0]?.textContent).toBe("25 minPLN 150.0050 minPLN 300.00");
+    expect(screen.getAllByRole("list", { name: "Session prices" })[0]?.textContent).toBe("25 min·PLN 150.0050 min·PLN 300.00");
     expect(screen.getByRole("navigation", { name: "Filter by stack tag" })).toBeTruthy();
     expect(screen.queryByRole("searchbox")).toBeNull();
     expect(screen.queryByRole("button", { name: /copy/i })).toBeNull();

@@ -1,4 +1,5 @@
 import { LocalTime } from "../../time/LocalTime";
+import { buttonVariants } from "../ui/button-variants";
 import { MentorAvatar } from "./MentorAvatar";
 import { SessionFacts, type MentorPrices } from "./SessionFacts";
 import { TagList } from "./TagList";
@@ -60,6 +61,13 @@ export function MentorCard({
             Next open time: <LocalTime iso={nextBookableSlotAt} />
           </p>
         </div>
+        {/* #78: the name alone did not read as the way to booking; a visible action goes to the open times. */}
+        <a
+          href={`/m/${slug}#open-times`}
+          className={`${buttonVariants({ intent: "primary", appearance: "outline", size: "sm" })} w-fit`}
+        >
+          See open times <span className="sr-only">with {displayName}</span>
+        </a>
       </div>
     </article>
   );

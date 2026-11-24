@@ -4,7 +4,11 @@ export interface MentorPrices {
   price50: string;
 }
 
-/** Session length and price as separate fact chips (R03.3), prices in mono with tabular figures (R03.1). */
+/**
+ * Session length and price as a plain price list (R03.3), prices in mono with tabular figures (R03.1).
+ * #98: no chip background or rounded box — chips read as the length options next to each time, which
+ * are the only place a length is picked.
+ */
 export function SessionFacts({ prices }: { prices: MentorPrices }) {
   const facts = [
     { length: "25 min", price: prices.price25 },
@@ -12,13 +16,13 @@ export function SessionFacts({ prices }: { prices: MentorPrices }) {
   ];
 
   return (
-    <ul aria-label="Session prices" className="flex flex-wrap gap-related">
+    <ul aria-label="Session prices" className="flex flex-wrap gap-x-paragraph gap-y-related text-caption">
       {facts.map((fact) => (
-        <li
-          key={fact.length}
-          className="inline-flex items-center gap-related rounded-control bg-muted px-related py-badge-y text-caption"
-        >
+        <li key={fact.length} className="inline-flex items-baseline gap-related">
           <span className="text-muted-foreground">{fact.length}</span>
+          <span aria-hidden="true" className="text-muted-foreground">
+            ·
+          </span>
           <span className="font-mono font-medium tabular-nums text-foreground">{fact.price}</span>
         </li>
       ))}

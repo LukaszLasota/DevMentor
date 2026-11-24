@@ -85,7 +85,7 @@ export function MentorPageView({
           <>
             {prices ? <SessionFacts prices={prices} /> : null}
             <p className="text-caption text-muted-foreground">Times are shown in your time zone</p>
-            <ul aria-label="Open times" className="flex flex-col">
+            <ul id="open-times" aria-label="Open times" className="flex flex-col scroll-mt-section">
               {slots.map((slot) => (
                 <li
                   key={slot.id}
