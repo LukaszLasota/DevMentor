@@ -57,7 +57,7 @@ export function SlotBookingControls({ lengths, prices, timeLabel, onBook }: Slot
           {lengths.map((option) => (
             <label
               key={option}
-              className="inline-flex cursor-pointer items-center gap-related rounded-control border border-border px-related py-badge-y text-caption hover:border-primary hover:bg-muted has-[:checked]:border-primary has-[:checked]:bg-muted has-[:disabled]:cursor-not-allowed has-[:focus-visible]:focus-ring"
+              className="inline-flex cursor-pointer items-center gap-related rounded-control border border-input px-related py-badge-y text-caption has-[:enabled]:hover:border-primary has-[:enabled]:hover:bg-muted has-[:checked]:border-primary has-[:checked]:bg-muted has-[:disabled]:cursor-not-allowed has-[:focus-visible]:focus-ring"
             >
               <input
                 type="radio"
@@ -68,7 +68,7 @@ export function SlotBookingControls({ lengths, prices, timeLabel, onBook }: Slot
                 disabled={busy}
                 className="peer sr-only"
               />
-              <span aria-hidden="true" className="size-3 shrink-0 rounded-full border border-muted-foreground peer-checked:border-4 peer-checked:border-primary" />
+              <span aria-hidden="true" className="size-3 shrink-0 rounded-full border border-input peer-checked:border-4 peer-checked:border-primary" />
               <span className="text-muted-foreground peer-checked:text-foreground">{option} min</span>{" "}
               <span className="font-mono font-medium tabular-nums text-foreground">{prices[option]}</span>
             </label>

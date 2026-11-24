@@ -19,7 +19,7 @@ describe("SlotBookingControls", () => {
     expect((screen.getByRole("radio", { name: "25 min PLN 150.00" }) as HTMLInputElement).checked).toBe(true);
   });
 
-  it("reads as a choice: a visible Length caption and a radio dot per option, keyboard selection works (#79)", () => {
+  it("reads as a choice: a visible Length caption and a radio dot per option, a click moves the choice (#79)", () => {
     setup();
 
     expect(screen.getByText("Length").getAttribute("aria-hidden")).toBe("true");
