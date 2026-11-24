@@ -24,6 +24,16 @@ export const BothLengths: Story = {
   },
 };
 
+/** #79: the second length chosen with the keyboard — filled dot and primary border move with the choice. */
+export const FiftySelected: Story = {
+  play: async ({ canvas }) => {
+    canvas.getByRole("radio", { name: "25 min PLN 150.00" }).focus();
+    await userEvent.keyboard("{ArrowRight}");
+    await expect(canvas.getByRole("radio", { name: "50 min PLN 300.00" })).toBeChecked();
+    await expect(canvas.getByRole("radio", { name: "25 min PLN 150.00" })).not.toBeChecked();
+  },
+};
+
 /** A 50-minute session would run into the next booking, so only 25 is offered. */
 export const OnlyShortLength: Story = { args: { lengths: ["25"] } };
 
