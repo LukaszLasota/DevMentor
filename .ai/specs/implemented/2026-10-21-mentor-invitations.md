@@ -1,5 +1,5 @@
 # Operator invites mentors; only invited people become mentors
-> ⚠️ Superseded by `.ai/specs/2026-11-24-invitation-batches.md` (2026-11-24) — sections: Proposed Solution (batches out of scope; `create` printing the link to send by hand). Current state: see the new spec.
+> ⚠️ Superseded by `.ai/specs/implemented/2026-11-24-invitation-batches.md` (2026-11-24) — sections: Proposed Solution (batches out of scope; `create` printing the link to send by hand). Current state: see the new spec.
 
 Status: implemented
 Issue: #22 (E01-S02) · Epic: #16 · Source: `.ai/specs/product-brief.md` (R13, R16, D13, D24) · Builds on: `.ai/specs/implemented/2026-10-21-sign-in-github-and-email.md`, `.ai/specs/implemented/2026-10-21-platform-primitives.md` · Follows the course reference spec `2026-09-08-invitations.md` (lesson 05), adapted to this repository

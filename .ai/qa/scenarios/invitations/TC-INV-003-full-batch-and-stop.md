@@ -1,7 +1,7 @@
 # TC-INV-003 — A full batch offers the next batch; a decided batch 1 with 4 publishers stops invitations
 
 - Test: [`packages/app/integration/invitation-batches-browser.test.ts`](../../../../packages/app/integration/invitation-batches-browser.test.ts)
-- Spec: `.ai/specs/2026-11-24-invitation-batches.md` § Rules 2 and 5, § UI/UX (top of page), AC2, AC3; R13, D13
+- Spec: `.ai/specs/implemented/2026-11-24-invitation-batches.md` § Rules 2 and 5, § UI/UX (top of page), AC2, AC3; R13, D13
 - Category: invitations · Priority: High · Type: UI + DB (seeded with SQL)
 
 ## Given–When–Then

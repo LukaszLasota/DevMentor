@@ -19,7 +19,7 @@ before writing the spec, and record each difference as a deviation in the spec.
 - The course's `/admin/users`, `lib/nav.ts`, `InvitationBatch.tsx`, `mailer.port.ts` and
   `tests/integration/` may not exist here: find DevMentor's equivalents (panel navigation, `packages/ui`
   concept folder, `packages/app/integration/`) or create them following `AGENTS.md`, and say so in the spec.
-- Spec file: `.ai/specs/2026-11-24-invitation-batches.md`.
+- Spec file: `.ai/specs/implemented/2026-11-24-invitation-batches.md`.
 
 ## Keep from the course prompt
 
