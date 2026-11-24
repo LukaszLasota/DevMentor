@@ -23,6 +23,9 @@ import {
 import { hashToken, randomToken } from '../../security/token';
 import { emailField, linkTokenField } from '../../validators/auth/fields';
 import { normalizeEmail } from '../auth/account.service';
+import { INVITATION_BATCH_SIZE, INVITATION_MAIL_FAILED_MESSAGE } from './invitation-batch.rules';
+import { assertOperator, operatorRef, type InvitationActor, type OperatorRef } from './invitation-batch.service';
+import { invitationMail } from './invitation-mails';
 
 const DAY_MS = 86_400_000;
 
@@ -69,9 +72,8 @@ export interface InvitationView {
 export interface CreateInvitationInput {
   email: string;
   tags: readonly string[];
+  /** The CLI's free-text `--batch` label, stored beside the numbered batch. */
   batch?: string;
-  /** Who issued it, for the audit line only (not stored). */
-  operator: string;
 }
 
 /** `link` carries the raw token: print it once, never log it. */
@@ -79,6 +81,19 @@ export interface InvitationWithLink {
   invitation: InvitationView;
   link: string;
 }
+
+/**
+ * A created invitation. `link` is for in-process callers only: the CLI prints it with the log mailer
+ * (nothing was delivered); the HTTP handler never passes it on.
+ */
+export interface CreatedInvitation extends InvitationWithLink {
+  batchNumber: number;
+  /** Invitations in the batch, this one included ("x of 20"). */
+  sent: number;
+}
+
+/** `resend` is reached only through the owner-run CLI, which takes no `--operator`. */
+export const RESEND_OPERATOR: OperatorRef = { cli: 'invite-cli' };
 
 export interface InvitationLookup {
   email: string;
@@ -111,7 +126,8 @@ function createSchema() {
       // Deduplicated in the stable STACK_TAGS order.
       .transform((tags) => STACK_TAGS.filter((tag) => tags.includes(tag))),
     batch: z.string().trim().min(1, 'Batch must not be empty.').optional(),
-    operator: z.string({ error: 'Give the operator name.' }).trim().min(1, 'Give the operator name.'),
+    // The CLI actor's `--operator` name; a session actor has none (its id is logged).
+    operator: z.string({ error: 'Give the operator name.' }).trim().min(1, 'Give the operator name.').optional(),
   });
 }
 
@@ -151,7 +167,10 @@ function toView(invitation: Invitation, now: Date): InvitationView {
   };
 }
 
-type InvitationServiceDeps = Pick<Cradle, 'em' | 'env' | 'clock' | 'events' | 'logger' | 'accountService' | 'slotService'>;
+type InvitationServiceDeps = Pick<
+  Cradle,
+  'em' | 'env' | 'clock' | 'events' | 'logger' | 'accountService' | 'slotService' | 'invitationBatchService' | 'mailSender'
+>;
 
 /**
  * Mentor invitations (spec 2026-10-21-mentor-invitations): the operator creates, revokes, resends
@@ -167,8 +186,10 @@ export class InvitationService {
   private readonly logger: Cradle['logger'];
   private readonly accountService: Cradle['accountService'];
   private readonly slotService: Cradle['slotService'];
+  private readonly invitationBatchService: Cradle['invitationBatchService'];
+  private readonly mailSender: Cradle['mailSender'];
 
-  constructor({ em, env, clock, events, logger, accountService, slotService }: InvitationServiceDeps) {
+  constructor({ em, env, clock, events, logger, accountService, slotService, invitationBatchService, mailSender }: InvitationServiceDeps) {
     this.em = em;
     this.env = env;
     this.clock = clock;
@@ -176,46 +197,65 @@ export class InvitationService {
     this.logger = logger;
     this.accountService = accountService;
     this.slotService = slotService;
+    this.invitationBatchService = invitationBatchService;
+    this.mailSender = mailSender;
   }
 
   /**
-   * A new pending invitation and its link. Refused when the email belongs to a current mentor, or
-   * when it already has an unresolved invitation (the partial unique index decides, so two parallel
-   * creates leave one row; an expired one counts: resend or revoke it first). The mentor check and
-   * the insert run in one transaction under the invitee's user row lock, like accept, so an
-   * acceptance committing in between cannot leave a pending invitation for a current mentor.
+   * The single path that creates an invitation (spec 2026-11-24-invitation-batches), for the page and
+   * the CLI alike. One transaction: D13 stop → the open batch locked `FOR UPDATE` (→ stop again) →
+   * the invitee's user row locked like accept (a current mentor is refused) → insert (the partial
+   * unique index refuses a second unresolved invitation) → close the batch with its 20th → email the
+   * link → commit. A rejected email rolls everything back (503): no invitation counts toward the 20
+   * or blocks the address for an email nobody received.
    */
-  async create(input: CreateInvitationInput): Promise<InvitationWithLink> {
-    const parsed = createSchema().safeParse(input);
+  async create(input: CreateInvitationInput, actor: InvitationActor): Promise<CreatedInvitation> {
+    assertOperator(actor);
+    const parsed = createSchema().safeParse({ ...input, operator: actor.kind === 'cli' ? actor.operator : undefined });
 
     if (!parsed.success) {
       throw new ValidationError('Invalid invitation.', z.flattenError(parsed.error).fieldErrors);
     }
 
-    const { email, tags, batch, operator } = parsed.data;
+    const { email, tags, batch: label, operator: cliName } = parsed.data;
+    const operator: OperatorRef = cliName === undefined ? operatorRef(actor) : { cli: cliName };
     const appUrl = this.requireAppUrl();
     const now = this.clock.now();
     const token = randomToken();
-    let invitation: Invitation;
+    const link = this.link(appUrl, token);
+    let created: { invitation: Invitation; batchNumber: number; sent: number };
 
     try {
-      invitation = await this.em.transactional(async (em) => {
+      created = await this.em.transactional(async (em) => {
+        const { batch, sent } = await this.invitationBatchService.assertCanInvite(em, now, operator, 'invitation.create');
         // The lock accept takes first. Accept committed before us: the refreshed row holds
         // `mentor`. Accept waits behind us: its invitation is still unresolved, so the partial
         // unique index refuses this insert ("already invited").
         const holder = await em.findOne(User, { email }, lockForUpdate());
 
         if (holder?.roles.includes('mentor') === true) {
-          throw new ConflictError(EMAIL_IS_MENTOR_MESSAGE);
+          throw new ConflictError(EMAIL_IS_MENTOR_MESSAGE, { code: 'EMAIL_IS_MENTOR' });
         }
 
-        return em.create(Invitation, {
+        const invitation = em.create(Invitation, {
           email,
           tokenHash: hashToken(token),
           stackTags: tags,
-          batch: batch ?? null,
+          batch: label ?? null,
+          invitationBatch: batch,
           expiresAt: this.daysFrom(now, this.env.INVITATION_TTL_DAYS),
         });
+        // A duplicate unresolved invitation fails here, before any email goes out.
+        await em.flush();
+        const inBatch = sent + 1;
+
+        if (inBatch >= INVITATION_BATCH_SIZE) {
+          batch.closedAt = now;
+        }
+
+        await this.sendInvitation(email, link, invitation.expiresAt, operator);
+
+        return { invitation, batchNumber: batch.number, sent: inBatch };
       });
     } catch (error) {
       if (!(error instanceof UniqueConstraintViolationException)) {
@@ -224,23 +264,29 @@ export class InvitationService {
 
       // Drop the failed insert from the unit of work.
       this.em.clear();
-      throw new ConflictError(ALREADY_INVITED_MESSAGE);
+      throw new ConflictError(ALREADY_INVITED_MESSAGE, { code: 'ALREADY_INVITED' });
     }
 
     this.logger.info(
       {
-        invitationId: invitation.id,
         operator,
-        batch: batch ?? null,
-        stackTags: tags,
+        action: 'invitation.create',
+        target: { invitation: { id: created.invitation.id }, batch: { number: created.batchNumber } },
       },
-      'Invitation created',
+      'Operator action',
     );
 
-    return {
-      invitation: toView(invitation, now),
-      link: this.link(appUrl, token),
-    };
+    return { invitation: toView(created.invitation, now), link, batchNumber: created.batchNumber, sent: created.sent };
+  }
+
+  /** The email inside the create transaction; any failure becomes 503 and rolls the invitation back. */
+  private async sendInvitation(to: string, link: string, expiresAt: Date, operator: OperatorRef): Promise<void> {
+    try {
+      await this.mailSender.send(invitationMail(to, link, expiresAt, this.env.MENTOR_PUBLISH_WINDOW_DAYS));
+    } catch (error) {
+      this.logger.warn({ operator, action: 'invitation.create' }, 'Invitation email could not be sent');
+      throw new ServiceUnavailableError(INVITATION_MAIL_FAILED_MESSAGE, { code: 'INVITATION_MAIL_FAILED', cause: error });
+    }
   }
 
   /**
@@ -369,12 +415,16 @@ export class InvitationService {
     });
   }
 
-  /** New token and expiry for an unresolved invitation (the old link stops working); returns the new link. */
+  /**
+   * New token and expiry for an unresolved invitation (the old link stops working); returns the new
+   * link. Refused while D13 stops invitations (rule 6): resending would re-arm a decided batch 1.
+   */
   async resend(id: string): Promise<InvitationWithLink> {
     const appUrl = this.requireAppUrl();
     const token = randomToken();
     const invitation = await this.em.transactional(async (em) => {
       const now = this.clock.now();
+      await this.invitationBatchService.assertNotStopped(em, now, RESEND_OPERATOR, 'invitation.resend');
       const locked = await this.lockUnresolved(em, id, 'resent');
       locked.tokenHash = hashToken(token);
       locked.expiresAt = this.daysFrom(now, this.env.INVITATION_TTL_DAYS);
@@ -382,7 +432,10 @@ export class InvitationService {
       return toView(locked, now);
     });
 
-    this.logger.info({ invitationId: invitation.id }, 'Invitation resent');
+    this.logger.info(
+      { operator: RESEND_OPERATOR, action: 'invitation.resend', target: { invitation: { id: invitation.id } } },
+      'Operator action',
+    );
 
     return { invitation, link: this.link(appUrl, token) };
   }

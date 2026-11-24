@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { afterEach, describe, expect, it } from 'vitest';
+import { resetInvitationBatches } from './fixtures/invitation-batches';
 import { psql } from './psql';
 
 /** Resolves with psql's error output; fails the test when the statement succeeds. */
@@ -29,6 +30,8 @@ function insertToken(userId: string, tokenHash: string): string {
 
 describe('email_verification_tokens table (migration against a real PostgreSQL)', () => {
   afterEach(async () => {
+    // Batches opened by other files reference their opener (`on delete restrict`).
+    await resetInvitationBatches();
     await psql('delete from users');
   });
 

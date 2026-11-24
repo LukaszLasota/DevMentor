@@ -24,6 +24,7 @@ import { SessionNoteService } from '../services/sessions/session-note.service';
 import { SessionService } from '../services/sessions/session.service';
 import { BookingService } from '../services/bookings/booking.service';
 import { HealthService } from '../services/health/health.service';
+import { InvitationBatchService } from '../services/invitations/invitation-batch.service';
 import { InvitationService } from '../services/invitations/invitation.service';
 import { MentorListService } from '../services/mentors/mentor-list.service';
 import { MentorProfileService } from '../services/mentors/mentor-profile.service';
@@ -74,6 +75,7 @@ async function buildContainer(): Promise<AwilixContainer<Cradle>> {
     githubOAuthService: asClass(GithubOAuthService).scoped(),
     accountService: asClass(AccountService).scoped(),
     invitationService: asClass(InvitationService).scoped(),
+    invitationBatchService: asClass(InvitationBatchService).scoped(),
     mentorProfileService: asClass(MentorProfileService).scoped(),
     mentorListService: asClass(MentorListService).scoped(),
     slotService: asClass(SlotService).scoped(),

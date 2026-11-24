@@ -7,6 +7,7 @@ import { SessionNoteVersionSchema } from './sessions/session-note-version.entity
 import { AuthRateLimitSchema } from './auth/auth-rate-limit.entity';
 import { EmailVerificationTokenSchema } from './auth/email-verification-token.entity';
 import { UserSchema } from './auth/user.entity';
+import { InvitationBatchSchema } from './invitations/invitation-batch.entity';
 import { InvitationSchema } from './invitations/invitation.entity';
 import { MentorProfileSchema } from './mentors/mentor-profile.entity';
 import { ConnectAccountSchema } from './payments/connect-account.entity';
@@ -18,6 +19,7 @@ export const entities = [
   UserSchema,
   AuthRateLimitSchema,
   EmailVerificationTokenSchema,
+  InvitationBatchSchema,
   InvitationSchema,
   MentorProfileSchema,
   SlotSchema,

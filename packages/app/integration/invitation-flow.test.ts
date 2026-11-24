@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, describe, expect, inject, it } from 'vitest';
 import { createAgentBrowser } from './agent-browser';
 import { verificationLinkIn, waitForMail } from './mail';
+import { openFreshBatch } from './fixtures/invitation-batches';
 import { psql } from './psql';
 import { redirectTarget } from './redirect';
 
@@ -47,6 +48,8 @@ async function invite(...argv: string[]): Promise<string> {
 
 /** `invite create`: the printed link (shown once), its token and the invitation id from the audit line. */
 async function createInvitation(email: string, tags: string): Promise<Created> {
+  // `create` needs an open batch (spec 2026-11-24-invitation-batches); the CLI prints the link with the log mailer.
+  await openFreshBatch();
   const output = await invite('create', '--email', email, '--tags', tags, '--operator', 'it', '--batch', `it-${run}`);
   const link = /^https?:\/\/\S+\/invitation\/\S+$/m.exec(output)?.[0];
   const id = /\bid=([0-9a-f-]{36})\b/.exec(output)?.[1];

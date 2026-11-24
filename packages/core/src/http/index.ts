@@ -81,6 +81,21 @@ export {
 } from './sessions';
 export type { NoteState, NoteVersionView, NoteView } from '../services/sessions/session-note.service';
 export { refreshConnect, releasePayouts, resolveReport, startConnect, type ReportIdParams } from './payouts';
+export {
+  createInvitation,
+  getInvitationBatches,
+  INVITATION_BATCHES_RESPONSE,
+  INVITATION_CREATED_RESPONSE,
+  openInvitationBatch,
+  type InvitationSent,
+} from './invitation-batches';
+export type {
+  BatchView,
+  InvitationOverview,
+  InvitationRowView,
+  OpenedBatch,
+} from '../services/invitations/invitation-batch.service';
+export type { InvitationRowStatus } from '../services/invitations/invitation-batch.rules';
 export type { ConnectView } from '../services/payments/connect.service';
 export type { PayoutItem, ReleaseResult } from '../services/payments/payout.service';
 export type {

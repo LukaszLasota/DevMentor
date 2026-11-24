@@ -23,6 +23,7 @@ import type { SessionNoteService } from '../services/sessions/session-note.servi
 import type { SessionService } from '../services/sessions/session.service';
 import type { BookingService } from '../services/bookings/booking.service';
 import type { HealthService } from '../services/health/health.service';
+import type { InvitationBatchService } from '../services/invitations/invitation-batch.service';
 import type { InvitationService } from '../services/invitations/invitation.service';
 import type { MentorListService } from '../services/mentors/mentor-list.service';
 import type { MentorProfileService } from '../services/mentors/mentor-profile.service';
@@ -51,6 +52,7 @@ export interface Cradle {
   githubOAuthService: GithubOAuthService;
   accountService: AccountService;
   invitationService: InvitationService;
+  invitationBatchService: InvitationBatchService;
   mentorProfileService: MentorProfileService;
   mentorListService: MentorListService;
   slotService: SlotService;

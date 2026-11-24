@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, describe, expect, inject, it } from 'vitest';
 import { createAgentBrowser } from './agent-browser';
+import { openFreshBatch } from './fixtures/invitation-batches';
 import { psql } from './psql';
 
 // Availability slots end to end (spec 2026-10-21-availability-slots, step 10): an invited mentor
@@ -41,6 +42,7 @@ function inHours(hours: number): string {
 }
 
 async function invite(email: string): Promise<string> {
+  await openFreshBatch();
   const out: string[] = [];
   const err: string[] = [];
   const argv = ['create', '--email', email, '--tags', 'python', '--operator', 'it', '--batch', `sl-${run}`];

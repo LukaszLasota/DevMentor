@@ -2028,6 +2028,250 @@
       "comment": null
     },
     {
+      "name": "invitation_batches",
+      "schema": "public",
+      "columns": {
+        "closed_at": {
+          "name": "closed_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "number": {
+          "name": "number",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "opened_at": {
+          "name": "opened_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "opened_by_id": {
+          "name": "opened_by_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "resumed_at": {
+          "name": "resumed_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "resumed_by_id": {
+          "name": "resumed_by_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "indexes": [
+        {
+          "columnNames": [
+            "number"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "invitation_batches_number_uq",
+          "primary": false,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "(closed_at IS NULL)"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "invitation_batches_one_open_uq",
+          "primary": false,
+          "unique": true,
+          "expression": "CREATE UNIQUE INDEX invitation_batches_one_open_uq ON public.invitation_batches USING btree (((closed_at IS NULL))) WHERE (closed_at IS NULL)"
+        },
+        {
+          "columnNames": [
+            "opened_by_id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "invitation_batches_opened_by_id_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "invitation_batches_pkey",
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [
+        {
+          "name": "invitation_batches_number_check",
+          "expression": "number > 0",
+          "definition": "CHECK ((number > 0))",
+          "columnName": "number"
+        },
+        {
+          "name": "invitation_batches_resumed_pair_check",
+          "expression": "(resumed_at IS NULL) = (resumed_by_id IS NULL)",
+          "definition": "CHECK (((resumed_at IS NULL) = (resumed_by_id IS NULL)))",
+          "columnName": "resumed_at"
+        }
+      ],
+      "triggers": [],
+      "foreignKeys": {
+        "invitation_batches_opened_by_id_foreign": {
+          "columnNames": [
+            "opened_by_id"
+          ],
+          "constraintName": "invitation_batches_opened_by_id_foreign",
+          "localTableName": "public.invitation_batches",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.users",
+          "deleteRule": "restrict"
+        },
+        "invitation_batches_resumed_by_id_foreign": {
+          "columnNames": [
+            "resumed_by_id"
+          ],
+          "constraintName": "invitation_batches_resumed_by_id_foreign",
+          "localTableName": "public.invitation_batches",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.users",
+          "deleteRule": "restrict"
+        }
+      },
+      "comment": null
+    },
+    {
       "name": "invitations",
       "schema": "public",
       "columns": {
@@ -2234,6 +2478,23 @@
           "collation": null,
           "enumItems": [],
           "mappedType": "datetime"
+        },
+        "invitation_batch_id": {
+          "name": "invitation_batch_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "uuid"
         }
       },
       "indexes": [
@@ -2277,6 +2538,16 @@
           "keyName": "invitations_token_hash_unique",
           "primary": false,
           "unique": true
+        },
+        {
+          "columnNames": [
+            "invitation_batch_id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "invitations_invitation_batch_id_index",
+          "primary": false,
+          "unique": false
         }
       ],
       "checks": [
@@ -2305,6 +2576,18 @@
             "id"
           ],
           "referencedTableName": "public.users",
+          "deleteRule": "restrict"
+        },
+        "invitations_invitation_batch_id_foreign": {
+          "columnNames": [
+            "invitation_batch_id"
+          ],
+          "constraintName": "invitations_invitation_batch_id_foreign",
+          "localTableName": "public.invitations",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.invitation_batches",
           "deleteRule": "restrict"
         }
       },

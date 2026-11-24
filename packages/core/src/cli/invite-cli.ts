@@ -4,16 +4,21 @@ import { getEnv, type Env } from '../config/env';
 import { StackTags } from '../domain/vocabularies/stack-tags';
 import { EventBus } from '../events/events';
 import { isAppError, isValidationError } from '../http/errors';
+import { createFetchJson } from '../http/outbound';
 import { createLogger, type Logger } from '../logger';
 import { LogMailer } from '../mail/log-mailer';
+import type { MailSender } from '../mail/mail-sender';
+import { ResendMailer } from '../mail/resend-mailer';
 import { PasswordHasher } from '../security/password';
 import { RateLimiter } from '../security/rate-limit';
 import { SlotService } from '../services/availability/slot.service';
 import { AccountService } from '../services/auth/account.service';
+import { INVITATION_BATCH_SIZE } from '../services/invitations/invitation-batch.rules';
+import { InvitationBatchService } from '../services/invitations/invitation-batch.service';
 import { InvitationService, type InvitationView } from '../services/invitations/invitation.service';
 import { systemClock, type Clock } from '../time/clock';
 
-export const INVITE_USAGE = `Mentor invitations (spec 2026-10-21-mentor-invitations). Send the printed link by hand.
+export const INVITE_USAGE = `Mentor invitations (specs 2026-10-21-mentor-invitations, 2026-11-24-invitation-batches).
 
 Usage:
   npm run invite -- create --email <email> --tags <tag,...> [--batch <name>] --operator <name>
@@ -23,7 +28,9 @@ Usage:
   npm run invite -- --help
 
 Tags: typescript, react, python, ai-agents (display names such as "TypeScript" or "AI agents" work too).
-create and resend print the link once: it is not stored and cannot be shown again (resend makes a new one).
+create adds the invitation to the open batch (open one on /admin/invitations first) and emails the link;
+with MAIL_PROVIDER=log nothing is delivered and the link is printed once instead.
+resend prints the new link once: it is not stored and cannot be shown again (resend makes a new one).
 Times are UTC.`;
 
 const HELP_HINT = 'Run `npm run invite -- --help` for usage.';
@@ -156,6 +163,7 @@ export function formatAuditLine(
   invitation: InvitationView,
   at: Date,
   operator?: string,
+  batchNumber?: number,
 ): string {
   return [
     formatTimestamp(at),
@@ -163,6 +171,7 @@ export function formatAuditLine(
     invitation.email,
     `tags=${invitation.stackTags.join(',')}`,
     `batch=${invitation.batch ?? '-'}`,
+    ...(batchNumber === undefined ? [] : [`in-batch=${batchNumber}`]),
     ...(operator === undefined ? [] : [`by ${operator}`]),
     `id=${invitation.id}`,
     ...(action === 'revoked' ? [] : [`expires=${formatTimestamp(invitation.expiresAt)}`]),
@@ -207,22 +216,35 @@ function linkBlock(email: string, link: string): string[] {
 
 export type InviteOperations = Pick<InvitationService, 'create' | 'revoke' | 'resend' | 'list'>;
 
+export interface InviteOutput {
+  stdout: (text: string) => void;
+  clock: Clock;
+  /** With `log` nothing is delivered, so `create` prints the link (stdout only); with `resend` never. */
+  mailProvider: Env['MAIL_PROVIDER'];
+}
+
 /** Runs one parsed command against the service and prints its result. */
 export async function executeInviteCommand(
   command: Exclude<InviteCommand, { kind: 'help' }>,
   service: InviteOperations,
-  { stdout, clock }: { stdout: (text: string) => void; clock: Clock },
+  { stdout, clock, mailProvider }: InviteOutput,
 ): Promise<void> {
   switch (command.kind) {
     case 'create': {
       const { email, tags, batch, operator } = command;
-      const { invitation, link } = await service.create({ email, tags, batch, operator });
+      const { invitation, link, batchNumber, sent } = await service.create({ email, tags, batch }, { kind: 'cli', operator });
+      const position = `(batch ${batchNumber}, ${sent} of ${INVITATION_BATCH_SIZE})`;
+      const delivery =
+        mailProvider === 'log'
+          ? ['MAIL_PROVIDER=log: the email was not delivered.', ...linkBlock(invitation.email, link), `Invitation created for ${invitation.email} ${position}.`]
+          : [`Invitation emailed to ${invitation.email} ${position}.`];
 
       stdout(
         [
-          ...linkBlock(invitation.email, link),
+          ...delivery,
+          '',
           'Audit line for the shared note:',
-          formatAuditLine('invited', invitation, clock.now(), operator.trim()),
+          formatAuditLine('invited', invitation, clock.now(), operator.trim(), batchNumber),
         ].join('\n'),
       );
       return;
@@ -255,10 +277,23 @@ export async function executeInviteCommand(
 }
 
 /**
+ * The CLI's mailer: the container's `createMailSender` needs the container's `fetchJson` and warns on
+ * `log` (stderr noise), and `LogMailer`'s info line would be dropped by `cliLogger` anyway — so in log
+ * mode `executeInviteCommand` prints the link itself. Resend uses the app's outbound timeout and errors.
+ */
+export function cliMailSender(env: Env, logger: Logger): MailSender {
+  if (env.MAIL_PROVIDER === 'resend') {
+    return new ResendMailer({ env, logger, fetchJson: createFetchJson({ logger }) });
+  }
+
+  return new LogMailer({ logger });
+}
+
+/**
  * The service graph the CLI needs, built by hand instead of the request container: the container
  * turns on the SQL debug log in development and resolves the mailer eagerly (its warning), which
- * would bury the one-time link. Nothing here sends mail; `AccountService` is only needed by
- * `accept`, which the CLI never calls.
+ * would bury the one-time link. `AccountService` is only needed by `accept`, which the CLI never calls
+ * (its mailer is never used).
  */
 function invitationServiceFor(em: EntityManager, env: Env, logger: Logger): InvitationService {
   const clock = systemClock;
@@ -274,7 +309,17 @@ function invitationServiceFor(em: EntityManager, env: Env, logger: Logger): Invi
     rateLimiter: new RateLimiter({ em, clock, logger }),
   });
 
-  return new InvitationService({ em, env, clock, events, logger, accountService, slotService: new SlotService({ em, clock, events }) });
+  return new InvitationService({
+    em,
+    env,
+    clock,
+    events,
+    logger,
+    accountService,
+    slotService: new SlotService({ em, clock, events }),
+    invitationBatchService: new InvitationBatchService({ em, clock, logger }),
+    mailSender: cliMailSender(env, logger),
+  });
 }
 
 /** Warnings and errors of the services as plain `warning: <msg>` lines on stderr; info lines are dropped. */
@@ -339,7 +384,7 @@ export async function runInviteCli({ argv, stdout, stderr }: InviteCliOptions): 
 
     try {
       const service = invitationServiceFor(orm.em.fork(), env, cliLogger(stderr));
-      await executeInviteCommand(command, service, { stdout, clock: systemClock });
+      await executeInviteCommand(command, service, { stdout, clock: systemClock, mailProvider: env.MAIL_PROVIDER });
     } finally {
       await orm.close();
     }

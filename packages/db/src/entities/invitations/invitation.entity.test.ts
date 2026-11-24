@@ -3,6 +3,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { createConfig } from '../../config';
 import { User } from '../auth/user.entity';
 import { entities } from '../index';
+import { InvitationBatch } from './invitation-batch.entity';
 import {
   ACCEPTED_PAIR_CHECK,
   Invitation,
@@ -72,6 +73,7 @@ describe('Invitation entity', () => {
       'email',
       'expiresAt',
       'id',
+      'invitationBatch',
       'publishDueAt',
       'revokedAt',
       'stackTags',
@@ -106,6 +108,17 @@ describe('Invitation entity', () => {
     expect(acceptedBy.unique).toBeFalsy();
     expect(acceptedBy.index).toBe(true);
     expect(acceptedBy.deleteRule).toBe('restrict');
+  });
+
+  it('references its batch with a nullable, indexed, restricting foreign key (null: created before batches)', () => {
+    const invitationBatch = meta.properties.invitationBatch;
+
+    expect(invitationBatch.kind).toBe(ReferenceKind.MANY_TO_ONE);
+    expect(invitationBatch.targetMeta?.class).toBe(InvitationBatch);
+    expect(invitationBatch.fieldNames).toEqual(['invitation_batch_id']);
+    expect(invitationBatch.nullable).toBe(true);
+    expect(invitationBatch.index).toBe(true);
+    expect(invitationBatch.deleteRule).toBe('restrict');
   });
 
   it('keeps the given stack tags per instance', () => {

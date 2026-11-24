@@ -1,11 +1,14 @@
 import { randomUUID } from 'node:crypto';
-import { Invitation, LockMode, MentorProfile, UniqueConstraintViolationException, User } from '@devmentor/db';
+import { Invitation, InvitationBatch, LockMode, MentorProfile, UniqueConstraintViolationException, User } from '@devmentor/db';
 import { describe, expect, it, vi } from 'vitest';
 import { parseEnv } from '../../config/env';
 import type { Cradle } from '../../container/cradle';
 import { isAppError } from '../../http/errors';
 import { hashToken } from '../../security/token';
 import { AccountService } from '../auth/account.service';
+import { INVITATION_MAIL_FAILED_MESSAGE, INVITATIONS_STOPPED_MESSAGE } from './invitation-batch.rules';
+import type { InvitationActor } from './invitation-batch.service';
+import { invitationMail } from './invitation-mails';
 import {
   ALREADY_INVITED_MESSAGE,
   ALREADY_MENTOR_MESSAGE,
@@ -131,6 +134,8 @@ interface SetupOptions {
   profiles?: MentorProfile[];
   env?: Record<string, string>;
   appUrl?: string | null;
+  /** Invitations already in the open batch handed out by the (stubbed) batch service. */
+  sent?: number;
 }
 
 function setup(options: SetupOptions = {}) {
@@ -167,9 +172,30 @@ function setup(options: SetupOptions = {}) {
   });
   const slotService = { countBookable: vi.fn<Cradle['slotService']['countBookable']>(async () => 0) };
   const grantRole = vi.spyOn(accountService, 'grantRole');
-  const service = new InvitationService({ ...deps, accountService, slotService: slotService as unknown as Cradle['slotService'] });
+  const batch = Object.assign(new InvitationBatch(), { id: randomUUID(), number: 3, closedAt: null });
+  const invitationBatchService = {
+    assertCanInvite: vi.fn(async () => {
+      em.log.push('assertCanInvite');
+      return { batch, sent: options.sent ?? 0 };
+    }),
+    assertNotStopped: vi.fn(async () => {
+      em.log.push('assertNotStopped');
+    }),
+  };
+  const mailSender = {
+    send: vi.fn(async () => {
+      em.log.push('mail');
+    }),
+  };
+  const service = new InvitationService({
+    ...deps,
+    accountService,
+    slotService: slotService as unknown as Cradle['slotService'],
+    invitationBatchService: invitationBatchService as unknown as Cradle['invitationBatchService'],
+    mailSender,
+  });
 
-  return { service, em, events, logger, grantRole, slotService, ...tables };
+  return { service, em, events, logger, grantRole, slotService, invitationBatchService, mailSender, batch, ...tables };
 }
 
 function tokenOf(link: string): string {
@@ -189,24 +215,31 @@ const VALID_CREATE = {
   email: '  Ada@DevMentor.TEST ',
   tags: ['react', 'typescript', 'react'],
   batch: ' 2026-11-a ',
-  operator: ' alice ',
 };
+const CLI: InvitationActor = { kind: 'cli', operator: ' alice ' };
+const OPERATOR_ID = randomUUID();
+const SESSION: InvitationActor = { kind: 'session', user: { id: OPERATOR_ID, roles: ['operator'] } };
 
 describe('InvitationService.create', () => {
-  it('normalizes the email, dedupes tags, stores only the token hash and returns the link once', async () => {
-    const { service, invitations, logger } = setup();
+  it('creates the invitation in the open batch, emails the link before the commit and returns it once', async () => {
+    const { service, invitations, logger, mailSender, batch, em } = setup({ sent: 4 });
 
-    const { invitation, link } = await service.create(VALID_CREATE);
+    const created = await service.create(VALID_CREATE, CLI);
 
+    const { invitation, link } = created;
     expect(link).toMatch(new RegExp(`^${APP_URL}/invitation/[A-Za-z0-9_-]{43}$`));
     const [row] = invitations;
     expect(row).toMatchObject({
       email: EMAIL,
       stackTags: ['typescript', 'react'],
       batch: '2026-11-a',
+      invitationBatch: batch,
       tokenHash: hashToken(tokenOf(link)),
       expiresAt: new Date(NOW.getTime() + 14 * DAY_MS),
     });
+    expect(created.batchNumber).toBe(3);
+    expect(created.sent).toBe(5);
+    expect(batch.closedAt).toBeNull();
     expect(invitation).toEqual({
       id: row.id,
       email: EMAIL,
@@ -221,48 +254,75 @@ describe('InvitationService.create', () => {
       bookableSlots: null,
       d13: null,
     });
+    expect(mailSender.send).toHaveBeenCalledExactlyOnceWith(invitationMail(EMAIL, link, row.expiresAt, 14));
+    expect(em.log).toEqual(['begin', 'assertCanInvite', 'findOne:User', 'flush', 'mail', 'flush', 'commit']);
     expect(JSON.stringify(invitation)).not.toContain(tokenOf(link));
-    expect(logger.info).toHaveBeenCalledWith(
-      {
-        invitationId: row.id,
-        operator: 'alice',
-        batch: '2026-11-a',
-        stackTags: ['typescript', 'react'],
-      },
-      'Invitation created',
+    expect(logger.info).toHaveBeenCalledExactlyOnceWith(
+      { operator: { cli: 'alice' }, action: 'invitation.create', target: { invitation: { id: row.id }, batch: { number: 3 } } },
+      'Operator action',
     );
     expect(JSON.stringify(logger.info.mock.calls)).not.toContain(tokenOf(link));
+    expect(JSON.stringify(logger.info.mock.calls)).not.toContain(EMAIL);
   });
 
-  it('uses INVITATION_TTL_DAYS and stores no batch when none is given', async () => {
-    const { service, invitations, logger } = setup({
-      env: { INVITATION_TTL_DAYS: '3' },
-    });
+  it('applies the batch rules under the batch lock with the trimmed CLI operator', async () => {
+    const { service, invitationBatchService, em } = setup();
 
-    const { invitation } = await service.create({
-      email: EMAIL,
-      tags: ['python'],
-      operator: 'alice',
-    });
+    await service.create(VALID_CREATE, CLI);
 
-    expect(invitation).toMatchObject({
-      batch: null,
-      expiresAt: new Date(NOW.getTime() + 3 * DAY_MS),
-    });
+    expect(invitationBatchService.assertCanInvite).toHaveBeenCalledExactlyOnceWith(em, NOW, { cli: 'alice' }, 'invitation.create');
+  });
+
+  it('closes the batch with its 20th invitation, in the same transaction', async () => {
+    const { service, batch } = setup({ sent: 19 });
+
+    const created = await service.create(VALID_CREATE, CLI);
+
+    expect(created.sent).toBe(20);
+    expect(batch.closedAt).toEqual(NOW);
+  });
+
+  it('logs a session operator by id and accepts no operator name from it', async () => {
+    const { service, logger, invitations } = setup();
+
+    await service.create({ email: EMAIL, tags: ['python'] }, SESSION);
+
     expect(invitations[0].batch).toBeNull();
-    expect(logger.info).toHaveBeenCalledWith(expect.objectContaining({ batch: null }), 'Invitation created');
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({ operator: { id: OPERATOR_ID }, action: 'invitation.create' }),
+      'Operator action',
+    );
+  });
+
+  it('refuses a session user without the operator role with 403 before anything else', async () => {
+    const { service, em, invitationBatchService } = setup();
+
+    await expect(
+      service.create(VALID_CREATE, { kind: 'session', user: { id: randomUUID(), roles: ['mentor'] } }),
+    ).rejects.toMatchObject({ status: 403 });
+    expect(em.transactional).not.toHaveBeenCalled();
+    expect(invitationBatchService.assertCanInvite).not.toHaveBeenCalled();
+  });
+
+  it('uses INVITATION_TTL_DAYS and MENTOR_PUBLISH_WINDOW_DAYS in the row and the email', async () => {
+    const { service, mailSender } = setup({ env: { INVITATION_TTL_DAYS: '3', MENTOR_PUBLISH_WINDOW_DAYS: '10' } });
+
+    const { invitation, link } = await service.create({ email: EMAIL, tags: ['python'] }, CLI);
+
+    expect(invitation).toMatchObject({ batch: null, expiresAt: new Date(NOW.getTime() + 3 * DAY_MS) });
+    expect(mailSender.send).toHaveBeenCalledWith(invitationMail(EMAIL, link, invitation.expiresAt, 10));
   });
 
   it.each([
-    ['an unknown tag', { tags: ['typescript', 'cobol'] }, 'tags'],
-    ['no tags', { tags: [] }, 'tags'],
-    ['an invalid email', { email: 'not-an-email' }, 'email'],
-    ['an empty operator', { operator: '  ' }, 'operator'],
-    ['an empty batch', { batch: ' ' }, 'batch'],
-  ])('refuses %s with a field error and writes nothing', async (_case, override, field) => {
+    ['an unknown tag', { tags: ['typescript', 'cobol'] }, CLI, 'tags'],
+    ['no tags', { tags: [] }, CLI, 'tags'],
+    ['an invalid email', { email: 'not-an-email' }, CLI, 'email'],
+    ['an empty operator', {}, { kind: 'cli', operator: '  ' } as InvitationActor, 'operator'],
+    ['an empty batch', { batch: ' ' }, CLI, 'batch'],
+  ])('refuses %s with a field error and writes nothing', async (_case, override, actor, field) => {
     const { service, em } = setup();
 
-    const error = await rejection(service.create({ ...VALID_CREATE, ...override }));
+    const error = await rejection(service.create({ ...VALID_CREATE, ...override }, actor));
 
     expect(error).toMatchObject({ status: 400, code: 'VALIDATION_ERROR' });
     expect((error as { fieldErrors: Record<string, string[]> }).fieldErrors[field]).toHaveLength(1);
@@ -272,7 +332,7 @@ describe('InvitationService.create', () => {
   it('answers 503 without APP_URL and writes nothing', async () => {
     const { service, em, logger } = setup({ appUrl: null });
 
-    await expect(service.create(VALID_CREATE)).rejects.toMatchObject({
+    await expect(service.create(VALID_CREATE, CLI)).rejects.toMatchObject({
       status: 503,
       code: 'SERVICE_UNAVAILABLE',
     });
@@ -280,31 +340,30 @@ describe('InvitationService.create', () => {
     expect(logger.warn).toHaveBeenCalledWith('APP_URL is not set: invitation links cannot be built');
   });
 
-  it('refuses an email that belongs to a current mentor', async () => {
+  it('passes on a batch refusal (stopped, no open batch, full) and writes and mails nothing', async () => {
+    const { service, em, invitationBatchService, mailSender, logger } = setup();
+    const stopped = Object.assign(new Error(INVITATIONS_STOPPED_MESSAGE), { status: 409, code: 'INVITATIONS_STOPPED' });
+    invitationBatchService.assertCanInvite.mockRejectedValueOnce(stopped);
+
+    await expect(service.create(VALID_CREATE, CLI)).rejects.toBe(stopped);
+    expect(em.create).not.toHaveBeenCalled();
+    expect(mailSender.send).not.toHaveBeenCalled();
+    expect(logger.info).not.toHaveBeenCalled();
+  });
+
+  it('refuses an email that belongs to a current mentor with EMAIL_IS_MENTOR', async () => {
     const { service, em } = setup({
       users: [makeUser({ roles: ['mentee', 'mentor'] })],
     });
 
-    await expect(service.create(VALID_CREATE)).rejects.toMatchObject({
+    await expect(service.create(VALID_CREATE, CLI)).rejects.toMatchObject({
       status: 409,
-      code: 'CONFLICT',
+      code: 'EMAIL_IS_MENTOR',
       message: EMAIL_IS_MENTOR_MESSAGE,
     });
     expect(em.findOne).toHaveBeenCalledWith(User, { email: EMAIL }, LOCK);
     expect(em.create).not.toHaveBeenCalled();
-    expect(em.log).toEqual(['begin', 'findOne:User']);
-  });
-
-  it('checks the invitee under the user row lock and inserts in the same transaction', async () => {
-    const { service, em, invitations } = setup({
-      users: [makeUser({ roles: ['mentee'] })],
-    });
-
-    await service.create(VALID_CREATE);
-
-    expect(em.findOne).toHaveBeenCalledWith(User, { email: EMAIL }, LOCK);
-    expect(em.log).toEqual(['begin', 'findOne:User', 'flush', 'commit']);
-    expect(invitations).toHaveLength(1);
+    expect(em.log).toEqual(['begin', 'assertCanInvite', 'findOne:User']);
   });
 
   it('create after a committed accept: the locked re-read sees mentor, 409, nothing inserted', async () => {
@@ -318,7 +377,7 @@ describe('InvitationService.create', () => {
       return user;
     });
 
-    await expect(service.create(VALID_CREATE)).rejects.toMatchObject({ status: 409, message: EMAIL_IS_MENTOR_MESSAGE });
+    await expect(service.create(VALID_CREATE, CLI)).rejects.toMatchObject({ status: 409, message: EMAIL_IS_MENTOR_MESSAGE });
     expect(invitations).toHaveLength(0);
   });
 
@@ -327,21 +386,39 @@ describe('InvitationService.create', () => {
       users: [makeUser({ roles: ['mentee', 'operator'] })],
     });
 
-    await service.create(VALID_CREATE);
+    await service.create(VALID_CREATE, CLI);
 
     expect(invitations).toHaveLength(1);
   });
 
-  it('concurrent create: the partial unique index refusal becomes 409 "already invited"', async () => {
-    const { service, em } = setup();
+  it('concurrent create: the partial unique index refusal becomes 409 ALREADY_INVITED before any email', async () => {
+    const { service, em, mailSender } = setup();
     em.flush.mockRejectedValueOnce(new UniqueConstraintViolationException(new Error('duplicate key')));
 
-    await expect(service.create(VALID_CREATE)).rejects.toMatchObject({
+    await expect(service.create(VALID_CREATE, CLI)).rejects.toMatchObject({
       status: 409,
-      code: 'CONFLICT',
+      code: 'ALREADY_INVITED',
       message: ALREADY_INVITED_MESSAGE,
     });
     expect(em.clear).toHaveBeenCalledTimes(1);
+    expect(mailSender.send).not.toHaveBeenCalled();
+  });
+
+  it('a rejected email rolls the invitation back and answers 503 INVITATION_MAIL_FAILED', async () => {
+    const { service, em, mailSender, logger, batch } = setup({ sent: 19 });
+    const failure = new Error('provider down');
+    mailSender.send.mockRejectedValueOnce(failure);
+
+    const error = await rejection(service.create(VALID_CREATE, CLI));
+
+    expect(error).toMatchObject({ status: 503, code: 'INVITATION_MAIL_FAILED', message: INVITATION_MAIL_FAILED_MESSAGE });
+    expect((error as Error).cause).toBe(failure);
+    expect(em.log).not.toContain('commit');
+    expect(logger.warn).toHaveBeenCalledWith({ operator: { cli: 'alice' }, action: 'invitation.create' }, 'Invitation email could not be sent');
+    expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(EMAIL);
+    expect(logger.info).not.toHaveBeenCalled();
+    // The batch object was touched inside the rolled-back transaction only; nothing was committed.
+    expect(batch.number).toBe(3);
   });
 
   it('rethrows any other flush failure', async () => {
@@ -349,7 +426,7 @@ describe('InvitationService.create', () => {
     const failure = new Error('connection lost');
     em.flush.mockRejectedValueOnce(failure);
 
-    await expect(service.create(VALID_CREATE)).rejects.toBe(failure);
+    await expect(service.create(VALID_CREATE, CLI)).rejects.toBe(failure);
     expect(em.clear).not.toHaveBeenCalled();
   });
 });
@@ -812,8 +889,27 @@ describe('InvitationService.resend', () => {
     await expect(service.lookup(tokenOf(link))).resolves.toMatchObject({
       email: EMAIL,
     });
-    expect(logger.info).toHaveBeenCalledWith({ invitationId: invitation.id }, 'Invitation resent');
+    expect(logger.info).toHaveBeenCalledExactlyOnceWith(
+      { operator: { cli: 'invite-cli' }, action: 'invitation.resend', target: { invitation: { id: invitation.id } } },
+      'Operator action',
+    );
     expect(JSON.stringify(logger.info.mock.calls)).not.toContain(tokenOf(link));
+    expect(JSON.stringify(logger.info.mock.calls)).not.toContain(EMAIL);
+  });
+
+  it('checks the D13 stop first and, while stopped, refuses without touching the row (rule 6)', async () => {
+    const invitation = makeInvitation({ expiresAt: EARLIER });
+    const { service, em, invitationBatchService, logger } = setup({ invitations: [invitation] });
+    const stopped = Object.assign(new Error(INVITATIONS_STOPPED_MESSAGE), { status: 409, code: 'INVITATIONS_STOPPED' });
+    invitationBatchService.assertNotStopped.mockRejectedValueOnce(stopped);
+
+    await expect(service.resend(invitation.id)).rejects.toBe(stopped);
+
+    expect(invitationBatchService.assertNotStopped).toHaveBeenCalledExactlyOnceWith(em, NOW, { cli: 'invite-cli' }, 'invitation.resend');
+    expect(em.findOne).not.toHaveBeenCalled();
+    expect(invitation).toMatchObject({ tokenHash: hashToken(TOKEN), expiresAt: EARLIER });
+    expect(em.log).not.toContain('commit');
+    expect(logger.info).not.toHaveBeenCalled();
   });
 
   it('resend after a committed accept: 409, token unchanged', async () => {

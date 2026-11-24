@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { resetInvitationBatches } from './fixtures/invitation-batches';
 import { psql } from './psql';
 
 /** Resolves with psql's error output; fails the test when the statement succeeds. */
@@ -21,6 +22,8 @@ function insertUser(email: string, columns: Record<string, string> = {}): string
 
 describe('users table (migration against a real PostgreSQL)', () => {
   afterEach(async () => {
+    // Batches opened by other files reference their opener (`on delete restrict`).
+    await resetInvitationBatches();
     await psql('delete from users');
   });
 

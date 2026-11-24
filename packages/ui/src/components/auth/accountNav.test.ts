@@ -9,17 +9,17 @@ describe("accountNavSections", () => {
     expect(links(["mentee"])).toEqual([[null, ["Mentors /mentors", "My sessions /sessions"]]]);
   });
 
-  it("adds the mentor workspace, the mentor page and the admin dashboard for those roles (L09, #23)", () => {
+  it("adds the mentor workspace, the mentor page, the admin dashboard and invitations for those roles (L09, #23)", () => {
     expect(links(["mentee", "mentor", "operator"])).toEqual([
       [null, ["Mentors /mentors", "My sessions /sessions", "Mentor workspace /mentor", "Your page /mentor/profile", "Prices /mentor/prices", "Open times /mentor/slots", "Payouts /mentor/payouts"]],
-      ["Admin", ["Dashboard /admin"]],
+      ["Admin", ["Dashboard /admin", "Invitations /admin/invitations"]],
     ]);
   });
 
   it("gives an operator without the mentor role the admin section but no mentor workspace", () => {
     expect(links(["mentee", "operator"])).toEqual([
       [null, ["Mentors /mentors", "My sessions /sessions"]],
-      ["Admin", ["Dashboard /admin"]],
+      ["Admin", ["Dashboard /admin", "Invitations /admin/invitations"]],
     ]);
   });
 });

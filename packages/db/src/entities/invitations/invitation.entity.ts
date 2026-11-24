@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { defineEntity, p } from '@mikro-orm/postgresql';
 import { UserSchema } from '../auth/user.entity';
+import { InvitationBatchSchema } from './invitation-batch.entity';
 
 /**
  * Beachhead stacks an invitation can carry (mentor-invitations spec R16, D24), stored as lower-case
@@ -45,8 +46,11 @@ export const InvitationSchema = defineEntity({
     email: p.text(),
     tokenHash: p.text().unique(),
     stackTags: p.array<StackTag>(),
-    /** Free text (e.g. `2026-10-a`) until batches get their own story. */
+    /** Free-text label from the CLI's `--batch` (e.g. `2026-10-a`); kept beside the numbered batch. */
     batch: p.text().nullable(),
+    // Null only for invitations created before batches (spec 2026-11-24-invitation-batches); the service
+    // gives every new row one. `restrict`: a batch is never deleted while it holds invitations.
+    invitationBatch: () => p.manyToOne(InvitationBatchSchema).ref().nullable().deleteRule('restrict').index(),
     /** Stored, not derived from `created_at`, so the TTL can change without moving live links. */
     expiresAt: p.datetime(),
     acceptedAt: p.datetime().nullable(),
