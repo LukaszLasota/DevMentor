@@ -62,8 +62,8 @@ For senior engineers who already help others for free, and developers stuck with
 
 ## Goals and success criteria
 
-- Business goal (1.0): 1.0 ships on 2026-10-31 and works when it holds 10 paid sessions a week for two consecutive weeks by 2026-12-31. `[DOCUMENT]` research/decisions/D07-D24-adopted-from-course-reference.md (D17), research/2026-09-03-course-reference-product-brief.md
-- Warning line (1.0): fewer than 3 paid sessions in the fourth week after ship (the week ending 2026-11-28) stops feature work; the founders interview developers who visited a mentor page and did not book, and decide whether 1.0 continues. `[DOCUMENT]` research/decisions/D07-D24-adopted-from-course-reference.md (D17, D18)
+- Business goal (1.0): 1.0 shipped on 2026-11-24 (planned 2026-10-31; dates moved by the 24-day slip, D29) and works when it holds 10 paid sessions a week for two consecutive weeks by 2027-01-24. `[DOCUMENT]` research/decisions/D07-D24-adopted-from-course-reference.md (D17), research/2026-09-03-course-reference-product-brief.md
+- Warning line (1.0): fewer than 3 paid sessions in the fourth week after ship (the week ending 2026-12-22, D29) stops feature work; the founders interview developers who visited a mentor page and did not book, and decide whether 1.0 continues. `[DOCUMENT]` research/decisions/D07-D24-adopted-from-course-reference.md (D17, D18)
 - Business goal (vault): the board's 100 mentors with a published vault and 30% of mentees on a subscription are not 1.0 targets; the vault returns only after the D22 readout. `[DOCUMENT]` research/2026-09-02-miro-board-product-goals.md
 - User outcome (mentee): a developer with a blocker gets a text answer from someone who has done that work, paid upfront, without an account-and-call detour ("nie że zakładam konto, weryfikacja maila, potem czekam"). `[INTERVIEW]` research/2026-09-01-interview-backend-dev-fintech.md
 - User outcome (mentee) in 1.0: "within the hour" is not promised; a session starts at least two hours after booking, and the median booking-to-start says whether the urgent job is served. `[DOCUMENT]` research/decisions/D07-D24-adopted-from-course-reference.md (D09)
@@ -159,6 +159,8 @@ For senior engineers who already help others for free, and developers stuck with
 | D26 | 2026-11-20 | the text session happens on a session screen in DevMentor (answers Q01) | the text-session spec, answered by the session owner | Łukasz Lasota (session owner) | active | 2026-11-28 (D23) | founder A with founder B | `[DOCUMENT]` research/decisions/D25-D26-recorded-from-specs.md | none |
 | D27 | 2026-11-23 | a payout does not wait for the mentor's written answer: a confirmed session is paid 24 hours after it ends unless the mentee reported it (threat model T-07 accepted) | lesson 16 fix plan; the 24-hour report window is the mentee's protection | Łukasz Lasota (session owner) | active | 2026-11-28 (D23) | founder A | `[DOCUMENT]` docs/security/fix-plan.md | none |
 | D28 | 2026-11-24 | for R13/D13, "published a bookable session within two weeks" is measured as "created at least one slot between acceptance and the publish-by date" (a slot removed later still counts; a slot from before acceptance never does); page publication and prices are not required for the count | invitation-batches spec Q2: the slot is the mentor's own act inside the window and stays stable after the fact; stricter "bookable now" is what the CLI `list` D13 column shows | Łukasz Lasota (session owner) | active | two weeks after the first batch accepts (D13) | both founders | `[DOCUMENT]` .ai/specs/implemented/2026-11-24-invitation-batches.md | none (clarifies R13, D13) |
+| D29 | 2026-11-25 | 1.0 shipped on 2026-11-24, 24 days after the planned 2026-10-31; per D17 every check date moves by the slip: the fourth-week warning check is the week ending 2026-12-22, the business goal is due 2027-01-24, and the D23 retrospective (and every "2026-11-28 (D23)" review date) moves to 2026-12-22 | knowledge audit 2026-11-25 (`.ai/maintenance/2026-11-25-audit.md`, C28); release v1.0.0 | Łukasz Lasota (session owner) | active | 2026-12-22 | both founders | `[DOCUMENT]` CHANGELOG.md (1.0.0) | D17, D23 (dates only) |
+| D30 | 2026-11-25 | "free cancellation up to 24 hours before" (R10, D25) means more than 24 hours before the start; at exactly 24 hours or less the fee is forfeited, as the code does (`packages/core/src/services/bookings/cancellation-terms.ts`) | knowledge audit 2026-11-25: D25 said "24 h or more", the spec and code say "more than 24 h" | Łukasz Lasota (session owner) | active | 2026-12-22 (D29) | founder A | `[DOCUMENT]` .ai/specs/implemented/2026-11-20-booking-cancellation.md | D25 (wording of the boundary) |
 
 ## Riskiest assumptions
 
@@ -173,7 +175,7 @@ For senior engineers who already help others for free, and developers stuck with
 
 ## Kill criteria
 
-For the session marketplace: fewer than 3 paid sessions in the fourth week after ship (the week ending 2026-11-28) stops feature work and opens a decision on whether 1.0 continues; no record names a result that ends 1.0 itself (Q11). `[DOCUMENT]` research/decisions/D07-D24-adopted-from-course-reference.md (D17)
+For the session marketplace: fewer than 3 paid sessions in the fourth week after ship (the week ending 2026-12-22, D29) stops feature work and opens a decision on whether 1.0 continues; no record names a result that ends 1.0 itself (Q11). `[DOCUMENT]` research/decisions/D07-D24-adopted-from-course-reference.md (D17)
 For supply: fewer than 5 of the first 20 invited mentors publishing a bookable session within two weeks stops further invitations (D13).
 For the vault: fewer than 3 of 10 interviewed developers who would pay for a named mentor's notes drops the vault (D22).
 
@@ -216,5 +218,5 @@ Problems and Target group rest on seven interviews, one help-channel export and 
 - What decision or work needs it: A01, A04 and the D17 warning line
 - Who can answer it: developers reaching mentors through the list or share links
 - How: record each booking from slot choice to payment, its source, its booking-to-start time, and abandoned bookings with their step
-- Owner and by when: founders A and B; the week ending 2026-11-28
+- Owner and by when: founders A and B; the week ending 2026-12-22 (D29)
 - Template: `research/templates/data-request.md`

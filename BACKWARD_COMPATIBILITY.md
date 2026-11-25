@@ -18,6 +18,8 @@ DevMentor is pre-release with no external API consumers, so most surfaces protec
 | Environment variables | `packages/core/src/config/env.ts`, `.env.example` | Renaming/removing a variable; making an optional one required; changing a default | Update `env.ts`, `.env.example` and CI (`.github/workflows/ci.yml`) together; call it out in the PR body. |
 | Root scripts | `package.json` scripts (`dev`, `build`, `validate`, `test:*`, `db:*`, `audit`) and `.ai/agentic.config.json` `validation.commands` | Renaming/removing a script that CI, docs or the agent pipeline call | Update CI, `AGENTS.md`, `SDLC.md` and the config in the same PR. |
 
+**Stripe webhook (owner decision 2026-11-25):** `POST /api/webhooks/stripe` has one consumer, Stripe. Its contract is the Stripe API version pinned on the webhook endpoint and in the Stripe client; changing event types or the pinned version is a breaking change that ships with the endpoint updated in the Stripe dashboard in the same release and a note in `UPGRADE_NOTES.md`. There is no deprecation period for other callers because there are none.
+
 ## Not protected
 
 Page markup and styling, internal service methods not exported from a package entry, test helpers, and anything under `.ai/` other than `agentic.config.json` and the tracker/browser descriptors.

@@ -35,6 +35,9 @@
     "ask": [
       "Bash(npm run dev)",
       "Bash(npm run test:integration)",
+      "Bash(npm run test:integration *)",
+      "Bash(npx vitest * vitest.integration*)",
+      "Bash(npx vitest --config vitest.integration*)",
       "Bash(docker compose *)"
     ]
   },

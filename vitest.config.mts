@@ -39,6 +39,8 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['packages/*/src/**/*.{ts,tsx}', 'packages/app/next.config.ts', 'scripts/**/*.{mjs,mts}'],
+      // Migrations are excluded with the owner's approval (2026-11-25): they are SQL wrappers tested up/down
+      // against PostgreSQL in packages/app/integration (*-schema.test.ts), not by unit tests.
       exclude: ['**/*.test.{ts,tsx,mjs,mts}', '**/*.d.ts', 'packages/db/src/migrations/**'],
       // AGENTS.md: every feature ships with 100% unit test coverage.
       thresholds: { statements: 100, branches: 100, functions: 100, lines: 100 },
