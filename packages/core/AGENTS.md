@@ -5,7 +5,7 @@ Business rules (services), the Awilix container, the server API layer, env, logg
 ## Entries
 
 - `@devmentor/core` and `@devmentor/core/http` are server-only.
-- `@devmentor/core/validators` (`packages/core/src/validators/`) holds the client-safe shared Zod schemas (`<concept>/<name>-<action>.schema.ts`); client components in `app` may import it. It imports only `zod` and its own files (ESLint + `packages/core/src/validators/index.test.ts`). `ui` never imports it: `CrudForm` takes the schema as a prop.
+- `@devmentor/core/validators` (`packages/core/src/validators/`) holds the client-safe shared Zod schemas (`<concept>/<name>-<action>.schema.ts`); client components in `app` may import it. It imports only `zod`, its own files and the client-safe `packages/core/src/domain/` (ESLint + `packages/core/src/validators/index.test.ts`). `ui` never imports it: `CrudForm` takes the schema as a prop.
 
 ## HTTP layer (`packages/core/src/http/`)
 

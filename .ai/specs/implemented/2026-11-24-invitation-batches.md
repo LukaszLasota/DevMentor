@@ -1,6 +1,7 @@
 # Operators invite mentors in batches of 20 and see who published a slot within two weeks
 
 Status: implemented (2026-11-24, PR #100; validate green; full integration suite 216/216 green on the final diff, owner run 14:15; Q2 decided as D28)
+Note (2026-11-25 audit): this spec is in `implemented/` and has a capability digest (`.ai/specs/capabilities/invitation-batches.md`); Q2 is decided (D28). Sentences below saying otherwise are stale.
 Source: `.ai/context/2026-11-24-lesson-21-brief.md` (lesson 21), adapting the course prompt for the reference project's issue #30 (course material, kept outside this public repository) · Brief: `.ai/specs/product-brief.md` (R13, D13, A02; also R16, D19, D24)
 Extends: .ai/specs/implemented/2026-10-21-mentor-invitations.md
 Supersedes: .ai/specs/implemented/2026-10-21-mentor-invitations.md — sections: Proposed Solution (out of scope: "enforcing batches of 20 and the two-week report"; `create` printing the link for the operator to send by hand)

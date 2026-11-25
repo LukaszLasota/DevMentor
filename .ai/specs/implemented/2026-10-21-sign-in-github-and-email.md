@@ -1,6 +1,7 @@
 # Sign in with GitHub, email and password as fallback
 
 Status: implemented
+Note (2026-11-25 audit): also stale — `/admin/invitations` lists invitations; the demo operator account also has the mentor role (`demo-accounts.ts`); the page guard is `requirePageRole(currentPath, ...roles)`.
 Issue: #21 (E01-S01) · Epic: #16 · Source: `.ai/specs/product-brief.md` (R11, D12) · Primitives: `.ai/specs/implemented/2026-10-21-platform-primitives.md` · Follows the course reference spec `2026-09-04-accounts-and-roles.md` (lesson 05), adapted to this repository
 Prototypes: `prototypes/konta-i-role/` (clickable, Epic 01; local lesson-07 work, not in git) · `.ai/prototypes/discovery/mentor-onboarding/revision-001/` (grey, mentor onboarding) · Screen map: `lekcja-07/mapa-ekranow.md` (s01–s10, approved 2026-10-23; local)
 

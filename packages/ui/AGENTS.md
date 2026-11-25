@@ -5,11 +5,11 @@ Standalone React components: shadcn primitives, the panel layer `backend/`, conc
 ## Design system
 
 - Read `docs/design-system.md` before building any screen; components, tokens and rules are documented in the Storybook in `packages/ui` (`npm run storybook -w @devmentor/ui`). Interface language: English.
-- Semantic tokens only (`npm run check:tokens`). Tokens: `packages/ui/src/tokens.css`; Tailwind mapping and panel theme: `packages/ui/src/styles.css`, imported as `@devmentor/ui/styles.css` by every panel root layout.
+- Semantic tokens only (`npm run check:tokens`). Tokens: `packages/ui/src/tokens.css`; Tailwind mapping: `packages/ui/src/theme.css`; panel stylesheet: `packages/ui/src/styles.css` (imports `theme.css`), imported as `@devmentor/ui/styles.css` by every panel root layout.
 
 ## Panel layer (`packages/ui/src/backend/`, exported from `@devmentor/ui`)
 
-- `api/apiCall.ts` (`apiCall`/`apiCallOrThrow`) — the only sanctioned `fetch()` to `/api/*`.
+- `api/apiCall.ts` (`apiCall`/`apiCallOrThrow`) — the only sanctioned `fetch()` to `/api/*` from the UI. Exception: `packages/app/src/proxy.ts` probes `/api/mentors/<slug>` server-side for a true 404 (`.ai/lessons.md`, 2026-11-20).
 - `forms/CrudForm.tsx` — schema-driven form, every create/edit form.
 - `tables/DataTable.tsx` — every list.
 - `feedback/{LoadingMessage,ErrorMessage,EmptyState}.tsx` — the only loading/error/empty renderers.

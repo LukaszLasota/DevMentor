@@ -1,6 +1,7 @@
 # A mentee cancels a booking (free up to 24 hours before) and can report a dispute
 
 Status: implemented — phase 1 in #58, phase 2 (dispute reports) on branch feat/booking-reports — Q1 confirmed by the owner on 2026-11-20 (refund through the Stripe API)
+Note (2026-11-25 audit): superseded in part — dispute reports can now be resolved (`resolvedAt`, `POST /api/admin/reports/[id]/resolve`, `2026-11-21-mentor-payouts.md`); a cancel records `refund_status = requested` and the `/admin` attention list covers `requested`, `pending` and `failed`; `SlotsPanel` is `packages/ui/src/components/mentors/SlotsPanel.tsx` and its late-cancel copy is "Cancelled by mentee · less than 2 h away"; the cancelled-booking guard is in `booking.service.ts` `applyCompleted` (no longer line 241).
 Issue: #30 (E03-S02) · Epic: #18 · Depends on: #29 (`.ai/specs/implemented/2026-11-20-booking-stripe-checkout.md`, implemented in #55/#56) · Source: `.ai/specs/product-brief.md` (R10, R16, D10)
 
 ## 📝 TLDR

@@ -18,7 +18,7 @@ How I run an unknown repository: in a container with only the repository mounted
 
 Full table (119 skills, 1 MCP-only plugin) in `.ai/security-skills-review.md`. Summary:
 
-- Repo: 58 `om-*` + 2 grill skills (installed via `npx skills add`, tracked in `skills-lock.json`); global: 7 `qodo-*` (from `qodo setup`), 22 org-synced, plugins superpowers (twice: project 6.3.0 and user 7.0.2), qodo, engineering. MCP: `figma` (connector), GitKraken (claude.ai connector).
+- Repo (count updated 2026-11-25 from `skills-lock.json`): 74 `om-*` + `grill-me`, `grilling`, `threat-model` = 77 skills (installed via `npx skills add`, tracked in `skills-lock.json`); global: 7 `qodo-*` (from `qodo setup`), 22 org-synced, plugins superpowers (twice: project 6.3.0 and user 7.0.2), qodo, engineering. MCP: `figma` (connector), GitKraken (claude.ai connector).
 - No skill uses dynamic context `` !`cmd` ``; the course grep's hits were spreadsheet `#VALUE!` text — improved pattern in the review.
 - No malicious injection text found. Verdicts: 61 keep, 53 keep with note, 6 need an owner decision, 0 removed.
 - Findings that need action:
@@ -68,6 +68,15 @@ Project moved to a secret manager: **postponed** by the owner (2026-11-15); `.en
 - Blocks (exit 2, reason to the model): pipe-to-shell (`curl|wget … | sh/bash/zsh/python/node/perl/ruby`, also via `<(…)`, `$(…)`, backticks), recursive `rm` except build artefacts and `/tmp/…`, credential paths (`.ssh`, `.aws`, `.config/gh`, `.qodo`, `.kube`, `.gnupg`, `.claude/projects`, `~/.npmrc`, `~/.pypirc`), any `.env*` / `.envrc` except `.env.example` / `.env.template`. Fails closed (missing `jq`, invalid input → exit 2). 91 tests in `scripts/hooks/pre-tool-use.test.mjs`, executable bit checked.
 - Bypass attempts: `node -e "…readFileSync('.' + 'env')"` passes the hook (exit 0) — stopped by the sandbox `denyRead`; obfuscated names, `find -delete`, `git clean`, `rsync --delete`, download-then-run pass by design (pinned as known gaps in the tests).
 - Where it is incomplete or too broad: it does not see file edits (a `postinstall` added with the Edit tool is not caught); it blocks harmless commands that only mention a protected word (e.g. adding `/.qodo/` to `.gitignore` with `printf`) — use the Edit tool for such changes; the pipe-to-shell rule matches `sh` anywhere after `curl … |`, so `curl … ; echo "$SHA" | jq` is blocked too (false positive seen 2026-11-15) — tighten the rule to a shell word in a later change.
+
+### om-harness hooks (documented 2026-11-25)
+
+`.claude/settings.json` also registers two `PreToolUse` hooks from the `om-harness` skill, both thin wrappers around `.claude/hooks/om-harness/guard.mjs`:
+
+- `block-push-and-pr.sh` (matcher `Bash`): while a staged-only harness run is active (sentinel `om-harness/stage-only.json` in the git dir or a sibling worktree), it refuses remote publication (`git push`, hosting CLIs such as `gh pr create`, API writes, `curl`/`wget`) and shell indirection it cannot resolve. Outside such a run it lets commands through.
+- `freeze-tests.sh` (matcher `Edit|Write|MultiEdit|NotebookEdit`): when a `.om-freeze-tests` sentinel exists, it refuses edits to test files (and paths the sentinel lists) during a fix phase. Without the sentinel it does nothing.
+
+They supplement host permissions and the sandbox, not replace them. They have no tests in `scripts/hooks/` (open owner question).
 
 ## 7. Prompt-injection tests
 

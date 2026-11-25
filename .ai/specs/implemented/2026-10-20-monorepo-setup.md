@@ -1,6 +1,7 @@
 # Monorepo setup
 
 Status: implemented
+Note (2026-11-25 audit): partly superseded — `app/(site)` is now `src/app/(marketing)`; `registerDb` was removed and the DI container lives in `packages/core/src/container/container.ts`; root `CLAUDE.md` imports only `@AGENTS.md`.
 
 ## Goal
 

@@ -12,7 +12,7 @@ marketplace booking flow). Decisions below were confirmed with the project owner
 
 ## Adaptation notes (2026-10-20)
 
-Implementation plan and progress: [2026-10-20-engineering-standards-plan.md](2026-10-20-engineering-standards-plan.md). Where this document and the repo differ, these notes win:
+Implementation plan and progress: [2026-10-20-engineering-standards-plan.md](implemented/2026-10-20-engineering-standards-plan.md). Where this document and the repo differ, these notes win:
 
 - **Implemented now (foundation):** §3 in `AGENTS.md`; §5 step 2; ESLint boundaries; `core/src/config/env.ts`, `core/src/logger.ts`, container in `core/src/container/`; Vitest; `npm audit` gate. `auth.ts` landed with the auth concept (`packages/core/src/http/auth.ts`, Epic 01).
 - **Not applicable here:** §5 steps 1, 3 and 8 refer to files this repo never had (`user.entity.ts`, `mentor-profile.entity.ts`, `user.service.ts`, `/admin/users`, `docs/product-scope.md`, `base.entity.ts`). The reference example is `/api/health` (`HealthService` + `apiHandler`) and `/admin` (`apiCall` + `DataTable`).

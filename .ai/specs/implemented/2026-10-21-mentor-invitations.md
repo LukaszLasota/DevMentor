@@ -2,6 +2,7 @@
 > ⚠️ Superseded by `.ai/specs/implemented/2026-11-24-invitation-batches.md` (2026-11-24) — sections: Proposed Solution (batches out of scope; `create` printing the link to send by hand). Current state: see the new spec.
 
 Status: implemented
+Note (2026-11-25 audit): also stale — `create` emails the link (it prints it only with `MAIL_PROVIDER=log`); `/admin/invitations` lists invitations; `batch` is a free-text label kept beside the `InvitationBatch` foreign key; the page guard is `requirePageRole(currentPath, ...roles)`.
 Issue: #22 (E01-S02) · Epic: #16 · Source: `.ai/specs/product-brief.md` (R13, R16, D13, D24) · Builds on: `.ai/specs/implemented/2026-10-21-sign-in-github-and-email.md`, `.ai/specs/implemented/2026-10-21-platform-primitives.md` · Follows the course reference spec `2026-09-08-invitations.md` (lesson 05), adapted to this repository
 Prototypes: `prototypes/konta-i-role/` (clickable, Epic 01; local lesson-07 work, not in git) · `.ai/prototypes/discovery/mentor-onboarding/revision-001/` (grey, mentor onboarding) · Screen map: `lekcja-07/mapa-ekranow.md` (s01–s10, approved 2026-10-23; local)
 

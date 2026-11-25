@@ -1,5 +1,7 @@
 # Monorepo setup — plan
 
+Status: implemented (PR #1, merged 2026-10-20)
+Note (2026-11-25 audit): partly superseded — `(site)` is now `(marketing)`; the container lives in `packages/core/src/container/container.ts` (not `packages/app/server/container.ts`); `/api/health` now returns `{ ok: true, data: { database: "up" } }`; root `CLAUDE.md` imports only `@AGENTS.md`.
 Spec: [2026-10-20-monorepo-setup.md](2026-10-20-monorepo-setup.md)
 Branch: `feature/monorepo-setup`
 

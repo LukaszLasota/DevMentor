@@ -6,11 +6,11 @@ Details of the `.ai/` workflow summarised in the root `AGENTS.md` § AI workspac
 
 All AI-generated working artifacts live in `.ai/` — never in the repo root, `docs/`, or an agent's private memory only (specs from planning/brainstorming skills go to `.ai/specs/`, not the skill's default location).
 
-- `.ai/specs/` — specs for spec-driven development, active / in progress; `implemented/` — done; `archive/` — abandoned or superseded.
-- `.ai/runs/` — logs of autonomous AI runs. `.ai/context/` — agent-context audits.
+- `.ai/specs/` — specs for spec-driven development, active / in progress; `implemented/` — done; `archive/` — abandoned or superseded; `capabilities/` — current-state digests of a capability, kept up to date when a spec changes it; `research/` — discovery material (interviews, benchmarks, personas) and `research/decisions/` (one file per recorded product decision). The undated `product-brief.md` and `backlog.md` are living documents.
+- `.ai/runs/` — logs of autonomous AI runs: a single file, or a folder `YYYY-MM-DD-slug/` when the run skill keeps a plan and checkpoints (e.g. `om-auto-create-pr-loop`). `.ai/context/` — agent-context audits.
 - `.ai/lessons.md` (index, newest first) + `.ai/lessons/` (detailed write-ups) — this project's long-term memory for every agent.
 
-Every file in `specs/`, `runs/` and `lessons/` is named `YYYY-MM-DD-slug.md`: the creation date (do not rename when updated or moved) and a short kebab-case slug, e.g. `2026-10-20-user-login.md`.
+Every spec, run log and lesson file is named `YYYY-MM-DD-slug.md` (a run folder `YYYY-MM-DD-slug/`; living documents, capability digests and decision records are exempt): the creation date (do not rename when updated or moved) and a short kebab-case slug, e.g. `2026-10-20-user-login.md`.
 
 ## Mandatory workflow
 

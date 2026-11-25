@@ -29,7 +29,7 @@ export type StripeEventHandlers = ReadonlyMap<string, StripeEventHandler>;
 /**
  * The registry, built per request scope so handlers can use scoped services (spec
  * 2026-11-20-booking-stripe-checkout): Checkout completion confirms or orphans a booking, expiry
- * releases a hold. #26 adds `account.updated`. A Checkout object that does not parse can never be
+ * releases a hold. `account.updated` is not handled (spec 2026-11-21-mentor-payouts). A Checkout object that does not parse can never be
  * applied, so it is logged and acknowledged rather than redelivered forever.
  */
 export function createStripeEventHandlers({ bookingService, logger }: Pick<Cradle, 'bookingService' | 'logger'>): StripeEventHandlers {

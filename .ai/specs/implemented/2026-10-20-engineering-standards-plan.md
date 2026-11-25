@@ -1,6 +1,8 @@
 # Engineering standards — implementation plan
 
-Spec: [2026-09-01-engineering-standards.md](2026-09-01-engineering-standards.md)
+Status: implemented (all phases ✅, 2026-10-20)
+Note (2026-11-25 audit): the composition root is `packages/core/src/container/container.ts`; `app/server/container.ts` named below no longer exists.
+Spec: [2026-09-01-engineering-standards.md](../2026-09-01-engineering-standards.md)
 Branch: `feature/engineering-standards`
 
 ## Decisions (user, 2026-10-20)

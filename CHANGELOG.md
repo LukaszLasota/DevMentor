@@ -40,5 +40,6 @@ The first release: invited senior engineers publish a mentor page and open times
 - npm-workspaces monorepo, engineering standards, local PostgreSQL, one-command setup (#1, #3, #4, #5, #14).
 - CI with 100% unit coverage and integration tests (testcontainers + agent-browser) (#6, #72); nightly checks (#84); lint gate for the mentor-name fallback and a ruleset on `main` (#96).
 - Design system with Storybook (#37, #39); agent pipeline, skills and multi-model review harness (#8, #9, #46, #101).
+- Docker image and Compose deploy for one VPS, with a one-shot migration service (#108); Release workflow and `npm run release` (#107).
 
 [1.0.0]: https://github.com/LukaszLasota/DevMentor/releases/tag/v1.0.0
