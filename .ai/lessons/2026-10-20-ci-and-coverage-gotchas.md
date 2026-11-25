@@ -1,6 +1,6 @@
 # CI and coverage gotchas (2026-10-20)
 
-Found while implementing `specs/2026-10-20-ci-and-test-coverage.md`.
+Found while implementing `.ai/specs/implemented/2026-10-20-ci-and-test-coverage.md`.
 
 - **`vitest run --coverage --project <name>` reports 0/0** with a root-level `coverage.include`; run coverage for all projects and filter the report instead.
 - **Unreachable branches block 100% branch coverage.** `z.flattenError` never returns empty field arrays, so a defensive `if (messages.length > 0)` is dead code — remove it rather than excluding it.

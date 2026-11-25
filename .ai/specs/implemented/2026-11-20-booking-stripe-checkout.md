@@ -1,6 +1,7 @@
 # A mentee books a slot at least two hours ahead and pays through Stripe Checkout
 
 Status: implemented — phase 1 in #55, phases 2–3 in #56 (Q2 and Q7 confirmed by the owner on 2026-11-20)
+Note (2026-11-25 audit): superseded in part — R10 "no automatic refunds" no longer holds: a free cancellation is refunded through Stripe (D25, `2026-11-20-booking-cancellation.md`); `account.updated` is not handled (`2026-11-21-mentor-payouts.md`); the webhook handlers are `applyCompleted`/`applyExpired`, not `confirmFromCheckout`/`expireFromCheckout`.
 Issue: #29 (E03-S01) · Epic: #18 · Depends on: #23 (`.ai/specs/implemented/2026-10-21-mentor-page.md`), #24 (`.ai/specs/implemented/2026-10-21-mentor-prices.md`), #25 (`.ai/specs/implemented/2026-10-21-availability-slots.md`), #27 (`.ai/specs/implemented/2026-10-21-mentor-list.md`), #28 (`.ai/specs/implemented/2026-10-21-mentor-share-link-page.md`) · Shares the Stripe client contract with #26 (`.ai/specs/archive/2026-10-21-stripe-connect-payouts.md`); owns the durable webhook inbox #26 phase 2 and #35 use · Source: `.ai/specs/product-brief.md` (R02, R06, R09, R10, R14, D09, D10, D11, Q04) · No course story spec exists for booking (lesson 05 ends at the bookable mentor)
 
 ## 📝 TLDR

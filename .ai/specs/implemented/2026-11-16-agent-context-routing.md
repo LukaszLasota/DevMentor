@@ -1,6 +1,7 @@
 # Agent context routing (lesson 10)
 
 Status: implemented (2026-11-16; item 7: first-cut Context Scope measurement recorded, start-up re-measure after new sessions is an owner follow-up)
+Note (2026-11-25 audit): `.mcp.json` is not committed; the references to it below are preventive allowlist entries.
 Source: course lesson 10 "Context engineering" (local copy `C:\AI techleaders\Lekcja 10`) · Skills used from `pat-lewczuk/skills` (`eliminate-no-op`, `task-router`, read and checked 2026-11-16, not installed) · Measurement: Context Scope 0.11.0 (`open-mercato/context-scope`, local, read 2026-11-16)
 
 ## Goal

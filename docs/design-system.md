@@ -12,10 +12,10 @@ Matter-of-fact, not generic. Dense where people scan (mentor and slot lists: thi
 - Interface language: English.
 
 ## Where things are
-- Tokens: `packages/ui/src/tokens.css` (raw → semantic → component, light + `.dark`); Tailwind mapping in `packages/ui/src/styles.css`.
+- Tokens: `packages/ui/src/tokens.css` (raw → semantic → component, light + `.dark`); Tailwind mapping in `packages/ui/src/theme.css` (imported by `packages/ui/src/styles.css`).
 - Components: `@devmentor/ui` (panels, auth, admin; shadcn base restyled) and `@devmentor/ui/mentors` (public pages, Tailwind only, no Radix).
 - Storybook: `packages/ui/.storybook`, stories in `packages/ui/stories/` (Design system, Foundations, Primitives, Product, Patterns, Screens).
-- Progress and decisions: `packages/ui/POSTEP.md`.
+- Historical log of lesson 06 (not current rules): `packages/ui/POSTEP.md`.
 
 ## Components
 | Component | Import | When | When not |

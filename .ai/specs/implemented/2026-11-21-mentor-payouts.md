@@ -1,6 +1,7 @@
 # Mentors connect Stripe and are paid each session minus the 20% fee
 
 Status: implemented (branch feat/mentor-payouts) — scope and order chosen by the session owner on 2026-11-20 (#26 and #35 together, Stripe test mode on the stub, transfer only after the session); autonomous defaults below
+Note (2026-11-25 audit): `PLATFORM_FEE_BPS` accepts 0–9999 (`env.ts`); a range of 0–10000 below is stale.
 Issues: #26 (E01-S06, Connect onboarding) and #35 (E01-S07, fee and payout) · Epic: #16 · Depends on: #29 (booking and Checkout), #30 (cancellation), #31 (sessions) · Builds on and narrows: `.ai/specs/archive/2026-10-21-stripe-connect-payouts.md` (approved for 1.1; this spec answers its topology gate and simplifies its provisioning) · Source: `.ai/specs/product-brief.md` (R12, R14, R16, D11, D15, Q04)
 
 ## 📝 TLDR

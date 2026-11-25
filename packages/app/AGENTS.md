@@ -35,7 +35,7 @@ The two blocks above are written by `next dev` (`node_modules/next/dist/server/l
 
 ### Routes and rendering
 
-- HTTP/rendering only: business rules live in `core` services. Every route handler is wrapped in `apiHandler` (or `makeCrudRoute`) from `@devmentor/core/http` — no own `try/catch` or `NextResponse.json()`. A handler with more than one service call lives in `packages/core/src/http/<concept>.ts`; the route file only wires it.
+- HTTP/rendering only: business rules live in `core` services. Every route handler is wrapped in `apiHandler` (or `makeCrudRoute`) from `@devmentor/core/http` (exception: top-level browser redirects such as `api/auth/github` use `redirectHandler`) — no own `try/catch` or `NextResponse.json()`. A handler with more than one service call lives in `packages/core/src/http/<concept>.ts`; the route file only wires it.
 - No `export const dynamic` (removed with `cacheComponents`) and no `use cache` around DB reads: uncached DB access runs at request time. The app must build and boot with no database reachable — check `npm run build` without a DB.
 - The root `.env` is loaded by `packages/app/next.config.ts`.
 

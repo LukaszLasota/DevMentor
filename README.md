@@ -79,7 +79,7 @@ npm run dev                     # http://localhost:3000
 
 - Public site: [http://localhost:3000](http://localhost:3000)
 - Admin panel: [http://localhost:3000/admin](http://localhost:3000/admin)
-- Health check (DB connection via DI): [http://localhost:3000/api/health](http://localhost:3000/api/health) — `200 { ok: true }` or `503` when the database is down
+- Health check (DB connection via DI): [http://localhost:3000/api/health](http://localhost:3000/api/health) — `200 { ok: true, data: { database: "up" } }` or `503` when the database is down
 
 ### Sign in locally (GitHub stub)
 
@@ -252,7 +252,7 @@ docker compose -f docker-compose.prod.yml logs -f app
 
 ### First-time steps
 
-1. `https://<domain>/api/health` returns `200 { ok: true }`.
+1. `https://<domain>/api/health` returns `200 { ok: true, data: { database: "up" } }`.
 2. **GitHub OAuth App** for production (see "Sign in with real GitHub"): Homepage URL `https://<domain>`, Authorization callback URL `https://<domain>/api/auth/github/callback`; its origin must equal `APP_URL`.
 3. **Operators:** `OPERATOR_EMAILS` lists the founders' verified emails. After a change: `docker compose -f docker-compose.prod.yml up -d --force-recreate app`.
 4. Sign in as an operator, open **/admin/invitations** and open batch 1; invitations go out through Resend (see "Invite a mentor").
@@ -320,7 +320,7 @@ Both route through their own Traefik: `TRUSTED_PROXY_HOPS=1` (2 with Cloudflare 
 | `npm run test:integration` | Build + integration tests: PostgreSQL via testcontainers, GitHub stub, pages via agent-browser (needs Docker); `DEBUG_APP_LOGS=1` prints the app log |
 | `npm run github:stub` | Local GitHub OAuth stub on port 3999 (see "Sign in locally") |
 | `npm run audit` | `npm audit` gate (high/critical, minus `audit-allowlist.json`) |
-| `npm run validate` | Lint, typecheck, coverage, build, audit |
+| `npm run validate` | Agent files (`check:agents`), lint, typecheck, coverage, build, audit |
 | `npm run db:migrate` | Apply all pending migrations |
 | `npm run db:seed` | Create or restore the demo accounts (development only; see "Seed demo accounts") |
 | `npm run invite -- <command>` | Mentor invitations: `create`, `list`, `resend`, `revoke` (see "Invite a mentor") |

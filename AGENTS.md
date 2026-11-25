@@ -8,7 +8,7 @@ Next.js 16 (App Router, `cacheComponents`), React 19, TypeScript (`strict`, no `
 
 ## Commands
 
-- `npm run validate` — agent files, lint, typecheck, unit tests with coverage, build, audit (all gates except integration). Run it before review, plus `npm run test:integration` when HTTP/DB/UI behaviour changes.
+- `npm run validate` — agent files, lint, typecheck, unit tests with coverage, build, audit. CI also runs integration, `check:tokens` and the Storybook tests. Run it before review, plus `npm run test:integration` when HTTP/DB/UI behaviour changes.
 - `npm run dev | build | lint | typecheck | test | test:coverage | test:integration | audit | check:tokens`; `npm run db -- <mikro-orm command>`.
 - `npm run check:agents` — budgets and paths of every `AGENTS.md`/`CLAUDE.md`; run it after editing agent files.
 - Install a dependency into one package: `npm install <dep> -w @devmentor/<name>`. Packages are consumed as TypeScript source (no build step; Turbopack transpiles them).
@@ -25,7 +25,7 @@ Next.js 16 (App Router, `cacheComponents`), React 19, TypeScript (`strict`, no `
 | `packages/ui` | React components: shadcn primitives, panel layer `backend/`, concept components | nothing internal |
 
 - Only `db` imports `@mikro-orm/*`. `core` and `db` never import `next`/`react`. `ui` never imports `core`.
-- Import packages through their public entries (`@devmentor/core`, `@devmentor/core/http`, `@devmentor/core/validators`, `@devmentor/ui`, `@devmentor/ui/mentors`), never relative paths into another package.
+- Import packages through their public entries (`@devmentor/core`, `@devmentor/core/http`, `@devmentor/core/validators`, `@devmentor/core/cli`, `@devmentor/ui`, `@devmentor/ui/mentors`, `@devmentor/ui/styles.css`, `@devmentor/ui/theme.css`), never relative paths into another package.
 - Every route and page reuses the shared API & UI layer (`@devmentor/core/http`, `@devmentor/ui` panel layer) instead of re-implementing fetch, validation, auth or error handling — details in `packages/core/AGENTS.md` and `packages/ui/AGENTS.md`.
 
 ## Domain concepts
@@ -43,7 +43,7 @@ Domain code is not organized into `modules/`. Each concept (`auth`, `mentors`, `
 
 ## Agent workshop security
 
-- **Agent config is code.** `.claude/`, `.agents/`, `.mcp.json`, every `AGENTS.md` and `CLAUDE.md`, `skills-lock.json` and `.github/workflows/` are owned in `.github/CODEOWNERS` (full list there); changes to them go through the owner's review like any other code.
+- **Agent config is code.** `.claude/`, `.agents/`, `.mcp.json`, every `AGENTS.md` and `CLAUDE.md`, `skills-lock.json` and `.github/workflows/` are owned in `.github/CODEOWNERS` (full list there); the owner reviews changes to them like any other code. GitHub does not enforce it yet ("Require review from Code Owners" stays off on this solo repo, see the file's header).
 - **Never read secrets.** Do not open `.env` / `.env.*` (only `.env.example` is readable), `*.pem`, `~/.ssh`, `~/.aws`, `~/.config/gh`, `~/.qodo`, `~/.kube` or session history in `~/.claude/projects` — not with Read, not through any command. Do not try to work around a block: ask the user.
 - **The sandbox and the hook are quality gates.** `.claude/settings.json` (`permissions.deny`, `sandbox` with the network allowlist and `denyRead`, `PreToolUse` hook) and `.claude/hooks/pre-tool-use.sh` (tests: `scripts/hooks/pre-tool-use.test.mjs`) apply to every session. Never weaken them (remove a deny rule, widen `allowedDomains`, add `excludedCommands`, turn the sandbox off, edit the hook to let more through) without the owner's explicit approval; a new domain or excluded command is added deliberately, with its reason recorded.
 - **Owner-run and approved commands.** `npm run setup`, `npm run db:migrate`, `npm run db:seed` and `npm run invite` read `.env`, which the sandbox hides: ask the owner to run them (`!` prefix). `npm run dev`, `npm run test:integration` and `docker compose …` run outside the sandbox and need the owner's approval each time (`permissions.ask`), because they execute code the agent may have changed. `git push` runs outside the sandbox without a prompt (owner decision, 2026-11-22); merges stay with the owner.
@@ -63,7 +63,7 @@ Read the files in the row before starting; for code in a package, also that pack
 | Refactor | `BACKWARD_COMPATIBILITY.md`, `.ai/specs/2026-09-01-engineering-standards.md` §1 (Architecture, Engineering Principles), `eslint.config.mjs` |
 | Review | `CODE_REVIEW.md`, `.ai/specs/2026-09-01-engineering-standards.md` §1 (Security & Validation, Code Review Checklist), `BACKWARD_COMPATIBILITY.md` |
 | Spec writing/updating | `.ai/README.md`, `SDLC.md` § Ticket lifecycle, `.ai/specs/product-brief.md`, `.ai/specs/backlog.md`, example: `.ai/specs/implemented/2026-10-21-mentor-invitations.md` |
-| UI screen/component | `docs/design-system.md`, `packages/ui/AGENTS.md`, `packages/app/AGENTS.md`, `packages/ui/POSTEP.md` |
+| UI screen/component | `docs/design-system.md`, `packages/ui/AGENTS.md`, `packages/app/AGENTS.md` |
 | Database/entity/migration | `packages/db/AGENTS.md`, `packages/core/AGENTS.md` § Services and DI (transactions) |
 | API route | `packages/core/AGENTS.md` § HTTP layer, `packages/app/AGENTS.md`, `.ai/specs/2026-09-01-engineering-standards.md` §1 (Reusable API & UI Layer) |
 | Auth/session/roles | `packages/core/src/http/auth.ts`, `packages/core/src/auth/session-user.ts`, `packages/app/src/lib/session.ts`, `.ai/specs/implemented/2026-10-21-sign-in-github-and-email.md`, `.ai/specs/2026-09-01-engineering-standards.md` §1 (Security & Validation) |
@@ -72,5 +72,5 @@ Read the files in the row before starting; for code in a package, also that pack
 | Lessons/run logs | `.ai/README.md`, `.ai/lessons.md`, example run log: `.ai/runs/2026-10-26-epic-01-track.md` |
 | Local setup/env | `README.md` § Getting started, `.env.example`, `packages/core/src/config/env.ts`, `.ai/lessons/2026-10-20-monorepo-tooling-gotchas.md` |
 | Workflow/process (specs lifecycle, run logs, skills) | `.ai/README.md`, `SDLC.md` § Ticket lifecycle |
-| Release/PR process | `SDLC.md`, `.ai/agentic.config.json` |
+| Release/PR process | `SDLC.md`, `.ai/agentic.config.json`, `README.md` § Releasing, `.github/workflows/release.yml`, `UPGRADE_NOTES.md` |
 | Any change inside a package | that package's file: `packages/app/AGENTS.md`, `packages/core/AGENTS.md`, `packages/db/AGENTS.md`, `packages/ui/AGENTS.md` |
