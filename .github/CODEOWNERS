@@ -1,6 +1,7 @@
 # Agent configuration is code: changes to these paths need the code owner's review.
 # Enforced only with branch protection "Require review from Code Owners"; on a solo repo
-# that blocks self-merge, so it stays off until there is a second maintainer (owner's decision).
+# that blocks self-merge, so it stays off until there is a second maintainer (owner's decision,
+# confirmed 2026-11-25 after the knowledge audit, which also added the paths from .ai/ down).
 
 /.claude/                @LukaszLasota
 /.agents/                @LukaszLasota
@@ -13,3 +14,8 @@
 /skills-lock.json        @LukaszLasota
 /.github/workflows/      @LukaszLasota
 /.github/CODEOWNERS      @LukaszLasota
+/.ai/skills/             @LukaszLasota
+/.ai/agentic.config.json @LukaszLasota
+/.ai/trackers/           @LukaszLasota
+/eslint.config.mjs       @LukaszLasota
+/scripts/hooks/          @LukaszLasota

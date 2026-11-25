@@ -32,6 +32,7 @@ Full table (119 skills, 1 MCP-only plugin) in `.ai/security-skills-review.md`. S
 
 - `permissions.allow`: none in the repository (personal `settings.local.json` only).
 - `permissions.deny` (`.claude/settings.json`): Read of `.env`, `.env.local`, `.env.*.local`, `.env.development|production|test`, `.envrc`, `**/*.pem`, `~/.ssh/**`, `~/.aws/**`, `~/.config/gh/**`, `~/.kube/**`, `~/.qodo/auth.key`, session transcripts `~/.claude/projects/**/*.jsonl`; Edit of the same dotenv files and credential directories. `.env.example` stays readable (deny always beats allow, so the files are listed by name).
+- `permissions.ask`: `npm run dev`, `docker compose *`, and the integration suite in every form — `npm run test:integration` with or without arguments and `npx vitest … vitest.integration…` (owner decision 2026-11-25: the 2026-11-25 knowledge audit found a skill that ran the suite through `npx vitest`, which the exact-match rule did not catch).
 - Mode: auto mode with the owner approving outward actions (PRs, pushes, merges are the owner's).
 
 ## 4. Secrets in sessions

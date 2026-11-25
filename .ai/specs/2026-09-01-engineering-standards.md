@@ -1,7 +1,8 @@
 # DevMentor — Engineering Standards & Package Structure
 
 Date: 2026-09-01
-Status: in-progress
+Status: in-progress — a living standard (owner decision 2026-11-25); it stays in `.ai/specs/` and is updated, not superseded.
+Note (2026-11-25 audit): parts of §1/§2/§4 describe a planned structure the code did not take: roles exist (`packages/db/src/entities/auth/user.entity.ts`, `requireRole` in `packages/core/src/http/auth.ts`); routes use `apiHandler` (no route uses `makeCrudRoute`); there are no `.port.ts`/`adapters/`/`event-bus.ts`/`base.entity.ts` files. Where this spec and the code differ, the code and `AGENTS.md` win until the sections are rewritten.
 
 Grounded in the actual bootstrap  and the target
 product scope (`devmentor-training-pack-first-idea`: ~9 domain concepts — auth,

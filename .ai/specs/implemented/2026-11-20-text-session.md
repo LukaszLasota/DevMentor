@@ -1,6 +1,7 @@
 # Mentor and mentee hold the session in text in DevMentor; the mentor gives a written answer
 
 Status: implemented (branch feat/text-session) — Q01 answered on 2026-11-20 by the session owner (Łukasz Lasota, who signs the brief's Definition of Ready): the session happens in DevMentor; founders A and B to record it in the brief
+Known gaps (owner decision 2026-11-25): the session link on `/mentor/slots` and the "Cancelled" / "Opens at" states on the session screen — #112.
 Issue: #31 (E04-S01) · Epic: #19 · Depends on: #29 (`.ai/specs/implemented/2026-11-20-booking-stripe-checkout.md`), #30 (`.ai/specs/implemented/2026-11-20-booking-cancellation.md`) · Feeds: #32 (the note) · Source: `.ai/specs/product-brief.md` (R01, N01, R03, Q01)
 
 ## 📝 TLDR

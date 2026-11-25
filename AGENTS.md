@@ -30,7 +30,7 @@ Next.js 16 (App Router, `cacheComponents`), React 19, TypeScript (`strict`, no `
 
 ## Domain concepts
 
-Domain code is not organized into `modules/`. Each concept (`auth`, `mentors`, `invitations`, `availability`, `bookings`, `payments`, ...) is a same-named sub-folder repeated across the layers that need it: `packages/db/src/entities/<concept>/`, `packages/core/src/services/<concept>/`, `packages/core/src/validators/<concept>/`, `packages/app/src/app/api/<concept>/` (+ pages in the persona route group), `packages/ui/src/components/<concept>/`. Create a concept folder only when its first file is added — never scaffold empty ones. It is a directory convention, not a module runtime: no per-concept setup/ACL/auto-discovery. Step-by-step recipe: engineering standards spec §2.
+Domain code is not organized into `modules/`. Each concept (`auth`, `mentors`, `invitations`, `availability`, `bookings`, `payments`, ...) is a same-named sub-folder repeated across the layers that need it: `packages/db/src/entities/<concept>/`, `packages/core/src/services/<concept>/`, `packages/core/src/validators/<concept>/`, `packages/app/src/app/api/<concept>/` (+ pages in the persona route group), `packages/ui/src/components/<concept>/`. Create a concept folder only when its first file is added — never scaffold empty ones. It is a directory convention, not a module runtime: no per-concept setup/ACL/auto-discovery. Step-by-step recipe: engineering standards spec §2. Accepted exceptions (owner decision 2026-11-25): `packages/ui/src/components/payouts/` (UI for the payments concept) and `packages/core/src/services/operator/` (operator-wide services across concepts).
 
 ## Quality gates
 
