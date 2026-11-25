@@ -1,6 +1,6 @@
 # Weekly maintenance
 
-The prompt of the weekly maintenance run (lesson 25). It replaces the course's Cezar workflow `weekly-maintenance`: same steps, run as one Claude Code agent on a weekly schedule (a `/schedule` routine, or by hand: paste the prompt into a session at the repo root). The run opens at most one docs PR and one issue; it never merges, never changes code outside the dead-code step, and never touches `.ai/specs/implemented/` or `.ai/specs/archive/` content.
+The prompt of the weekly maintenance run (lesson 25). It replaces the course's Cezar workflow `weekly-maintenance`: same steps, run by hand as one Claude Code session at the repo root (paste the prompt). The run opens at most one docs PR and one issue; it never merges, never changes code outside the dead-code step, and never touches `.ai/specs/implemented/` or `.ai/specs/archive/` content.
 
 The owner reads every PR and issue the run leaves, at least for the first weeks (lesson 25: trust in the automation is built slowly). Monthly, by hand: a full audit of the whole repo (`.ai/maintenance/2026-11-25-audit.md` is the baseline), a review of the decisions listed in the maintenance PRs, and a refactoring pass over the duplicate list.
 
@@ -26,4 +26,4 @@ End with a short summary: report path, PR links, issue link, what is red, and th
 
 ## Schedule
 
-Weekly, Sunday 04:00 Europe/Warsaw. The run needs GitHub access for `gh` and `git push`; all PRs are left for the owner to review and merge.
+No automatic schedule (owner decision, 2026-11-25): the owner starts the run by hand once a week by pasting the prompt into a Claude Code session at the repo root. The run needs GitHub access for `gh` and `git push`; all PRs are left for the owner to review and merge.
